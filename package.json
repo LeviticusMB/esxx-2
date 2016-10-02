@@ -1,0 +1,11 @@
+{
+  "name": "node-esxx",
+  "version": "1.0.0",
+  "description": "The friendly Node-based Web Application Runtime",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Martin Blom <martin@blom.org>",
+  "license": "Apache-2.0"
+}

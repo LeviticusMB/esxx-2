@@ -1,20 +1,19 @@
-
 import * as uri   from 'uri-js';
 import * as url   from 'url';
 import * as utils from './utils';
 
-const URI_OPTIONS = {
+const URI_OPTIONS: uri.URIOptions = {
     iri:            true,
     unicodeSupport: true,
     domainHost:     true,
 };
 
 export class URI {
-    uri: any;
+    private uri: uri.URIComponents;
     params: any;
     auth: any;
     jars: any;
-    headers: any;    
+    headers: any;
 
     constructor(base: string | URI | url.Url, relative?: string | URI | url.Url , params?: utils.Params) {
         let Url = (<any> url).Url;
@@ -51,18 +50,20 @@ export class URI {
             throw new URIError('First argument must be of type string, URI or Url');
         }
 
+        let relative_uri : uri.URIComponents | undefined;
+
         if (typeof relative === 'string') {
             if (params !== undefined) {
                 relative = utils.esxxEncoder(relative, params, encodeURIComponent);
             }
 
-            relative = uri.parse(relative, URI_OPTIONS);
+            relative_uri = uri.parse(relative, URI_OPTIONS);
         }
         else if (relative instanceof URI) {
-            relative = relative.uri;
+            relative_uri = relative.uri;
         }
         else if (relative instanceof Url) {
-            relative = uri.parse(url.format(<url.Url> relative), URI_OPTIONS);
+            relative_uri = uri.parse(url.format(<url.Url> relative), URI_OPTIONS);
         }
         else if (relative !== undefined) {
             throw new URIError('Relative argument must be type string, URI or Url, if provided');
@@ -73,12 +74,12 @@ export class URI {
             this.uri = uri.resolveComponents(uri.parse(`file:///${process.cwd()}/`, { tolerant: true }), this.uri, URI_OPTIONS, true);
         }
 
-        if (relative !== undefined) {
+        if (relative_uri !== undefined) {
             if (this.uri.host !== undefined) {
-                this.uri = uri.resolveComponents(this.uri, relative, URI_OPTIONS, true);
+                this.uri = uri.resolveComponents(this.uri, relative_uri, URI_OPTIONS, true);
             }
-            else if ((<any> relative).reference === 'same-document') {
-                this.uri.fragment = (<any> relative).fragment;
+            else if (relative_uri.reference === 'same-document') {
+                this.uri.fragment = relative_uri.fragment;
             }
             else {
                 throw new URIError('Relative argument must be fragment only, if base URI is not a URL');

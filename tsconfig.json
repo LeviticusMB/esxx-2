@@ -3,22 +3,23 @@
         "lib/*.*"
     ],
     "compilerOptions": {
-        "declaration": true,
-        "outDir": "dist",
         "pretty": true,
+        "outDir": "dist",
+        "declaration": true,
+        "sourceMap": false,
+
+        "target": "es6",
+        "lib": ["es6"],
         "module": "commonjs",
         "moduleResolution": "node",
-        "target": "es6",
-        "lib": ["es5", "es6"],
+
         "forceConsistentCasingInFileNames": true,
         "noFallthroughCasesInSwitch": true,
         "noImplicitAny": true,
-//        "suppressImplicitAnyIndexErrors": true,
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "strictNullChecks": true,
-        "sourceMap": false
+        "strictNullChecks": true
     }
 }

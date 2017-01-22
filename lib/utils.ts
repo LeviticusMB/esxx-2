@@ -1,11 +1,20 @@
 
+import { Observable, Subscriber} from '@reactivex/rxjs';
+import { PassThrough }           from 'stream';
+
+export class URIException extends URIError {
+    constructor(message: string, public cause?: Error, public data?: any) {
+        super(cause ? `${message}: ${cause.toString()}` : message);
+    }
+}
+
 export type ValueEncoder = (this: void, value: string) => string;
 
 export interface Params {
     [key: string] : Object | string | number | boolean | null | undefined;
 }
 
-export function kvWrapper(wrapped : any) : Params {
+export function kvWrapper(wrapped: any): Params {
     return new Proxy(wrapped, {
         has: (target, prop) => {
             console.log(`kvWrapper.has ${prop} => ${target[prop] !== undefined}`);
@@ -36,4 +45,75 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
 
         return match.substring(0, start) + (value !== undefined ? encoder(String(value)) : '');
     });
+}
+
+export function toObservable(readable: NodeJS.ReadableStream) {
+    return new Observable<Buffer | string>((observer: Subscriber<Buffer | string>): Function => {
+        let data  = (data: Buffer | string) => observer.next(data);
+        let error = (error: Error)          => observer.error(error);
+        let end   = ()                      => observer.complete();
+
+        readable.on('data',  data);
+        readable.on('error', error);
+        readable.on('end',   end);
+
+        return () => {
+            readable.removeListener('data',  data);
+            readable.removeListener('error', error);
+            readable.removeListener('end',   end);
+        };
+    });
+}
+
+export function toReadableStream(observable: Observable<Buffer | string>): NodeJS.ReadableStream {
+    let passthrough = new PassThrough({});
+
+    observable.subscribe({
+        next(data)   { passthrough.write(data);          },
+        error(error) { passthrough.emit('error', error); },
+        complete()   { passthrough.end();                },
+    });
+
+    return passthrough;
+}
+
+export class ContentType {
+    private unparsed?: string;
+    private type: string;
+    private subtype: string;
+    private params: Map<string, string>;
+
+    constructor(ct: string) {
+        let match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
+
+        if (match) {
+            this.type    = match[1].toLowerCase();
+            this.subtype = match[2].toLowerCase();
+        }
+        else {
+            this.unparsed = ct;
+        }
+    }    
+
+    baseType() {
+        return this.unparsed || `${this.type}/${this.subtype}`;
+    }
+
+    param(key: string, fallback?: string): string | undefined {
+        return this.params && this.params.get(key) || fallback;
+    }
+
+    valueOf() {
+        return this.unparsed || `${this.type}/${this.subtype}`;
+    }
+
+    static create(ct: string | ContentType | null | undefined, fallback: string | ContentType | null | undefined): ContentType {
+        return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
+    }
+
+    static bytes = new ContentType('application/octet-stream');
+    static csv   = new ContentType('text/csv');
+    static json  = new ContentType('application/json');
+    static text  = new ContentType('text/plain');
+    static xml   = new ContentType('application/xml');
 }

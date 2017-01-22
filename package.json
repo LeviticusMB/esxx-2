@@ -8,14 +8,17 @@
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "tsc": "tsc",
-    "build": "npm run clean && npm run tsc",
+    "build": "yarn run clean && yarn run tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/node": "^6.0.45",
-    "typescript": "^2.0.3",
+    "@reactivex/rxjs": "^5.0.3",
+    "@types/node": "^7.0.1",
+    "@types/request": "~0.0.39",
+    "request": "^2.79.0",
+    "typescript": "^2.1.5",
     "uri-js": "^2.1.1"
   }
 }

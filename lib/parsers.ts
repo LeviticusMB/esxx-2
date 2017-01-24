@@ -7,13 +7,13 @@ export abstract class Parser {
 
     constructor(protected contentType: ContentType) { }
     abstract parse(observable: Observable<Buffer | string>): Promise<any>;
-    abstract serialize(payload: any): Observable<Buffer | string>;
+    abstract serialize(data: any): Observable<Buffer | string>;
 
-    protected assertSerializeblePayload(condition: boolean, payload: any): void {
+    protected assertSerializebleData(condition: boolean, data: any): void {
         if (!condition) {
-            let type = payload instanceof Object ? payload.__proto__.constructor.name : payload === 'null' ? 'null' : typeof payload;
+            let type = data instanceof Object ? data.__proto__.constructor.name : data === 'null' ? 'null' : typeof data;
 
-            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, payload);
+            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, data);
         }
     }
 
@@ -23,17 +23,27 @@ export abstract class Parser {
         return new (parser as any)(contentType).parse(observable);
     }
 
-    static serialize(contentType: ContentType, payload: any): Observable<Buffer | string> {
-        if (payload === null || payload === undefined) {
-            payload = '';
+    static async serialize(contentType: ContentType | string | undefined, data: any): Promise<[ContentType, Observable<Buffer | string>]> {
+        if (data instanceof Promise) {
+            data = await data;
+        }
+
+        contentType = ContentType.create(contentType,
+            data instanceof String || typeof data === 'string'                    ? ContentType.text :
+            data instanceof Number || typeof data === 'number'                    ? ContentType.text :
+            data instanceof Array  || data && data.__proto__ === Object.prototype ? ContentType.json :
+            ContentType.bytes);
+
+        if (data === null || data === undefined) {
+            data = '';
         }
 
         let parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
-        return new (parser as any)(contentType).serialize(payload);
+        return [contentType, new (parser as any)(contentType).serialize(data)];
     }
 
-    static register(baseType: string, parser: typeof Parser) : typeof Parser {
+    static register(baseType: string, parser: typeof Parser): typeof Parser {
         Parser.parsers.set(baseType, parser);
         return Parser;
     }
@@ -53,11 +63,11 @@ export class BufferParser extends Parser {
         });
     }
 
-    serialize(payload: Buffer | string): Observable<Buffer> {
+    serialize(data: Buffer | string): Observable<Buffer> {
         return new Observable<Buffer>((observer: Subscriber<Buffer | string>): void => {
-            this.assertSerializeblePayload(typeof payload === 'string' || payload instanceof Buffer, payload);
+            this.assertSerializebleData(typeof data === 'string' || data instanceof Buffer, data);
 
-            observer.next(typeof payload === 'string' ? Buffer.from(payload) : payload);
+            observer.next(typeof data === 'string' ? Buffer.from(data) : data);
             observer.complete();
         });
     }
@@ -77,11 +87,11 @@ export class StringParser extends Parser {
         });
     }
 
-    serialize(payload: string | number | String | Number): Observable<string> {
+    serialize(data: string | number | String | Number): Observable<string> {
         return new Observable<string>((observer: Subscriber<Buffer | string>): void => {
-            this.assertSerializeblePayload(payload !== null && payload !== undefined, payload);
+            this.assertSerializebleData(data !== null && data !== undefined, data);
 
-            observer.next(payload.toString());
+            observer.next(data.toString());
             observer.complete();
         });
     }

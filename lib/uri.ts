@@ -176,14 +176,6 @@ export class URI {
     static encodeURIComponent(strings: TemplateStringsArray, ...values: any[]): string {
         return utils.es6Encoder(strings, values, encodeURIComponent);
     }
-
-    protected static contentType(contentType: ContentType | string | undefined | null, data: any): ContentType {
-        return ContentType.create(contentType,
-            data instanceof String || typeof data === 'string'                    ? ContentType.text :
-            data instanceof Number || typeof data === 'number'                    ? ContentType.text :
-            data instanceof Array  || data && data.__proto__ === Object.prototype ? ContentType.json :
-            ContentType.bytes);
-    }
 }
 
 class UNKNOWN_URI extends URI {}
@@ -219,31 +211,36 @@ class HTTP_URL extends URI {
     }
 
     private _query(method: string, headers: Headers, data: any, send_ct?: ContentType | string, recv_ct?: ContentType | string): Promise<any> {
-        return new Promise((resolve, reject) => {
-            send_ct = URI.contentType(send_ct, data);
+        return new Promise(async (resolve, reject) => {
+            let [contentType, serialized] = await Parser.serialize(send_ct, data);
 
             let observable = utils.toObservable(
                 request({
                     method:   method,
                     uri:      this.valueOf(),
-                    headers:  Object.assign({ 'content-type': send_ct }, headers),
-                    body:     utils.toReadableStream(Parser.serialize(send_ct, data)),
+                    headers:  Object.assign({ 'content-type': contentType }, headers),
+                    body:     utils.toReadableStream(serialized),
                     encoding: null,
                     gzip:     true,
                 })
-                .on('response', (response) => {
-                    Parser.parse(ContentType.create(recv_ct, response.headers['content-type']), observable)
-                        .then((result) => {
-                            Object.defineProperty(result, '@headers',       { value: response.headers       });
-                            Object.defineProperty(result, '@trailers',      { value: response.trailers      });
-                            Object.defineProperty(result, '@statusCode',    { value: response.statusCode    });
-                            Object.defineProperty(result, '@statusMessage', { value: response.statusMessage });
+                .on('response', async (response) => {
+                    try {
+                        let result = await Parser.parse(ContentType.create(recv_ct, response.headers['content-type']), observable);
 
-                            return result;
-                        })
-                        .then(resolve, reject);
+                        // FIXME: Symbols!
+                        Object.defineProperty(result, '@headers',       { value: response.headers       });
+                        Object.defineProperty(result, '@trailers',      { value: response.trailers      });
+                        Object.defineProperty(result, '@statusCode',    { value: response.statusCode    });
+                        Object.defineProperty(result, '@statusMessage', { value: response.statusMessage });
+
+                        resolve(result);
+                    }
+                    catch (ex) {
+                        reject(ex);
+                    }
                 })
                 .pipe(new PassThrough())
+                .on('error', reject)
             );
         });
     }

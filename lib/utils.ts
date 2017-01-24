@@ -11,7 +11,7 @@ export class URIException extends URIError {
 export type ValueEncoder = (this: void, value: string) => string;
 
 export interface Params {
-    [key: string] : Object | string | number | boolean | null | undefined;
+    [key: string]: Object | string | number | boolean | null | undefined;
 }
 
 export function kvWrapper(wrapped: any): Params {
@@ -40,8 +40,8 @@ export function es6Encoder(strings: TemplateStringsArray, values: any[], encoder
 
 export function esxxEncoder(template: string, params: Params, encoder: ValueEncoder) {
     return template.replace(/(^|[^\\])(\\\\)*{([^{} \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+)}/g, (match) => {
-        let start = match.lastIndexOf('{');
-        let value = params[match.substring(start + 1, match.length - 1)];
+        const start = match.lastIndexOf('{');
+        const value = params[match.substring(start + 1, match.length - 1)];
 
         return match.substring(0, start) + (value !== undefined ? encoder(String(value)) : '');
     });
@@ -49,24 +49,24 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
 
 export function toObservable(readable: NodeJS.ReadableStream) {
     return new Observable<Buffer | string>((observer: Subscriber<Buffer | string>): Function => {
-        let data  = (data: Buffer | string) => observer.next(data);
-        let error = (error: Error)          => observer.error(error);
-        let end   = ()                      => observer.complete();
+        const onData  = (data: Buffer | string) => observer.next(data);
+        const onError = (error: Error)          => observer.error(error);
+        const onEnd   = ()                      => observer.complete();
 
-        readable.on('data',  data);
-        readable.on('error', error);
-        readable.on('end',   end);
+        readable.on('data',  onData);
+        readable.on('error', onError);
+        readable.on('end',   onEnd);
 
         return () => {
-            readable.removeListener('data',  data);
-            readable.removeListener('error', error);
-            readable.removeListener('end',   end);
+            readable.removeListener('data',  onData);
+            readable.removeListener('error', onError);
+            readable.removeListener('end',   onEnd);
         };
     });
 }
 
 export function toReadableStream(observable: Observable<Buffer | string>): NodeJS.ReadableStream {
-    let passthrough = new PassThrough({});
+    const passthrough = new PassThrough({});
 
     observable.subscribe({
         next(data)   { passthrough.write(data);          },
@@ -78,13 +78,23 @@ export function toReadableStream(observable: Observable<Buffer | string>): NodeJ
 }
 
 export class ContentType {
+    static readonly bytes = new ContentType('application/octet-stream');
+    static readonly csv   = new ContentType('text/csv');
+    static readonly json  = new ContentType('application/json');
+    static readonly text  = new ContentType('text/plain');
+    static readonly xml   = new ContentType('application/xml');
+
+    static create(ct: string | ContentType | null | undefined, fallback: string | ContentType | null | undefined): ContentType {
+        return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
+    }
+
     private unparsed?: string;
     private type: string;
     private subtype: string;
     private params: Map<string, string>;
 
     constructor(ct: string) {
-        let match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
+        const match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
 
         if (match) {
             this.type    = match[1].toLowerCase();
@@ -93,7 +103,7 @@ export class ContentType {
         else {
             this.unparsed = ct;
         }
-    }    
+    }
 
     baseType() {
         return this.unparsed || `${this.type}/${this.subtype}`;
@@ -106,14 +116,4 @@ export class ContentType {
     valueOf() {
         return this.unparsed || `${this.type}/${this.subtype}`;
     }
-
-    static create(ct: string | ContentType | null | undefined, fallback: string | ContentType | null | undefined): ContentType {
-        return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
-    }
-
-    static readonly bytes = new ContentType('application/octet-stream');
-    static readonly csv   = new ContentType('text/csv');
-    static readonly json  = new ContentType('application/json');
-    static readonly text  = new ContentType('text/plain');
-    static readonly xml   = new ContentType('application/xml');
 }

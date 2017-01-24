@@ -1,35 +1,55 @@
 
 import { PassThrough } from 'stream';
 import { Parser }      from './parsers';
+
 import * as request    from 'request';
 import * as uri        from 'uri-js';
 import * as url        from 'url';
 import * as utils      from './utils';
 
 const URI_OPTIONS: uri.URIOptions = {
+    domainHost:     true,
     iri:            true,
     unicodeSupport: true,
-    domainHost:     true,
 };
 
-export type  ContentType = utils.ContentType;
-export let   ContentType = utils.ContentType;
-export type URIException = utils.URIException;
-export let  URIException = utils.URIException;
+export type  ContentType  = utils.ContentType;
+export const ContentType  = utils.ContentType;
+export type  URIException = utils.URIException;
+export const URIException = utils.URIException;
 
 export interface Headers {
-    [key: string] : string | string[];
+    [key: string]: string | string[];
 };
 
 export class URI {
-    private static protocols = new Map<string, typeof URI>();
+    static register(scheme: string, uri: typeof URI): typeof URI {
+        URI.protocols.set(scheme, uri);
+        return URI;
+    }
 
-    private uri: uri.URIComponents;
+
+    static $(strings: TemplateStringsArray, ...values: any[]): URI {
+        return new URI(URI.encodeURIComponent(strings, ...values));
+    }
+
+    static encodeURI(strings: TemplateStringsArray, ...values: any[]): string {
+        return utils.es6Encoder(strings, values, encodeURI);
+    }
+
+    static encodeURIComponent(strings: TemplateStringsArray, ...values: any[]): string {
+        return utils.es6Encoder(strings, values, encodeURIComponent);
+    }
+
+
+    private static protocols = new Map<string, typeof URI>();
 
     params: any;
     auth: any;
     jars: any;
     headers: any;
+
+    private uri: uri.URIComponents;
 
     constructor(base: string | URI | url.Url, relative?: string | URI | url.Url , params?: utils.Params) {
         if (arguments.length === 1 && this.constructor !== URI && base.constructor === URI) {
@@ -37,7 +57,7 @@ export class URI {
             return;
         }
 
-        let Url = (url as any).Url;
+        const Url = (url as any).Url;
 
         // relative argument is optional ...
         if (params === undefined && typeof relative !== 'string' && !(relative instanceof URI) && !(relative instanceof Url)) {
@@ -71,36 +91,36 @@ export class URI {
             throw new URIException('First argument must be of type string, URI or Url');
         }
 
-        let relative_uri: uri.URIComponents | undefined;
+        let relativeURI: uri.URIComponents | undefined;
 
         if (typeof relative === 'string') {
             if (params !== undefined) {
                 relative = utils.esxxEncoder(relative, params, encodeURIComponent);
             }
 
-            relative_uri = uri.parse(relative, URI_OPTIONS);
+            relativeURI = uri.parse(relative, URI_OPTIONS);
         }
         else if (relative instanceof URI) {
-            relative_uri = relative.uri;
+            relativeURI = relative.uri;
         }
         else if (relative instanceof Url) {
-            relative_uri = uri.parse(url.format(relative as url.Url), URI_OPTIONS);
+            relativeURI = uri.parse(url.format(relative as url.Url), URI_OPTIONS);
         }
         else if (relative !== undefined) {
             throw new URIException('Relative argument must be type string, URI or Url, if provided');
         }
 
-        if (this.uri.reference === 'same-document' || this.uri.reference == 'relative') {
+        if (this.uri.reference === 'same-document' || this.uri.reference === 'relative') {
             // base is relative -- resolve it against current working directory first
             this.uri = uri.resolveComponents(uri.parse(`file:///${process.cwd()}/`, { tolerant: true }), this.uri, URI_OPTIONS, true);
         }
 
-        if (relative_uri !== undefined) {
+        if (relativeURI !== undefined) {
             if (this.uri.host !== undefined) {
-                this.uri = uri.resolveComponents(this.uri, relative_uri, URI_OPTIONS, true);
+                this.uri = uri.resolveComponents(this.uri, relativeURI, URI_OPTIONS, true);
             }
-            else if (relative_uri.reference === 'same-document') {
-                this.uri.fragment = relative_uri.fragment;
+            else if (relativeURI.reference === 'same-document') {
+                this.uri.fragment = relativeURI.fragment;
             }
             else {
                 throw new URIException('Relative argument must be fragment only, if base URI is not a URL');
@@ -108,7 +128,7 @@ export class URI {
         }
 
         if (this.uri.userinfo) {
-            let ui = /([^:]*)(:(.*))?/.exec(this.uri.userinfo);
+            const ui = /([^:]*)(:(.*))?/.exec(this.uri.userinfo);
 
             if (ui) {
                 this.auth = [ { username: ui[1] && decodeURIComponent(ui[1]),
@@ -117,10 +137,10 @@ export class URI {
 
             delete this.uri.userinfo;
         }
-        
+
         this.uri = uri.normalize(this.uri);
 
-        return new (this.uri.scheme && URI.protocols.get(this.uri.scheme) || UNKNOWN_URI)(this);
+        return new (this.uri.scheme && URI.protocols.get(this.uri.scheme) || UnknownURI)(this);
     }
 
     valueOf(): string {
@@ -134,87 +154,70 @@ export class URI {
         return uri.serialize(Object.assign({}, this.uri), URI_OPTIONS);
     }
 
-    async load(_recv_ct?: ContentType | string): Promise<any> {
+    async load(_recvCT?: ContentType | string): Promise<any> {
         throw new URIException(`URI ${this} does not support load()`);
     }
 
-    async save(_data: any, _send_ct?: ContentType | string, _recv_ct?: ContentType | string): Promise<any> {
+    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
         throw new URIException(`URI ${this} does not support save()`);
     }
 
-    async append(_data: any, _send_ct?: ContentType | string, _recv_ct?: ContentType | string): Promise<any> {
+    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
         throw new URIException(`URI ${this} does not support append()`);
     }
 
-    async modify(_data: any, _send_ct?: ContentType | string, _recv_ct?: ContentType | string): Promise<any> {
+    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
         throw new URIException(`URI ${this} does not support modify()`);
     }
 
-    async remove(_recv_ct?: ContentType | string): Promise<any> {
+    async remove(_recvCT?: ContentType | string): Promise<any> {
         throw new URIException(`URI ${this} does not support remove()`);
     }
 
     async query(..._args: any[]): Promise<any> {
         throw new URIException(`URI ${this} does not support query()`);
     }
-
-
-    static register(scheme: string, uri: typeof URI) : typeof URI {
-        URI.protocols.set(scheme, uri);
-        return URI;
-    }
-
-
-    static $(strings: TemplateStringsArray, ...values: any[]): URI {
-        return new URI(URI.encodeURIComponent(strings, ...values))
-    }
-
-    static encodeURI(strings: TemplateStringsArray, ...values: any[]): string {
-        return utils.es6Encoder(strings, values, encodeURI);
-    }
-
-    static encodeURIComponent(strings: TemplateStringsArray, ...values: any[]): string {
-        return utils.es6Encoder(strings, values, encodeURIComponent);
-    }
 }
 
-class UNKNOWN_URI extends URI {}
+class UnknownURI extends URI {}
 
-class HTTP_URL extends URI {
-    async load(recv_ct?: ContentType | string): Promise<any> {
-        return this.requireValidStatus(await this._query('GET', {}, null, undefined, recv_ct));
+class HTTP extends URI {
+    async load(recvCT?: ContentType | string): Promise<any> {
+        return this.requireValidStatus(await this._query('GET', {}, null, undefined, recvCT));
     }
 
-    async save(data: any, send_ct?: ContentType | string, recv_ct?: ContentType): Promise<any> {
-        return this.requireValidStatus(await this._query('PUT', {}, data, send_ct, recv_ct));
+    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<any> {
+        return this.requireValidStatus(await this._query('PUT', {}, data, sendCT, recvCT));
     }
 
-    async append(data: any, send_ct?: ContentType | string, recv_ct?: ContentType | string): Promise<any> {
-        return this.requireValidStatus(await this._query('POST', {}, data, send_ct, recv_ct));
+    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+        return this.requireValidStatus(await this._query('POST', {}, data, sendCT, recvCT));
     }
 
-    async modify(data: any, send_ct?: ContentType | string, recv_ct?: ContentType | string): Promise<any> {
-        return this.requireValidStatus(await this._query('PATCH', {}, data, send_ct, recv_ct));
+    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+        return this.requireValidStatus(await this._query('PATCH', {}, data, sendCT, recvCT));
     }
 
-    async remove(recv_ct?: ContentType | string): Promise<any> {
-        return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recv_ct));
+    async remove(recvCT?: ContentType | string): Promise<any> {
+        return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
-    protected requireValidStatus(result: any): any {
-        if (result['@statusCode'] < 200 || result['@statusCode'] >= 300) {
-            throw new URIException(`URI ${this} request failed: ${result['@statusMessage']} [${result['@statusCode']}]`, undefined, result);
+    protected requireValidStatus<T>(result: T): T {
+        const [code, message] = [(result as any)['@statusCode'], (result as any)['@statusMessage']];
+
+        if (code < 200 || code >= 300) {
+            throw new URIException(`URI ${this} request failed: ${message} [${code}]`, undefined, result);
         }
         else {
             return result;
         }
     }
 
-    private _query(method: string, headers: Headers, data: any, send_ct?: ContentType | string, recv_ct?: ContentType | string): Promise<any> {
+    private _query(method: string, headers: Headers, data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
         return new Promise(async (resolve, reject) => {
-            let [contentType, serialized] = await Parser.serialize(send_ct, data);
+            const [contentType, serialized] = await Parser.serialize(sendCT, data);
 
-            let observable = utils.toObservable(
+            const observable = utils.toObservable(
                 request({
                     method:   method,
                     uri:      this.valueOf(),
@@ -225,7 +228,7 @@ class HTTP_URL extends URI {
                 })
                 .on('response', async (response) => {
                     try {
-                        let result = await Parser.parse(ContentType.create(recv_ct, response.headers['content-type']), observable);
+                        const result = await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
 
                         // FIXME: Symbols!
                         Object.defineProperty(result, '@headers',       { value: response.headers       });
@@ -249,6 +252,6 @@ class HTTP_URL extends URI {
 // Register all built-in protocols
 
 URI
-    .register("http",  HTTP_URL)
-    .register("https", HTTP_URL)
+    .register("http",  HTTP)
+    .register("https", HTTP)
 ;

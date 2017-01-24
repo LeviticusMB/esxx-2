@@ -3,22 +3,13 @@ import { Observable, Subscriber}     from '@reactivex/rxjs';
 import { ContentType, URIException } from './utils';
 
 export abstract class Parser {
-    private static parsers = new Map<string, typeof Parser>();
-
-    constructor(protected contentType: ContentType) { }
-    abstract parse(observable: Observable<Buffer | string>): Promise<any>;
-    abstract serialize(data: any): Observable<Buffer | string>;
-
-    protected assertSerializebleData(condition: boolean, data: any): void {
-        if (!condition) {
-            let type = data instanceof Object ? data.__proto__.constructor.name : data === 'null' ? 'null' : typeof data;
-
-            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, data);
-        }
+    static register(baseType: string, parser: typeof Parser): typeof Parser {
+        Parser.parsers.set(baseType, parser);
+        return Parser;
     }
 
     static parse(contentType: ContentType, observable: Observable<Buffer | string>): Promise<any> {
-        let parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
+        const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
         return new (parser as any)(contentType).parse(observable);
     }
@@ -38,20 +29,29 @@ export abstract class Parser {
             data = '';
         }
 
-        let parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
+        const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
         return [contentType, new (parser as any)(contentType).serialize(data)];
     }
 
-    static register(baseType: string, parser: typeof Parser): typeof Parser {
-        Parser.parsers.set(baseType, parser);
-        return Parser;
+    private static parsers = new Map<string, typeof Parser>();
+
+    constructor(protected contentType: ContentType) { }
+    abstract parse(observable: Observable<Buffer | string>): Promise<any>;
+    abstract serialize(data: any): Observable<Buffer | string>;
+
+    protected assertSerializebleData(condition: boolean, data: any): void {
+        if (!condition) {
+            const type = data instanceof Object ? data.__proto__.constructor.name : data === 'null' ? 'null' : typeof data;
+
+            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, data);
+        }
     }
 }
 
 export class BufferParser extends Parser {
     parse(observable: Observable<Buffer | string>): Promise<Buffer> {
-        let ct = this.contentType.param('charset', 'utf8');
+        const ct = this.contentType.param('charset', 'utf8');
         let result = Buffer.alloc(0);
 
         return new Promise((resolve, reject) => {
@@ -75,7 +75,7 @@ export class BufferParser extends Parser {
 
 export class StringParser extends Parser {
     parse(observable: Observable<Buffer | string>): Promise<string> {
-        let ct = this.contentType.param('charset', 'utf8');
+        const ct = this.contentType.param('charset', 'utf8');
         let result = '';
 
         return new Promise((resolve, reject) => {

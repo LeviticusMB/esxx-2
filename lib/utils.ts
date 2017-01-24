@@ -111,9 +111,9 @@ export class ContentType {
         return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
     }
 
-    static bytes = new ContentType('application/octet-stream');
-    static csv   = new ContentType('text/csv');
-    static json  = new ContentType('application/json');
-    static text  = new ContentType('text/plain');
-    static xml   = new ContentType('application/xml');
+    static readonly bytes = new ContentType('application/octet-stream');
+    static readonly csv   = new ContentType('text/csv');
+    static readonly json  = new ContentType('application/json');
+    static readonly text  = new ContentType('text/plain');
+    static readonly xml   = new ContentType('application/xml');
 }

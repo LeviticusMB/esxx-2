@@ -23,6 +23,11 @@ export interface Headers {
 };
 
 export class URI {
+    static readonly headers       = Symbol('Used to access the response headers');
+    static readonly trailers      = Symbol('Used to access the response trailers');
+    static readonly statusCode    = Symbol('Used to access the response status code');
+    static readonly statusMessage = Symbol('Used to access the response status message');
+
     static register(scheme: string, uri: typeof URI): typeof URI {
         URI.protocols.set(scheme, uri);
         return URI;
@@ -230,11 +235,14 @@ class HTTP extends URI {
                     try {
                         const result = await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
 
-                        // FIXME: Symbols!
-                        Object.defineProperty(result, '@headers',       { value: response.headers       });
-                        Object.defineProperty(result, '@trailers',      { value: response.trailers      });
-                        Object.defineProperty(result, '@statusCode',    { value: response.statusCode    });
-                        Object.defineProperty(result, '@statusMessage', { value: response.statusMessage });
+                        result[URI.headers]       = response.headers;
+                        result[URI.trailers]      = response.trailers;
+                        result[URI.statusCode]    = response.statusCode;
+                        result[URI.statusMessage] = response.statusMessage;
+                        // Object.defineProperty(result, '@headers',       { value: response.headers       });
+                        // Object.defineProperty(result, '@trailers',      { value: response.trailers      });
+                        // Object.defineProperty(result, '@statusCode',    { value: response.statusCode    });
+                        // Object.defineProperty(result, '@statusMessage', { value: response.statusMessage });
 
                         resolve(result);
                     }

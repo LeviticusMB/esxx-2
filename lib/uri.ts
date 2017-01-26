@@ -207,6 +207,23 @@ class HTTP extends URI {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
+    async query(method: string, headers?: Headers | null, data?: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+        if (typeof method !== 'string') {
+            throw new URIException("URI ${this}: query: 'method' argument missing/invalid");
+        }
+        else if (headers !== undefined && !(headers instanceof Object)) {
+            throw new URIException("URI ${this}: query: 'headers' argument missing/invalid");
+        }
+        else if (sendCT !== undefined && !(sendCT instanceof ContentType) && typeof sendCT !== 'string') {
+            throw new URIException("URI ${this}: query: 'sendCT' argument invalid");
+        }
+        else if (recvCT !== undefined && !(recvCT instanceof ContentType) && typeof recvCT !== 'string') {
+            throw new URIException("URI ${this}: query: 'recvCT' argument invalid");
+        }
+
+        return this.requireValidStatus(await this._query(method, headers || {}, data, sendCT, recvCT));
+    }
+
     protected requireValidStatus<T>(result: T): T {
         const [code, message] = [(result as any)['@statusCode'], (result as any)['@statusMessage']];
 

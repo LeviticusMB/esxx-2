@@ -91,7 +91,18 @@ export class StringParser extends Parser {
     }
 }
 
+export class JSONParser extends Parser {
+    async parse(observable: Observable<Buffer>): Promise<Object> {
+        return JSON.parse(await new StringParser(this.contentType).parse(observable));
+    }
+
+    serialize(data: any): Observable<Buffer> {
+        return new StringParser(this.contentType).serialize(JSON.stringify(data));
+    }
+}
+
 Parser
-    .register('text/plain',               StringParser)
+    .register('application/json',         JSONParser)
     .register('application/octet-stream', BufferParser)
+    .register('text/plain',               StringParser)
 ;

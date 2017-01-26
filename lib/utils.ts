@@ -47,9 +47,9 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export function toObservable(readable: NodeJS.ReadableStream) {
-    return new Observable<Buffer | string>((observer: Subscriber<Buffer | string>): Function => {
-        const onData  = (data: Buffer | string) => observer.next(data);
+export function toObservable(charset: string, readable: NodeJS.ReadableStream) {
+    return new Observable<Buffer>((observer: Subscriber<Buffer>): Function => {
+        const onData  = (data: Buffer | string) => observer.next(data instanceof Buffer ? data : Buffer.from(data.toString(), charset));
         const onError = (error: Error)          => observer.error(error);
         const onEnd   = ()                      => observer.complete();
 
@@ -65,7 +65,7 @@ export function toObservable(readable: NodeJS.ReadableStream) {
     });
 }
 
-export function toReadableStream(observable: Observable<Buffer | string>): NodeJS.ReadableStream {
+export function toReadableStream(observable: Observable<Buffer>): NodeJS.ReadableStream {
     const passthrough = new PassThrough({});
 
     observable.subscribe({
@@ -109,7 +109,9 @@ export class ContentType {
         return this.unparsed || `${this.type}/${this.subtype}`;
     }
 
-    param(key: string, fallback?: string): string | undefined {
+    param(key: string): string | undefined;
+    param(key: string, fallback: string): string;
+    param(key: string, fallback?: string): any {
         return this.params && this.params.get(key) || fallback;
     }
 

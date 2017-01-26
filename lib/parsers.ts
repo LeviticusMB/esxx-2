@@ -8,26 +8,24 @@ export abstract class Parser {
         return Parser;
     }
 
-    static parse(contentType: ContentType, observable: Observable<Buffer | string>): Promise<any> {
+    static parse(contentType: ContentType, observable: Observable<Buffer>): Promise<any> {
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
         return new (parser as any)(contentType).parse(observable);
     }
 
-    static async serialize(contentType: ContentType | string | undefined, data: any): Promise<[ContentType, Observable<Buffer | string>]> {
-        if (data instanceof Promise) {
+    static async serialize(contentType: ContentType | string | undefined, data: any): Promise<[ContentType, Observable<Buffer>]> {
+        while (data instanceof Promise) {
             data = await data;
         }
-
-        contentType = ContentType.create(contentType,
-            data instanceof String || typeof data === 'string'                    ? ContentType.text :
-            data instanceof Number || typeof data === 'number'                    ? ContentType.text :
-            data instanceof Array  || data && data.__proto__ === Object.prototype ? ContentType.json :
-            ContentType.bytes);
 
         if (data === null || data === undefined) {
             data = '';
         }
+
+        contentType = ContentType.create(contentType,
+            data instanceof Array || data.__proto__ === Object.prototype ? ContentType.json :
+            ContentType.text);
 
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
@@ -37,8 +35,8 @@ export abstract class Parser {
     private static parsers = new Map<string, typeof Parser>();
 
     constructor(protected contentType: ContentType) { }
-    abstract parse(observable: Observable<Buffer | string>): Promise<any>;
-    abstract serialize(data: any): Observable<Buffer | string>;
+    abstract parse(observable: Observable<Buffer>): Promise<any>;
+    abstract serialize(data: any): Observable<Buffer>;
 
     protected assertSerializebleData(condition: boolean, data: any): void {
         if (!condition) {
@@ -50,48 +48,44 @@ export abstract class Parser {
 }
 
 export class BufferParser extends Parser {
-    parse(observable: Observable<Buffer | string>): Promise<Buffer> {
-        const ct = this.contentType.param('charset', 'utf8');
+    parse(observable: Observable<Buffer>): Promise<Buffer> {
         let result = Buffer.alloc(0);
 
         return new Promise((resolve, reject) => {
             observable
                 .forEach((next) => {
-                    result = Buffer.concat([result, next instanceof Buffer ? next : Buffer.from(next.toString(), ct)]);
+                    result = Buffer.concat([result, next]);
                 })
                 .then(() => resolve(result), reject);
         });
     }
 
-    serialize(data: Buffer | string): Observable<Buffer> {
-        return new Observable<Buffer>((observer: Subscriber<Buffer | string>): void => {
-            this.assertSerializebleData(typeof data === 'string' || data instanceof Buffer, data);
-
-            observer.next(typeof data === 'string' ? Buffer.from(data) : data);
-            observer.complete();
-        });
+    serialize(data: any): Observable<Buffer> {
+        return new StringParser(this.contentType).serialize(data);
     }
 }
 
 export class StringParser extends Parser {
-    parse(observable: Observable<Buffer | string>): Promise<string> {
-        const ct = this.contentType.param('charset', 'utf8');
+    parse(observable: Observable<Buffer>): Promise<string> {
+        const cs = this.contentType.param('charset', 'utf8');
         let result = '';
 
         return new Promise((resolve, reject) => {
             observable
                 .forEach((next) => {
-                    result += next instanceof Buffer ? next.toString(ct) : next.toString();
+                    result += next.toString(cs);
                 })
                 .then(() => resolve(result), reject);
         });
     }
 
-    serialize(data: string | number | String | Number): Observable<string> {
-        return new Observable<string>((observer: Subscriber<Buffer | string>): void => {
+    serialize(data: any): Observable<Buffer> {
+        const cs = this.contentType.param('charset', 'utf8');
+
+        return new Observable<Buffer>((observer: Subscriber<Buffer>): void => {
             this.assertSerializebleData(data !== null && data !== undefined, data);
 
-            observer.next(data.toString());
+            observer.next(data instanceof Buffer ? data : Buffer.from(data.toString(), cs));
             observer.complete();
         });
     }

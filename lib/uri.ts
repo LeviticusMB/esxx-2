@@ -217,7 +217,7 @@ class HTTP extends URI {
         return new Promise(async (resolve, reject) => {
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
 
-            const observable = utils.toObservable(
+            const observable = utils.toObservable('utf8' /* Not applicable because of 'encoding: null' below */,
                 request({
                     method:   method,
                     uri:      this.valueOf(),

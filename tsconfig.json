@@ -12,6 +12,7 @@
         "lib": ["es6", "dom"],
         "module": "commonjs",
         "moduleResolution": "node",
+        "importHelpers": true,
 
         "forceConsistentCasingInFileNames": true,
         "noFallthroughCasesInSwitch": true,

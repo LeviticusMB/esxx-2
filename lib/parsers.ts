@@ -49,16 +49,14 @@ export abstract class Parser {
 }
 
 export class BufferParser extends Parser {
-    parse(observable: Observable<Buffer>): Promise<Buffer> {
+    async parse(observable: Observable<Buffer>): Promise<Buffer> {
         let result = Buffer.alloc(0);
 
-        return new Promise((resolve, reject) => {
-            observable
-                .forEach((next) => {
-                    result = Buffer.concat([result, next]);
-                })
-                .then(() => resolve(result), reject);
+        await observable.forEach((next) => {
+            result = Buffer.concat([result, next]);
         });
+
+        return result;
     }
 
     serialize(data: any): Observable<Buffer> {
@@ -67,25 +65,22 @@ export class BufferParser extends Parser {
 }
 
 export class StringParser extends Parser {
-    parse(observable: Observable<Buffer>): Promise<string> {
+    async parse(observable: Observable<Buffer>): Promise<string> {
         const cs = this.contentType.param('charset', 'utf8');
         let result = '';
 
-        return new Promise((resolve, reject) => {
-            observable
-                .forEach((next) => {
-                    result += next.toString(cs);
-                })
-                .then(() => resolve(result), reject);
+        await observable.forEach((next) => {
+            result += next.toString(cs);
         });
+
+        return result;
     }
 
     serialize(data: any): Observable<Buffer> {
-        const cs = this.contentType.param('charset', 'utf8');
-
         return new Observable<Buffer>((observer: Subscriber<Buffer>): void => {
             this.assertSerializebleData(data !== null && data !== undefined, data);
 
+            const cs = this.contentType.param('charset', 'utf8');
             observer.next(data instanceof Buffer ? data : Buffer.from(data.toString(), cs));
             observer.complete();
         });

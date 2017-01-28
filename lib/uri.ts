@@ -234,7 +234,8 @@ class HTTP extends URI {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
-    async query(method: string, headers?: Headers | null, data?: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+    async query(method: string, headers?: Headers | null, data?: any,
+                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
         if (typeof method !== 'string') {
             throw new URIException("URI ${this}: query: 'method' argument missing/invalid");
         }
@@ -262,22 +263,25 @@ class HTTP extends URI {
         }
     }
 
-    private _query(method: string, headers: Headers, data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+    private _query(method: string, headers: Headers, data: any,
+                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
         return new Promise(async (resolve, reject) => {
+            const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
 
             const observable = utils.toObservable('utf8' /* Not applicable because of 'encoding: null' below */,
                 request({
                     method:   method,
                     uri:      this.valueOf(),
-                    headers:  Object.assign({ 'content-type': contentType }, headers),
-                    body:     utils.toReadableStream(serialized),
+                    headers:  bodyLess ? headers : Object.assign({ 'content-type': contentType }, headers),
+                    body:     bodyLess ? null    : utils.toReadableStream(serialized),
                     encoding: null,
                     gzip:     true,
                 })
                 .on('response', async (response) => {
                     try {
-                        const result = await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
+                        const result = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object.create(null) :
+                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
 
                         result[URI.headers]       = response.headers;
                         result[URI.trailers]      = response.trailers;

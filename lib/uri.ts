@@ -252,7 +252,7 @@ class HTTP extends URI {
     }
 
     protected requireValidStatus<T>(result: T): T {
-        const [code, message] = [(result as any)['@statusCode'], (result as any)['@statusMessage']];
+        const [code, message] = [(result as any)[URI.statusCode], (result as any)[URI.statusMessage]];
 
         if (code < 200 || code >= 300) {
             throw new URIException(`URI ${this} request failed: ${message} [${code}]`, undefined, result);
@@ -283,10 +283,6 @@ class HTTP extends URI {
                         result[URI.trailers]      = response.trailers;
                         result[URI.statusCode]    = response.statusCode;
                         result[URI.statusMessage] = response.statusMessage;
-                        // Object.defineProperty(result, '@headers',       { value: response.headers       });
-                        // Object.defineProperty(result, '@trailers',      { value: response.trailers      });
-                        // Object.defineProperty(result, '@statusCode',    { value: response.statusCode    });
-                        // Object.defineProperty(result, '@statusMessage', { value: response.statusMessage });
 
                         resolve(result);
                     }

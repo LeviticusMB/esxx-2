@@ -140,6 +140,7 @@ export class URI {
                                 password: ui[2] && decodeURIComponent(ui[3]) } ];
             }
 
+            // Always strip credentials from URI for security reasons
             delete this.uri.userinfo;
         }
 
@@ -157,6 +158,32 @@ export class URI {
 
     toString(): string {
         return uri.serialize(Object.assign({}, this.uri), URI_OPTIONS);
+    }
+
+    get uriScheme(): string {
+        return this.uri.scheme as string;
+    }
+
+    get uriHost(): string | undefined {
+        return this.uri.host;
+    }
+
+    get uriPort(): string | undefined {
+        return this.uri.port !== undefined ? this.uri.port.toString() : undefined;
+    }
+
+    get uriPath(): string | undefined {
+        return this.uri.path;
+    }
+
+    get uriQuery(): string | undefined {
+        return this.uri.query;
+    }
+
+    get uriFragment(): string | undefined {
+        return this.uri.fragment;
+    }
+
     }
 
     async load(_recvCT?: ContentType | string): Promise<any> {

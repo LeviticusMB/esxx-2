@@ -20,10 +20,11 @@ export abstract class Parser {
         }
 
         if (data === null || data === undefined) {
-            data = '';
+            data = Buffer.alloc(0);
         }
 
         contentType = ContentType.create(contentType,
+            data instanceof Buffer ? ContentType.bytes :
             data instanceof Array || data.__proto__ === Object.prototype ? ContentType.json :
             ContentType.text);
 

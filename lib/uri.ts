@@ -19,8 +19,15 @@ export type  URIException = utils.URIException;
 export const URIException = utils.URIException;
 
 export interface Headers {
-    [key: string]: string | string[];
-};
+    [key: string]: string | undefined;
+}
+
+export interface DirectoryEntry {
+    name: string;
+    length?: number;
+    lastModified?: Date;
+    type: string;
+}
 
 export class URI {
     static readonly headers       = Symbol('Used to access the response headers');
@@ -184,6 +191,12 @@ export class URI {
         return this.uri.fragment;
     }
 
+    async info(): Promise<DirectoryEntry> {
+        throw new URIException(`URI ${this} does not support info()`);
+    }
+
+    async list(): Promise<DirectoryEntry[]> {
+        throw new URIException(`URI ${this} does not support list()`);
     }
 
     async load(_recvCT?: ContentType | string): Promise<any> {
@@ -214,6 +227,22 @@ export class URI {
 class UnknownURI extends URI {}
 
 class HTTP extends URI {
+    async info(): Promise<DirectoryEntry> {
+        const response: Object = await this._query('HEAD', {}, null, undefined, undefined);
+        const headers: Headers = (response as any)[URI.headers];
+        const location = new URI(this, headers['content-location']);
+        const length   = headers['content-length'];
+        const type     = headers['content-type'];
+        const modified = headers['last-modified'];
+
+        return this.requireValidStatus(Object.assign(response, {
+            name:         (location.uriPath || '').replace(/.*\//, ''),
+            length:       typeof length === 'string' ? Number(length) : undefined,
+            lastModified: typeof modified === 'string' ? new Date(modified) : undefined,
+            type:         type || 'application/octet-stream',
+        }));
+    }
+
     async load(recvCT?: ContentType | string): Promise<any> {
         return this.requireValidStatus(await this._query('GET', {}, null, undefined, recvCT));
     }

@@ -39,7 +39,7 @@ export class FileProtocol extends URI {
         };
     }
 
-    async load(recvCT?: ContentType | string): Promise<any> {
+    async load(recvCT?: ContentType | string): Promise<Object> {
         const stream = fs.createReadStream(this._path, { flags: 'r', encoding: undefined });
 
         return await Parser.parse(ContentType.create(recvCT, mime.lookup(this._path) || undefined),

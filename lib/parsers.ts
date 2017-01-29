@@ -9,10 +9,12 @@ export abstract class Parser {
         return Parser;
     }
 
-    static parse(contentType: ContentType, observable: Observable<Buffer>): Promise<any> {
+    static async parse(contentType: ContentType, observable: Observable<Buffer>): Promise<Object> {
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
+        const result = await new (parser as any)(contentType).parse(observable);
 
-        return new (parser as any)(contentType).parse(observable);
+        // Never return primitive types
+        return result instanceof Object ? result : Object(result);
     }
 
     static async serialize(contentType: ContentType | string | undefined, data: any): Promise<[ContentType, Observable<Buffer>]> {

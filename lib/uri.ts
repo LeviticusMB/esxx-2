@@ -241,27 +241,27 @@ export class URI {
         throw new URIException(`URI ${this} does not support list()`);
     }
 
-    async load(_recvCT?: ContentType | string): Promise<any> {
+    async load(_recvCT?: ContentType | string): Promise<Object> {
         throw new URIException(`URI ${this} does not support load()`);
     }
 
-    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
+    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
         throw new URIException(`URI ${this} does not support save()`);
     }
 
-    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
+    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
         throw new URIException(`URI ${this} does not support append()`);
     }
 
-    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<any> {
+    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
         throw new URIException(`URI ${this} does not support modify()`);
     }
 
-    async remove(_recvCT?: ContentType | string): Promise<any> {
+    async remove(_recvCT?: ContentType | string): Promise<Object | void> {
         throw new URIException(`URI ${this} does not support remove()`);
     }
 
-    async query(..._args: any[]): Promise<any> {
+    async query(..._args: any[]): Promise<Object | void> {
         throw new URIException(`URI ${this} does not support query()`);
     }
 }

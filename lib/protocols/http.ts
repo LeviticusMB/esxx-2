@@ -23,15 +23,15 @@ export class HTTPProtocol extends URI {
         }));
     }
 
-    async load(recvCT?: ContentType | string): Promise<any> {
+    async load(recvCT?: ContentType | string): Promise<Object> {
         return this.requireValidStatus(await this._query('GET', {}, null, undefined, recvCT));
     }
 
-    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<any> {
+    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<Object> {
         return this.requireValidStatus(await this._query('PUT', {}, data, sendCT, recvCT));
     }
 
-    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
         return this.requireValidStatus(await this._query('POST', {}, data, sendCT, recvCT));
     }
 
@@ -39,12 +39,12 @@ export class HTTPProtocol extends URI {
         return this.requireValidStatus(await this._query('PATCH', {}, data, sendCT, recvCT));
     }
 
-    async remove(recvCT?: ContentType | string): Promise<any> {
+    async remove(recvCT?: ContentType | string): Promise<Object> {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
     async query(method: string, headers?: Headers | null, data?: any,
-                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
         if (typeof method !== 'string') {
             throw new URIException("URI ${this}: query: 'method' argument missing/invalid");
         }
@@ -73,7 +73,7 @@ export class HTTPProtocol extends URI {
     }
 
     private _query(method: string, headers: Headers, data: any,
-                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
         return new Promise(async (resolve, reject) => {
             const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);

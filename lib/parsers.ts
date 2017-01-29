@@ -1,5 +1,6 @@
 
 import { Observable, Subscriber}     from '@reactivex/rxjs';
+import { DOMParser, XMLSerializer }  from 'xmldom';
 import { ContentType, URIException } from './uri';
 
 export abstract class Parser {
@@ -26,6 +27,7 @@ export abstract class Parser {
         contentType = ContentType.create(contentType,
             data instanceof Buffer ? ContentType.bytes :
             data instanceof Array || data.__proto__ === Object.prototype ? ContentType.json :
+            data && data.nodeType /* FIXME */ ? ContentType.xml :
             ContentType.text);
 
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
@@ -97,8 +99,21 @@ export class JSONParser extends Parser {
     }
 }
 
+export class XMLParser extends Parser {
+    async parse(observable: Observable<Buffer>): Promise<Document> {
+        return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(observable));
+    }
+
+    serialize(data: any): Observable<Buffer> {
+        this.assertSerializebleData(data && data.nodeType /* FIXME */, data);
+        return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data));
+    }
+}
+
 Parser
     .register('application/json',         JSONParser)
     .register('application/octet-stream', BufferParser)
+    .register('application/xml',          XMLParser)
     .register('text/plain',               StringParser)
+    .register('text/xml',                 XMLParser)
 ;

@@ -28,10 +28,12 @@ export class FileProtocol extends URI {
             fs.stat(this._path, (err, res) => { err ? reject(err) : resolve(res); });
         });
 
+        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(this._path) || undefined);
+
         return {
             name:         path.posix.basename(this._path),
             length:       stats.size,
-            type:         stats.isDirectory ? ContentType.dir.baseType() : ContentType.bytes.baseType(),
+            type:         ct.baseType(),
             created:      stats.birthtime,
             updated:      stats.mtime,
         };

@@ -1,7 +1,11 @@
 
 import { PassThrough } from 'stream';
+// import { promisify }   from 'typed-promisify';
 import { Parser }      from './parsers';
 
+import * as fs         from 'fs';
+import * as mime       from 'mime-types';
+import * as path       from 'path';
 import * as request    from 'request';
 import * as uri        from 'uri-js';
 import * as url        from 'url';
@@ -25,8 +29,9 @@ export interface Headers {
 export interface DirectoryEntry {
     name: string;
     length?: number;
-    lastModified?: Date;
     type: string;
+    created?: Date;
+    updated?: Date;
 }
 
 export class URI {
@@ -226,7 +231,84 @@ export class URI {
 
 class UnknownURI extends URI {}
 
-class HTTP extends URI {
+class FileProtocol extends URI {
+    private _path: string;
+
+    constructor(uri: URI) {
+        super(uri);
+
+        if ((this.uriHost !== undefined && this.uriHost !== '' && this.uriHost !== 'localhost') ||
+            this.uriPort !== undefined || this.uriQuery !== undefined || this.uriFragment !== undefined) {
+            throw new URIException(`URI ${this}: Host/port/query/fragment parts not allowed`);
+        }
+        else if (typeof this.uriPath !== 'string') {
+            throw new URIException(`URI ${this}: Path missing/invalid`);
+        }
+
+        this._path = this.uriPath;
+    }
+
+    async info(): Promise<DirectoryEntry> {
+        const stats = await new Promise<fs.Stats>((resolve, reject) => {
+            fs.stat(this._path, (err, res) => { err ? reject(err) : resolve(res); });
+        });
+
+        return {
+            name:         path.posix.basename(this._path),
+            length:       stats.size,
+            type:         stats.isDirectory ? ContentType.dir.baseType() : ContentType.bytes.baseType(),
+            created:      stats.birthtime,
+            updated:      stats.mtime,
+        };
+    }
+
+    async load(recvCT?: ContentType | string): Promise<any> {
+        const stream = fs.createReadStream(this._path, { flags: 'r', encoding: undefined });
+
+        return await Parser.parse(ContentType.create(recvCT, mime.lookup(this._path) || undefined),
+                                  utils.toObservable('utf8' /* Unused */, stream));
+    }
+
+    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<void> {
+        if (recvCT !== undefined) {
+            throw new URIException(`URI ${this}: save: recvCT argument is not supported`);
+        }
+
+        return this._write(data, sendCT, false);
+    }
+
+    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
+        if (recvCT !== undefined) {
+            throw new URIException(`URI ${this}: append: recvCT argument is not supported`);
+        }
+
+        return this._write(data, sendCT, true);
+    }
+
+    // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
+    // }
+
+    remove(_recvCT?: ContentType | string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            fs.unlink(this._path, (err) => {
+                err ? reject(err) : resolve();
+            });
+        });
+    }
+
+    private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
+        const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
+
+        await new Promise((resolve, reject) => {
+            utils.toReadableStream(serialized)
+                .pipe(fs.createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }))
+                .on('finish', resolve)
+                .on('error', reject);
+        });
+    }
+}
+
+class HTTPProtocol extends URI {
     async info(): Promise<DirectoryEntry> {
         const response: Object = await this._query('HEAD', {}, null, undefined, undefined);
         const headers: Headers = (response as any)[URI.headers];
@@ -236,7 +318,7 @@ class HTTP extends URI {
         const modified = headers['last-modified'];
 
         return this.requireValidStatus(Object.assign(response, {
-            name:         (location.uriPath || '').replace(/.*\//, ''),
+            name:         path.posix.basename(location.uriPath || ''),
             length:       typeof length === 'string' ? Number(length) : undefined,
             lastModified: typeof modified === 'string' ? new Date(modified) : undefined,
             type:         type || 'application/octet-stream',
@@ -333,6 +415,7 @@ class HTTP extends URI {
 // Register all built-in protocols
 
 URI
-    .register("http",  HTTP)
-    .register("https", HTTP)
+    .register("file",  FileProtocol)
+    .register("http",  HTTPProtocol)
+    .register("https", HTTPProtocol)
 ;

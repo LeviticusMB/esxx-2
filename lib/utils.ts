@@ -79,12 +79,13 @@ export function toReadableStream(observable: Observable<Buffer>): NodeJS.Readabl
 
 export class ContentType {
     static readonly bytes = new ContentType('application/octet-stream');
+    static readonly dir   = new ContentType('application/vnd.esxx.directory+json');
     static readonly csv   = new ContentType('text/csv');
     static readonly json  = new ContentType('application/json');
     static readonly text  = new ContentType('text/plain');
     static readonly xml   = new ContentType('application/xml');
 
-    static create(ct: string | ContentType | null | undefined, fallback: string | ContentType | null | undefined): ContentType {
+    static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
         return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
     }
 

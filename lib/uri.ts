@@ -124,7 +124,7 @@ export class URI {
 
         if (this.uri.reference === 'same-document' || this.uri.reference === 'relative') {
             // base is relative -- resolve it against current working directory first
-            this.uri = uri.resolveComponents(uri.parse(`file:///${process.cwd()}/`, { tolerant: true }), this.uri, URI_OPTIONS, true);
+            this.uri = uri.resolveComponents(uri.parse(`file://${process.cwd()}/`, { tolerant: true }), this.uri, URI_OPTIONS, true);
         }
 
         if (relativeURI !== undefined) {

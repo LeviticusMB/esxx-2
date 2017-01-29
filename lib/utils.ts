@@ -2,12 +2,6 @@
 import { Observable, Subscriber} from '@reactivex/rxjs';
 import { PassThrough }           from 'stream';
 
-export class URIException extends URIError {
-    constructor(message: string, public cause?: Error, public data?: any) {
-        super(cause ? `${message}: ${cause.toString()}` : message);
-    }
-}
-
 export type ValueEncoder = (this: void, value: string) => string;
 
 export interface Params {
@@ -75,48 +69,4 @@ export function toReadableStream(observable: Observable<Buffer>): NodeJS.Readabl
     });
 
     return passthrough;
-}
-
-export class ContentType {
-    static readonly bytes = new ContentType('application/octet-stream');
-    static readonly dir   = new ContentType('application/vnd.esxx.directory+json');
-    static readonly csv   = new ContentType('text/csv');
-    static readonly json  = new ContentType('application/json');
-    static readonly text  = new ContentType('text/plain');
-    static readonly xml   = new ContentType('application/xml');
-
-    static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
-        return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
-    }
-
-    private unparsed?: string;
-    private type: string;
-    private subtype: string;
-    private params: Map<string, string>;
-
-    constructor(ct: string) {
-        const match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
-
-        if (match) {
-            this.type    = match[1].toLowerCase();
-            this.subtype = match[2].toLowerCase();
-        }
-        else {
-            this.unparsed = ct;
-        }
-    }
-
-    baseType() {
-        return this.unparsed || `${this.type}/${this.subtype}`;
-    }
-
-    param(key: string): string | undefined;
-    param(key: string, fallback: string): string;
-    param(key: string, fallback?: string): any {
-        return this.params && this.params.get(key) || fallback;
-    }
-
-    valueOf() {
-        return this.unparsed || `${this.type}/${this.subtype}`;
-    }
 }

@@ -1,4 +1,5 @@
 
+export * from './parsers';
 export * from './uri';
 
 import { FileProtocol } from './protocols/file';
@@ -6,7 +7,6 @@ import { HTTPProtocol } from './protocols/http';
 import { URI } from './uri';
 
 // Register all built-in protocols
-
 URI
     .register("file",  FileProtocol)
     .register("http",  HTTPProtocol)

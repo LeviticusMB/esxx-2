@@ -1,6 +1,6 @@
 
 import { Observable, Subscriber}     from '@reactivex/rxjs';
-import { ContentType, URIException } from './utils';
+import { ContentType, URIException } from './uri';
 
 export abstract class Parser {
     static register(baseType: string, parser: typeof Parser): typeof Parser {

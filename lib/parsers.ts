@@ -3,6 +3,16 @@ import { Observable, Subscriber}     from '@reactivex/rxjs';
 import { DOMParser, XMLSerializer }  from 'xmldom';
 import { ContentType, URIException } from './uri';
 
+export type ObjectOrPrimitive = Object | string | number | boolean;
+
+function isDOMNode(obj: ObjectOrPrimitive): obj is Node {
+    return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
+}
+
+function isJSON(obj: ObjectOrPrimitive): boolean {
+    return obj instanceof Array || !!obj && Object.getPrototypeOf(obj) === Object.prototype;
+}
+
 export abstract class Parser {
     static register(baseType: string, parser: typeof Parser): typeof Parser {
         Parser.parsers.set(baseType, parser);
@@ -17,7 +27,8 @@ export abstract class Parser {
         return result instanceof Object ? result : Object(result);
     }
 
-    static async serialize(contentType: ContentType | string | undefined, data: any): Promise<[ContentType, Observable<Buffer>]> {
+    static async serialize(contentType: ContentType | string | undefined,
+                           data: ObjectOrPrimitive | null | undefined): Promise<[ContentType, Observable<Buffer>]> {
         while (data instanceof Promise) {
             data = await data;
         }
@@ -28,8 +39,8 @@ export abstract class Parser {
 
         contentType = ContentType.create(contentType,
             data instanceof Buffer ? ContentType.bytes :
-            data instanceof Array || data.__proto__ === Object.prototype ? ContentType.json :
-            data && data.nodeType /* FIXME */ ? ContentType.xml :
+            isJSON(data)           ? ContentType.json :
+            isDOMNode(data)        ? ContentType.xml :
             ContentType.text);
 
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
@@ -40,12 +51,12 @@ export abstract class Parser {
     private static parsers = new Map<string, typeof Parser>();
 
     constructor(protected contentType: ContentType) { }
-    abstract parse(observable: Observable<Buffer>): Promise<any>;
-    abstract serialize(data: any): Observable<Buffer>;
+    abstract parse(observable: Observable<Buffer>): Promise<ObjectOrPrimitive>;
+    abstract serialize(data: ObjectOrPrimitive): Observable<Buffer>;
 
-    protected assertSerializebleData(condition: boolean, data: any): void {
+    protected assertSerializebleData(condition: boolean, data: ObjectOrPrimitive): void {
         if (!condition) {
-            const type = data instanceof Object ? data.__proto__.constructor.name : data === 'null' ? 'null' : typeof data;
+            const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
             throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, data);
         }
@@ -63,7 +74,7 @@ export class BufferParser extends Parser {
         return result;
     }
 
-    serialize(data: any): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
         return new StringParser(this.contentType).serialize(data);
     }
 }
@@ -80,7 +91,7 @@ export class StringParser extends Parser {
         return result;
     }
 
-    serialize(data: any): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
         return new Observable<Buffer>((observer: Subscriber<Buffer>): void => {
             this.assertSerializebleData(data !== null && data !== undefined, data);
 
@@ -96,7 +107,7 @@ export class JSONParser extends Parser {
         return JSON.parse(await new StringParser(this.contentType).parse(observable));
     }
 
-    serialize(data: any): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
         return new StringParser(this.contentType).serialize(JSON.stringify(data));
     }
 }
@@ -106,9 +117,9 @@ export class XMLParser extends Parser {
         return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(observable));
     }
 
-    serialize(data: any): Observable<Buffer> {
-        this.assertSerializebleData(data && data.nodeType /* FIXME */, data);
-        return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data));
+    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
+        this.assertSerializebleData(isDOMNode(data), data);
+        return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));
     }
 }
 

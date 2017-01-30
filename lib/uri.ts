@@ -66,7 +66,7 @@ export class ContentType {
 }
 
 export class URIException extends URIError {
-    constructor(message: string, public cause?: Error, public data?: any) {
+    constructor(message: string, public cause?: Error, public data?: Object | void) {
         super(cause ? `${message}: ${cause.toString()}` : message);
     }
 }

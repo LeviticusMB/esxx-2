@@ -35,7 +35,7 @@ export class HTTPProtocol extends URI {
         return this.requireValidStatus(await this._query('POST', {}, data, sendCT, recvCT));
     }
 
-    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<any> {
+    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
         return this.requireValidStatus(await this._query('PATCH', {}, data, sendCT, recvCT));
     }
 

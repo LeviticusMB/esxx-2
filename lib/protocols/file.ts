@@ -24,19 +24,15 @@ export class FileProtocol extends URI {
     }
 
     async info(): Promise<DirectoryEntry> {
-        const stats = await new Promise<fs.Stats>((resolve, reject) => {
-            fs.stat(this._path, (err, res) => { err ? reject(err) : resolve(res); });
+        return this._stat(this._path);
+    }
+
+    async list(): Promise<DirectoryEntry[]> {
+        const children = await new Promise<string[]>((resolve, reject) => {
+            fs.readdir(this._path, (err, res) => { err ? reject(err) : resolve(res); });
         });
 
-        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(this._path) || undefined);
-
-        return {
-            name:         path.posix.basename(this._path),
-            length:       stats.size,
-            type:         ct.baseType(),
-            created:      stats.birthtime,
-            updated:      stats.mtime,
-        };
+        return await Promise.all(children.map((child) => this._stat(child)));
     }
 
     async load(recvCT?: ContentType | string): Promise<Object> {
@@ -77,6 +73,22 @@ export class FileProtocol extends URI {
                 err ? reject(err) : resolve();
             });
         });
+    }
+
+    private async _stat(filename: string): Promise<DirectoryEntry> {
+        const stats = await new Promise<fs.Stats>((resolve, reject) => {
+            fs.stat(filename, (err, res) => { err ? reject(err) : resolve(res); });
+        });
+
+        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(filename) || undefined);
+
+        return {
+            name:         path.posix.basename(filename),
+            length:       stats.size,
+            type:         ct.baseType(),
+            created:      stats.birthtime,
+            updated:      stats.mtime,
+        };
     }
 
     private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {

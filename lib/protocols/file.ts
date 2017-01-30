@@ -67,7 +67,13 @@ export class FileProtocol extends URI {
 
     remove(_recvCT?: ContentType | string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            fs.unlink(this._path, (err) => {
+            fs.rmdir(this._path, (err) => {
+                if (err && err.code === 'ENOTDIR') {
+                    return fs.unlink(this._path, (err2) => {
+                        err2 ? reject(err2) : resolve();
+                    });
+                }
+
                 err ? reject(err) : resolve();
             });
         });

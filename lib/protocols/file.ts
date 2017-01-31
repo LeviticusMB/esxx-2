@@ -2,9 +2,9 @@ import { Parser } from '../parsers';
 import { ContentType, DirectoryEntry, URI, URIException } from '../uri';
 import { toObservable, toReadableStream } from '../utils';
 
-import * as fs         from 'fs';
-import * as mime       from 'mime-types';
-import * as path       from 'path';
+import * as mime from 'mime-types';
+import * as fs   from 'mz/fs';
+import * as path from 'path';
 
 export class FileProtocol extends URI {
     private _path: string;
@@ -28,9 +28,7 @@ export class FileProtocol extends URI {
     }
 
     async list(): Promise<DirectoryEntry[]> {
-        const children = await new Promise<string[]>((resolve, reject) => {
-            fs.readdir(this._path, (err, res) => { err ? reject(err) : resolve(res); });
-        });
+        const children = await fs.readdir(this._path);
 
         return await Promise.all(children.map((child) => this._stat(child)));
     }
@@ -61,33 +59,25 @@ export class FileProtocol extends URI {
     // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
     // }
 
-    remove(_recvCT?: ContentType | string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            fs.rmdir(this._path, (err) => {
-                if (err && err.code === 'ENOTDIR') {
-                    return fs.unlink(this._path, (err2) => {
-                        err2 ? reject(err2) : resolve();
-                    });
-                }
-
-                err ? reject(err) : resolve();
-            });
-        });
+    async remove(_recvCT?: ContentType | string): Promise<void> {
+        if ((await fs.stat(this._path)).isDirectory()) {
+            await fs.rmdir(this._path);
+        }
+        else {
+            await fs.unlink(this._path);
+        }
     }
 
     private async _stat(filename: string): Promise<DirectoryEntry> {
-        const stats = await new Promise<fs.Stats>((resolve, reject) => {
-            fs.stat(filename, (err, res) => { err ? reject(err) : resolve(res); });
-        });
-
-        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(filename) || undefined);
+        const stats = await fs.stat(filename);
+        const ct    = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(filename) || undefined);
 
         return {
-            name:         path.posix.basename(filename),
-            length:       stats.size,
-            type:         ct.baseType(),
-            created:      stats.birthtime,
-            updated:      stats.mtime,
+            name:    path.posix.basename(filename),
+            length:  stats.size,
+            type:    ct.baseType(),
+            created: stats.birthtime,
+            updated: stats.mtime,
         };
     }
 

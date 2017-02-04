@@ -15,10 +15,10 @@ export interface Headers {
 }
 
 export interface DirectoryEntry {
-    uri:      string,
-    name:     string;
+    uri: string;
+    name: string;
     type: string;
-    length?:  number;
+    length?: number;
     created?: Date;
     updated?: Date;
 }
@@ -68,12 +68,14 @@ export class ContentType {
 }
 
 export class URIException extends URIError {
-    constructor(message: string, public cause?: Error, public data?: Object | void) {
+    constructor(message: string, public cause?: Error, public data?: object) {
         super(cause ? `${message}: ${cause.toString()}` : message);
     }
 }
 
 export class URI {
+    static readonly void          = Symbol('Represents a void result');
+    static readonly null          = Symbol('Represents a null result');
     static readonly headers       = Symbol('Used to access the response headers');
     static readonly trailers      = Symbol('Used to access the response trailers');
     static readonly statusCode    = Symbol('Used to access the response status code');
@@ -271,27 +273,27 @@ export class URI {
         throw new URIException(`URI ${this} does not support list()`);
     }
 
-    async load(_recvCT?: ContentType | string): Promise<Object> {
+    async load(_recvCT?: ContentType | string): Promise<object> {
         throw new URIException(`URI ${this} does not support load()`);
     }
 
-    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
+    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
         throw new URIException(`URI ${this} does not support save()`);
     }
 
-    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
+    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
         throw new URIException(`URI ${this} does not support append()`);
     }
 
-    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<Object | void> {
+    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
         throw new URIException(`URI ${this} does not support modify()`);
     }
 
-    async remove(_recvCT?: ContentType | string): Promise<Object | void> {
+    async remove(_recvCT?: ContentType | string): Promise<object> {
         throw new URIException(`URI ${this} does not support remove()`);
     }
 
-    async query(..._args: any[]): Promise<Object | void> {
+    async query(..._args: any[]): Promise<object> {
         throw new URIException(`URI ${this} does not support query()`);
     }
 }

@@ -24,28 +24,28 @@ export class HTTPProtocol extends URI {
         }));
     }
 
-    async load(recvCT?: ContentType | string): Promise<Object> {
+    async load(recvCT?: ContentType | string): Promise<object> {
         return this.requireValidStatus(await this._query('GET', {}, null, undefined, recvCT));
     }
 
-    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<Object> {
+    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
         return this.requireValidStatus(await this._query('PUT', {}, data, sendCT, recvCT));
     }
 
-    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
+    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
         return this.requireValidStatus(await this._query('POST', {}, data, sendCT, recvCT));
     }
 
-    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
+    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
         return this.requireValidStatus(await this._query('PATCH', {}, data, sendCT, recvCT));
     }
 
-    async remove(recvCT?: ContentType | string): Promise<Object> {
+    async remove(recvCT?: ContentType | string): Promise<object> {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
     async query(method: string, headers?: Headers | null, data?: any,
-                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
+                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
         if (typeof method !== 'string') {
             throw new URIException("URI ${this}: query: 'method' argument missing/invalid");
         }
@@ -74,7 +74,7 @@ export class HTTPProtocol extends URI {
     }
 
     private _query(method: string, headers: Headers, data: any,
-                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<Object> {
+                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
         return new Promise(async (resolve, reject) => {
             const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
@@ -90,7 +90,7 @@ export class HTTPProtocol extends URI {
                 })
                 .on('response', async (response) => {
                     try {
-                        const result = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object.create(null) :
+                        const result = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(URI.void) :
                             await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
 
                         result[URI.headers]       = response.headers;

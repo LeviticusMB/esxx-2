@@ -1,9 +1,9 @@
 
-import { Observable, Subscriber}     from '@reactivex/rxjs';
-import { DOMParser, XMLSerializer }  from 'xmldom';
-import { ContentType, URIException } from './uri';
+import { Observable, Subscriber}          from '@reactivex/rxjs';
+import { DOMParser, XMLSerializer }       from 'xmldom';
+import { ContentType, URI, URIException } from './uri';
 
-export type ObjectOrPrimitive = Object | string | number | boolean;
+export type ObjectOrPrimitive = object | string | number | boolean | symbol | null | undefined;
 
 function isDOMNode(obj: ObjectOrPrimitive): obj is Node {
     return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
@@ -19,16 +19,19 @@ export abstract class Parser {
         return Parser;
     }
 
-    static async parse(contentType: ContentType, observable: Observable<Buffer>): Promise<Object> {
+    static async parse(contentType: ContentType, observable: Observable<Buffer>): Promise<object> {
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
         const result = await new (parser as any)(contentType).parse(observable);
 
-        // Never return primitive types
-        return result instanceof Object ? result : Object(result);
+        // Never return primitive types or null/undefined
+        return result === undefined       ? Object(URI.void) :
+               result === null            ? Object(URI.null) :
+               typeof result !== 'object' ? Object(result) :
+               result;
     }
 
     static async serialize(contentType: ContentType | string | undefined,
-                           data: ObjectOrPrimitive | null | undefined): Promise<[ContentType, Observable<Buffer>]> {
+                           data: ObjectOrPrimitive): Promise<[ContentType, Observable<Buffer>]> {
         while (data instanceof Promise) {
             data = await data;
         }
@@ -58,7 +61,8 @@ export abstract class Parser {
         if (!condition) {
             const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
-            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`, undefined, data);
+            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`,
+                undefined, Object(data));
         }
     }
 }
@@ -96,14 +100,14 @@ export class StringParser extends Parser {
             this.assertSerializebleData(data !== null && data !== undefined, data);
 
             const cs = this.contentType.param('charset', 'utf8');
-            observer.next(data instanceof Buffer ? data : Buffer.from(data.toString(), cs));
+            observer.next(data instanceof Buffer ? data : Buffer.from(data!.toString(), cs));
             observer.complete();
         });
     }
 }
 
 export class JSONParser extends Parser {
-    async parse(observable: Observable<Buffer>): Promise<Object> {
+    async parse(observable: Observable<Buffer>): Promise<boolean | number | null | string | object> {
         return JSON.parse(await new StringParser(this.contentType).parse(observable));
     }
 

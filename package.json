@@ -28,6 +28,6 @@
     "@types/request": "~0.0.39",
     "@types/xmldom": "^0.1.28",
     "tslint": "latest",
-    "typescript": "^2.1.5"
+    "typescript": "next"
   }
 }

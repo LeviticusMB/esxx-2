@@ -5,7 +5,7 @@ import { PassThrough }           from 'stream';
 export type ValueEncoder = (this: void, value: string) => string;
 
 export interface Params {
-    [key: string]: Object | string | number | boolean | null | undefined;
+    [key: string]: object | string | number | boolean | null | undefined;
 }
 
 export function kvWrapper(wrapped: any): Params {

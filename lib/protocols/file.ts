@@ -43,33 +43,35 @@ export class FileProtocol extends URI {
         return await Promise.all(children.map((child) => this.resolvePath(child).info()));
     }
 
-    async load(recvCT?: ContentType | string): Promise<Object> {
+    async load(recvCT?: ContentType | string): Promise<object> {
         const stream = fs.createReadStream(this._path, { flags: 'r', encoding: undefined });
 
         return await Parser.parse(ContentType.create(recvCT, mime.lookup(this._path) || undefined),
                                   toObservable('utf8' /* Unused */, stream));
     }
 
-    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<void> {
+    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
         if (recvCT !== undefined) {
             throw new URIException(`URI ${this}: save: recvCT argument is not supported`);
         }
 
-        return this._write(data, sendCT, false);
+        await this._write(data, sendCT, false);
+        return Object(URI.void);
     }
 
-    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
+    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
         if (recvCT !== undefined) {
             throw new URIException(`URI ${this}: append: recvCT argument is not supported`);
         }
 
-        return this._write(data, sendCT, true);
+        await this._write(data, sendCT, true);
+        return Object(URI.void);
     }
 
-    // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
+    // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
     // }
 
-    async remove(_recvCT?: ContentType | string): Promise<boolean> {
+    async remove(_recvCT?: ContentType | string): Promise<object> {
         let rc = false;
 
         try {
@@ -88,7 +90,7 @@ export class FileProtocol extends URI {
             }
         }
 
-        return rc;
+        return Object(rc);
     }
 
     private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {

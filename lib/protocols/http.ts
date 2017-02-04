@@ -16,10 +16,11 @@ export class HTTPProtocol extends URI {
         const modified = headers['last-modified'];
 
         return this.requireValidStatus(Object.assign(response, {
-            name:         path.posix.basename(location.uriPath || ''),
-            length:       typeof length === 'string' ? Number(length) : undefined,
-            lastModified: typeof modified === 'string' ? new Date(modified) : undefined,
-            type:         type || 'application/octet-stream',
+            uri:     this.valueOf(),
+            name:    path.posix.basename(location.uriPath || ''),
+            type:    type || 'application/octet-stream',
+            length:  typeof length === 'string' ? Number(length) : undefined,
+            updated: typeof modified === 'string' ? new Date(modified) : undefined,
         }));
     }
 
@@ -81,7 +82,7 @@ export class HTTPProtocol extends URI {
             const observable = toObservable('utf8' /* Not applicable because of 'encoding: null' below */,
                 request({
                     method:   method,
-                    uri:      this.valueOf(),
+                    uri:      this.toASCIIString(),
                     headers:  bodyLess ? headers : Object.assign({ 'content-type': contentType }, headers),
                     body:     bodyLess ? null    : toReadableStream(serialized),
                     encoding: null,

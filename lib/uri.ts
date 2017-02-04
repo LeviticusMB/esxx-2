@@ -1,7 +1,8 @@
 
-import * as uri        from 'uri-js';
-import * as url        from 'url';
-import * as utils      from './utils';
+import * as path  from 'path';
+import * as uri   from 'uri-js';
+import * as url   from 'url';
+import * as utils from './utils';
 
 const URI_OPTIONS: uri.URIOptions = {
     domainHost:     true,
@@ -14,9 +15,10 @@ export interface Headers {
 }
 
 export interface DirectoryEntry {
-    name: string;
-    length?: number;
+    uri:      string,
+    name:     string;
     type: string;
+    length?:  number;
     created?: Date;
     updated?: Date;
 }
@@ -60,7 +62,7 @@ export class ContentType {
         return this.params && this.params.get(key) || fallback;
     }
 
-    valueOf() {
+    valueOf(): string {
         return this.unparsed || `${this.type}/${this.subtype}`;
     }
 }
@@ -82,6 +84,30 @@ export class URI {
         return URI;
     }
 
+    static encodePath(filepath: string, type?: 'posix' | 'windows'): string {
+        type = type || process.platform === 'win32' ? 'windows' : 'posix';
+
+        if (type === 'windows') {
+            filepath = path.win32.normalize(filepath);
+
+            let prefix = '';
+
+            if (/^[A-Za-z]:/.test(filepath)) {
+                prefix = '///' + filepath.substr(0, 2).toUpperCase();
+                filepath = filepath.substr(2);
+            }
+
+            return prefix + filepath.split(/\\/).map((part) => encodeURIComponent(part)).join('/');
+        }
+        else if (type === 'posix') {
+            filepath = path.posix.normalize(filepath);
+
+            return filepath.split('/').map((part) => encodeURIComponent(part)).join('/');
+        }
+        else {
+            throw new TypeError(`Invalid type: ${type}`);
+        }
+    }
 
     static $(strings: TemplateStringsArray, ...values: any[]): URI {
         return new URI(URI.encodeURIComponent(strings, ...values));
@@ -198,14 +224,18 @@ export class URI {
         return new (this.uri.scheme && URI.protocols.get(this.uri.scheme) || UnknownURI)(this);
     }
 
-    valueOf(): string {
+    resolvePath(filepath: string): this {
+        return new URI(this, URI.encodePath(filepath)) as this;
+    }
+
+    toASCIIString(): string {
         return uri.serialize(Object.assign({}, this.uri), {
             unicodeSupport: true,
             domainHost:     true,
         });
     }
 
-    toString(): string {
+    valueOf(): string {
         return uri.serialize(Object.assign({}, this.uri), URI_OPTIONS);
     }
 

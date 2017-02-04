@@ -16,21 +16,31 @@ export class FileProtocol extends URI {
             this.uriPort !== undefined || this.uriQuery !== undefined || this.uriFragment !== undefined) {
             throw new URIException(`URI ${this}: Host/port/query/fragment parts not allowed`);
         }
-        else if (typeof this.uriPath !== 'string') {
+        else if (typeof this.uriPath !== 'string' || /%2F/i.test(this.uriPath) /* No encoded slashes */) {
             throw new URIException(`URI ${this}: Path missing/invalid`);
         }
 
-        this._path = this.uriPath;
+        this._path = decodeURIComponent(this.uriPath);
     }
 
     async info(): Promise<DirectoryEntry> {
-        return this._stat(this._path);
+        const stats = await fs.stat(this._path);
+        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(this._path) || undefined);
+
+        return {
+            uri:     this.valueOf(),
+            name:    path.basename(this._path),
+            type:    ct.baseType(),
+            length:  stats.size,
+            created: stats.birthtime,
+            updated: stats.mtime,
+        };
     }
 
     async list(): Promise<DirectoryEntry[]> {
         const children = await fs.readdir(this._path);
 
-        return await Promise.all(children.map((child) => this._stat(child)));
+        return await Promise.all(children.map((child) => this.resolvePath(child).info()));
     }
 
     async load(recvCT?: ContentType | string): Promise<Object> {
@@ -59,26 +69,26 @@ export class FileProtocol extends URI {
     // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<void> {
     // }
 
-    async remove(_recvCT?: ContentType | string): Promise<void> {
-        if ((await fs.stat(this._path)).isDirectory()) {
-            await fs.rmdir(this._path);
-        }
-        else {
-            await fs.unlink(this._path);
-        }
-    }
+    async remove(_recvCT?: ContentType | string): Promise<boolean> {
+        let rc = false;
 
-    private async _stat(filename: string): Promise<DirectoryEntry> {
-        const stats = await fs.stat(filename);
-        const ct    = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(filename) || undefined);
+        try {
+            if ((await fs.stat(this._path)).isDirectory()) {
+                await fs.rmdir(this._path);
+            }
+            else {
+                await fs.unlink(this._path);
+            }
 
-        return {
-            name:    path.posix.basename(filename),
-            length:  stats.size,
-            type:    ct.baseType(),
-            created: stats.birthtime,
-            updated: stats.mtime,
-        };
+            rc = true;
+        }
+        catch (err) {
+            if (err.code !== 'ENOENT') {
+                throw err;
+            }
+        }
+
+        return rc;
     }
 
     private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {

@@ -5,11 +5,11 @@ import { ContentType, URI, URIException } from './uri';
 
 export type ObjectOrPrimitive = object | string | number | boolean | symbol | null | undefined;
 
-function isDOMNode(obj: ObjectOrPrimitive): obj is Node {
+export function isDOMNode(obj: ObjectOrPrimitive): obj is Node {
     return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
 }
 
-function isJSON(obj: ObjectOrPrimitive): boolean {
+export function isJSON(obj: ObjectOrPrimitive): boolean {
     return obj instanceof Array || !!obj && Object.getPrototypeOf(obj) === Object.prototype;
 }
 

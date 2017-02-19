@@ -1,6 +1,6 @@
 import { Parser } from '../parsers';
 import { ContentType, DirectoryEntry, URI, URIException } from '../uri';
-import { toObservable, toReadableStream } from '../utils';
+import { copyStream, IteratorStream, toAsyncIterable } from '../utils';
 
 import * as mime from 'mime-types';
 import * as fs   from 'mz/fs';
@@ -47,7 +47,7 @@ export class FileProtocol extends URI {
         const stream = fs.createReadStream(this._path, { flags: 'r', encoding: undefined });
 
         return await Parser.parse(ContentType.create(recvCT, mime.lookup(this._path) || undefined),
-                                  toObservable('utf8' /* Unused */, stream));
+                                  toAsyncIterable(stream));
     }
 
     async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
@@ -96,11 +96,7 @@ export class FileProtocol extends URI {
     private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
         const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
 
-        await new Promise((resolve, reject) => {
-            toReadableStream(serialized)
-                .pipe(fs.createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }))
-                .on('finish', resolve)
-                .on('error', reject);
-        });
+        await copyStream(new IteratorStream(serialized),
+                         fs.createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }
 }

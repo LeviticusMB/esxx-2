@@ -7,6 +7,9 @@ import { URI }    from './uri';
 import { FileProtocol } from './protocols/file';
 import { HTTPProtocol } from './protocols/http';
 
+// asyncIterator polyfill
+(Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
+
 // Register all built-in protocols
 URI
     .register('file',  FileProtocol)

@@ -1,7 +1,7 @@
 import { PassThrough } from 'stream';
 import { Parser } from '../parsers';
 import { ContentType, DirectoryEntry, Headers, URI, URIException } from '../uri';
-import { toObservable, toReadableStream } from '../utils';
+import { IteratorStream, toAsyncIterable } from '../utils';
 
 import * as path from 'path';
 import * as request from 'request';
@@ -79,19 +79,18 @@ export class HTTPProtocol extends URI {
             const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
 
-            const observable = toObservable('utf8' /* Not applicable because of 'encoding: null' below */,
-                request({
+            const iterable = toAsyncIterable(request({
                     method:   method,
                     uri:      this.toASCIIString(),
                     headers:  bodyLess ? headers : Object.assign({ 'content-type': contentType }, headers),
-                    body:     bodyLess ? null    : toReadableStream(serialized),
+                    body:     bodyLess ? null    : new IteratorStream(serialized),
                     encoding: null,
                     gzip:     true,
                 })
                 .on('response', async (response) => {
                     try {
                         const result = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(URI.void) :
-                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), observable);
+                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), iterable);
 
                         result[URI.headers]       = response.headers;
                         result[URI.trailers]      = response.trailers;

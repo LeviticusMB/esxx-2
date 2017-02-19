@@ -1,5 +1,4 @@
 
-import { Observable, Subscriber}          from '@reactivex/rxjs';
 import { DOMParser, XMLSerializer }       from 'xmldom';
 import { ContentType, URI, URIException } from './uri';
 
@@ -19,9 +18,9 @@ export abstract class Parser {
         return Parser;
     }
 
-    static async parse(contentType: ContentType, observable: Observable<Buffer>): Promise<object> {
+    static async parse(contentType: ContentType, stream: AsyncIterable<Buffer>): Promise<object> {
         const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
-        const result = await new (parser as any)(contentType).parse(observable);
+        const result = await new (parser as any)(contentType).parse(stream);
 
         // Never return primitive types or null/undefined
         return result === undefined       ? Object(URI.void) :
@@ -31,7 +30,7 @@ export abstract class Parser {
     }
 
     static async serialize(contentType: ContentType | string | undefined,
-                           data: ObjectOrPrimitive): Promise<[ContentType, Observable<Buffer>]> {
+                           data: ObjectOrPrimitive): Promise<[ContentType, AsyncIterableIterator<Buffer>]> {
         while (data instanceof Promise) {
             data = await data;
         }
@@ -54,8 +53,8 @@ export abstract class Parser {
     private static parsers = new Map<string, typeof Parser>();
 
     constructor(protected contentType: ContentType) { }
-    abstract parse(observable: Observable<Buffer>): Promise<ObjectOrPrimitive>;
-    abstract serialize(data: ObjectOrPrimitive): Observable<Buffer>;
+    abstract parse(stream: AsyncIterable<Buffer>): Promise<ObjectOrPrimitive>;
+    abstract serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer>;
 
     protected assertSerializebleData(condition: boolean, data: ObjectOrPrimitive): void {
         if (!condition) {
@@ -68,60 +67,57 @@ export abstract class Parser {
 }
 
 export class BufferParser extends Parser {
-    async parse(observable: Observable<Buffer>): Promise<Buffer> {
+    async parse(stream: AsyncIterable<Buffer>): Promise<Buffer> {
         let result = Buffer.alloc(0);
 
-        await observable.forEach((next) => {
-            result = Buffer.concat([result, next]);
-        });
+        for await (const chunk of stream) {
+            result = Buffer.concat([result, chunk]);
+        }
 
         return result;
     }
 
-    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
         return new StringParser(this.contentType).serialize(data);
     }
 }
 
 export class StringParser extends Parser {
-    async parse(observable: Observable<Buffer>): Promise<string> {
+    async parse(stream: AsyncIterable<Buffer>): Promise<string> {
         const cs = this.contentType.param('charset', 'utf8');
         let result = '';
 
-        await observable.forEach((next) => {
-            result += next.toString(cs);
-        });
+        for await (const chunk of stream) {
+            result += chunk.toString(cs);
+        }
 
         return result;
     }
 
-    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
-        return new Observable<Buffer>((observer: Subscriber<Buffer>): void => {
-            this.assertSerializebleData(data !== null && data !== undefined, data);
+    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+        const cs = this.contentType.param('charset', 'utf8');
+        this.assertSerializebleData(data !== null && data !== undefined, data);
 
-            const cs = this.contentType.param('charset', 'utf8');
-            observer.next(data instanceof Buffer ? data : Buffer.from(data!.toString(), cs));
-            observer.complete();
-        });
+        yield data instanceof Buffer ? data : Buffer.from(data!.toString(), cs);
     }
 }
 
 export class JSONParser extends Parser {
-    async parse(observable: Observable<Buffer>): Promise<boolean | number | null | string | object> {
-        return JSON.parse(await new StringParser(this.contentType).parse(observable));
+    async parse(stream: AsyncIterable<Buffer>): Promise<boolean | number | null | string | object> {
+        return JSON.parse(await new StringParser(this.contentType).parse(stream));
     }
 
-    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
         return new StringParser(this.contentType).serialize(JSON.stringify(data));
     }
 }
 
 export class XMLParser extends Parser {
-    async parse(observable: Observable<Buffer>): Promise<Document> {
-        return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(observable));
+    async parse(stream: AsyncIterable<Buffer>): Promise<Document> {
+        return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(stream));
     }
 
-    serialize(data: ObjectOrPrimitive): Observable<Buffer> {
+    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(isDOMNode(data), data);
         return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));
     }

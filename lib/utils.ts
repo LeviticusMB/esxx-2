@@ -1,6 +1,5 @@
 
-import { Observable, Subscriber} from '@reactivex/rxjs';
-import { PassThrough }           from 'stream';
+import { Readable } from 'stream';
 
 export type ValueEncoder = (this: void, value: string) => string;
 
@@ -41,32 +40,96 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export function toObservable(charset: string, readable: NodeJS.ReadableStream) {
-    return new Observable<Buffer>((observer: Subscriber<Buffer>): Function => {
-        const onData  = (data: Buffer | string) => observer.next(data instanceof Buffer ? data : Buffer.from(data.toString(), charset));
-        const onError = (error: Error)          => observer.error(error);
-        const onEnd   = ()                      => observer.complete();
-
-        readable.on('data',  onData);
-        readable.on('error', onError);
-        readable.on('end',   onEnd);
-
-        return () => {
-            readable.removeListener('data',  onData);
-            readable.removeListener('error', onError);
-            readable.removeListener('end',   onEnd);
+export function waitForData(stream: NodeJS.ReadableStream): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        const end = () => {
+            cleanup();
+            resolve(false);
         };
+
+        const error = (err: Error) => {
+            cleanup();
+            reject(err);
+        };
+
+        const readable = () => {
+            cleanup();
+            resolve(true);
+        };
+
+        const cleanup = () => {
+            stream.removeListener('end', end);
+            stream.removeListener('error', error);
+            stream.removeListener('readable', readable);
+        };
+
+        stream.on('readable', readable).on('end', end).on('error', error);
     });
 }
 
-export function toReadableStream(observable: Observable<Buffer>): NodeJS.ReadableStream {
-    const passthrough = new PassThrough({});
+export function toAsyncIterable(readable: NodeJS.ReadableStream, charset?: string): typeof readable & AsyncIterable<Buffer> {
+    (readable as any)[Symbol.asyncIterator] = async function*() {
+        while (true) {
+            let data = readable.read();
 
-    observable.subscribe({
-        next(data)   { passthrough.write(data);          },
-        error(error) { passthrough.emit('error', error); },
-        complete()   { passthrough.end();                },
+            if (data !== null && !(data instanceof Buffer)) {
+                data = Buffer.from(data.toString(), charset);
+            }
+
+            if (data === null) {
+                if (!await waitForData(readable)) {
+                    break;
+                }
+            }
+            else if (data !== null) {
+                yield data;
+            }
+        }
+    };
+
+    return readable as NodeJS.ReadableStream & AsyncIterable<Buffer>;
+}
+
+export class IteratorStream extends Readable {
+    private iterator: AsyncIterator<Buffer>;
+    private done = false;
+
+    constructor(private stream: AsyncIterable<Buffer>) {
+        super({ encoding: undefined, objectMode: false });
+    }
+
+    async _read(size: number): Promise<void> {
+        try {
+            while (size > 0 && !this.done) {
+                if (!this.iterator) {
+                    this.iterator = this.stream[Symbol.asyncIterator]();
+                }
+
+                const next = await this.iterator.next();
+
+                if (next.done) {
+                    this.done = true;
+                    this.push(null);
+                }
+                else {
+                    size -= next.value.length;
+
+                    if (!this.push(next.value)) {
+                        break;
+                    }
+                }
+            }
+        }
+        catch (error) {
+            process.nextTick(() => this.emit('error', error));
+        }
+    }
+}
+
+export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStream): Promise<typeof to> {
+    return new Promise<typeof to>((resolve, reject) => {
+        from.pipe(to)
+            .once('finish', () => resolve(to))
+            .once('error', reject);
     });
-
-    return passthrough;
 }

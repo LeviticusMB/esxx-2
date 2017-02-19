@@ -1,30 +1,24 @@
 
-import { Observable } from '@reactivex/rxjs';
-import { AST, ParserStream, SerializerStream } from 'parse5';
+import { AST, ParserStream, serialize } from 'parse5';
 import { DOMImplementation } from 'xmldom';
-import { isDOMNode, Parser } from '../parsers';
-import { toObservable, toReadableStream } from '../utils';
+import { isDOMNode, Parser, StringParser } from '../parsers';
 
 export class HTMLParser extends Parser {
-    parse(observable: Observable<Buffer>): Promise<Document> {
-        return new Promise<Document>((resolve, reject) => {
-            const parser = new ParserStream({ treeAdapter: new XMLTreeAdapter() });
+    async parse(stream: AsyncIterable<Buffer>): Promise<Document> {
+        const parser = new ParserStream({ treeAdapter: new XMLTreeAdapter() });
 
-            parser.once('finish', () => {
-                resolve(parser.document as Document);
-            });
+        for await (const chunk of stream) {
+            parser.write(chunk);
+        }
 
-            toReadableStream(observable)
-                .pipe(parser)
-                .on('error', reject);
-        });
+        return parser.document as Document;
     }
 
-    serialize(data: Node): Observable<Buffer> {
+    async *serialize(data: Node): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(isDOMNode(data), data);
-        console.log('serializing', data);
-        return toObservable('utf8',
-            new SerializerStream(data, { treeAdapter: new XMLTreeAdapter() }));
+
+        const html = serialize(data, { treeAdapter: new XMLTreeAdapter() });
+        yield* new StringParser(this.contentType).serialize(html);
     }
 }
 

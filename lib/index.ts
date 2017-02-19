@@ -1,4 +1,3 @@
-
 export * from './parsers';
 export * from './uri';
 
@@ -15,5 +14,7 @@ URI
     .register('https', HTTPProtocol)
 ;
 
-new URI('http://localhost/~leviticus/').save(10)
-.then((data) => console.log('then', data));
+import { HTMLParser } from './parsers/html';
+
+Parser
+    .register('text/html', HTMLParser);

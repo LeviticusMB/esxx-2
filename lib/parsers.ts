@@ -77,8 +77,8 @@ export class BufferParser extends Parser {
         return result;
     }
 
-    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
-        return new StringParser(this.contentType).serialize(data);
+    async* serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+        yield* new StringParser(this.contentType).serialize(data);
     }
 }
 
@@ -107,8 +107,15 @@ export class JSONParser extends Parser {
         return JSON.parse(await new StringParser(this.contentType).parse(stream));
     }
 
-    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
-        return new StringParser(this.contentType).serialize(JSON.stringify(data));
+    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+        try {
+            data = JSON.stringify(data);
+        }
+        catch (ex) {
+            this.assertSerializebleData(false, data);
+        }
+
+        yield* new StringParser(this.contentType).serialize(data);
     }
 }
 
@@ -117,9 +124,10 @@ export class XMLParser extends Parser {
         return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(stream));
     }
 
-    serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(isDOMNode(data), data);
-        return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));
+
+        yield* new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));
     }
 }
 

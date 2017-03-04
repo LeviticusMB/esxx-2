@@ -40,25 +40,21 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export function toAsyncIterable(readable: NodeJS.ReadableStream, charset?: string): typeof readable & AsyncIterable<Buffer> {
-    (readable as any)[Symbol.asyncIterator] = async function* () {
-        while (true) {
-            let data = await readChunk(readable);
+export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?: string): AsyncIterableIterator<Buffer> {
+    while (true) {
+        let data = await readChunk(readable);
 
-            if (data !== null) {
-                if (!(data instanceof Buffer)) {
-                    data = Buffer.from(data.toString(), charset);
-                }
+        if (data !== null) {
+            if (!(data instanceof Buffer)) {
+                data = Buffer.from(data.toString(), charset);
+            }
 
-                yield data;
-            }
-            else {
-                break;
-            }
+            yield data;
         }
-    };
-
-    return readable as NodeJS.ReadableStream & AsyncIterable<Buffer>;
+        else {
+            break;
+        }
+    }
 }
 
 export class IteratorStream extends Readable {

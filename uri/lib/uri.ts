@@ -31,8 +31,15 @@ export class ContentType {
     static readonly text  = new ContentType('text/plain');
     static readonly xml   = new ContentType('application/xml');
 
-    static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
-        return typeof ct === 'string' ? new ContentType(ct) : ct || ContentType.create(fallback, ContentType.bytes);
+    static create(ct: string | string[] | ContentType | null | undefined, fallback?: string | string[] | ContentType | null): ContentType {
+        if (Array.isArray(ct)) {
+            ct = new ContentType(ct.join(', '));
+        }
+        else if (typeof ct === 'string') {
+            ct = new ContentType(ct);
+        }
+
+        return ct || ContentType.create(fallback, ContentType.bytes);
     }
 
     private unparsed?: string;

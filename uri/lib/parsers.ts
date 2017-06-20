@@ -19,35 +19,46 @@ export abstract class Parser {
     }
 
     static async parse(contentType: ContentType, stream: AsyncIterable<Buffer>): Promise<object> {
-        const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
-        const result = await new (parser as any)(contentType).parse(stream);
+        try {
+            const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
 
-        // Never return primitive types or null/undefined
-        return result === undefined       ? Object(URI.void) :
-               result === null            ? Object(URI.null) :
-               typeof result !== 'object' ? Object(result) :
-               result;
+            const result = await new (parser as any)(contentType).parse(stream);
+
+            // Never return primitive types or null/undefined
+            return result === undefined       ? Object(URI.void) :
+                   result === null            ? Object(URI.null) :
+                   typeof result !== 'object' ? Object(result) :
+                   result;
+        }
+        catch (ex) {
+            throw new URIException(`${contentType} parser failed: ${ex}`, ex);
+        }
     }
 
     static async serialize(contentType: ContentType | string | undefined,
                            data: ObjectOrPrimitive): Promise<[ContentType, AsyncIterableIterator<Buffer>]> {
-        while (data instanceof Promise) {
-            data = await data;
+        try {
+            while (data instanceof Promise) {
+                data = await data;
+            }
+
+            if (data === null || data === undefined) {
+                data = Buffer.alloc(0);
+            }
+
+            contentType = ContentType.create(contentType,
+                data instanceof Buffer ? ContentType.bytes :
+                isJSON(data)           ? ContentType.json :
+                isDOMNode(data)        ? ContentType.xml :
+                ContentType.text);
+
+            const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
+
+            return [contentType, new (parser as any)(contentType).serialize(data)];
         }
-
-        if (data === null || data === undefined) {
-            data = Buffer.alloc(0);
+        catch (ex) {
+            throw new URIException(`${contentType} serializer failed: ${ex}`, ex);
         }
-
-        contentType = ContentType.create(contentType,
-            data instanceof Buffer ? ContentType.bytes :
-            isJSON(data)           ? ContentType.json :
-            isDOMNode(data)        ? ContentType.xml :
-            ContentType.text);
-
-        const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
-
-        return [contentType, new (parser as any)(contentType).serialize(data)];
     }
 
     private static parsers = new Map<string, typeof Parser>();

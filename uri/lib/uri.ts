@@ -70,7 +70,7 @@ export class ContentType {
     }
 
     valueOf(): string {
-        return this.unparsed || `${this.type}/${this.subtype}`;
+        return this.baseType();
     }
 }
 

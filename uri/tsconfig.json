@@ -1,24 +1,9 @@
 {
+    "extends": "../tsconfig.json",
     "include": [
         "lib/*.*"
     ],
     "compilerOptions": {
-        "pretty": true,
-        "outDir": "dist",
-        "declaration": true,
-        "sourceMap": true,
-
-        "target": "es6",
-        "lib": ["es6", "dom", "esnext.asynciterable"],
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "importHelpers": false,
-
-        "forceConsistentCasingInFileNames": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "strict": true
+        "outDir": "dist"
     }
 }

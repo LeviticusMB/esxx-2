@@ -7,7 +7,7 @@ import { IteratorStream } from '../utils';
 // See https://tools.ietf.org/html/rfc4180
 
 export class CSVParser extends Parser {
-    parse(stream: AsyncIterable<Buffer>): Promise<string[][] | Array<object>> {
+    parse(stream: AsyncIterable<Buffer>): Promise<string[][] | object[]> {
         return new Promise((resolve, reject) => {
             const charset   = this.contentType.param('charset',     'utf8');
             const header    = this.contentType.param('header',      'absent');
@@ -33,7 +33,7 @@ export class CSVParser extends Parser {
         });
     }
 
-    async *serialize(data: string[][] | Array<object>): AsyncIterableIterator<Buffer> {
+    async *serialize(data: string[][] | object[]): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(Array.isArray(data), data);
 
         const charset   = this.contentType.param('charset',     'utf8');

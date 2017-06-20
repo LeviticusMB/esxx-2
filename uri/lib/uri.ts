@@ -238,14 +238,14 @@ export class URI {
     }
 
     toASCIIString(): string {
-        return uri.serialize(Object.assign({}, this.uri), {
+        return uri.serialize({ ...this.uri }, {
             unicodeSupport: true,
             domainHost:     true,
         });
     }
 
     valueOf(): string {
-        return uri.serialize(Object.assign({}, this.uri), URI_OPTIONS);
+        return uri.serialize({ ...this.uri }, URI_OPTIONS);
     }
 
     get uriScheme(): string {

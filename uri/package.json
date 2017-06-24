@@ -24,8 +24,8 @@
   },
   "devDependencies": {
     "@types/mz": "^0.0.31",
-    "@types/node": "^8.0.0",
-    "@types/papaparse": "^4.1.29",
+    "@types/node": "^8.0.2",
+    "@types/papaparse": "^4.1.30",
     "@types/request": "~0.0.44",
     "@types/xmldom": "^0.1.29",
     "typescript": "rc"

@@ -4,9 +4,6 @@ export * from './uri';
 import { Parser } from './parsers';
 import { URI }    from './uri';
 
-// asyncIterator polyfill
-(Symbol as any).asyncIterator = Symbol.asyncIterator || Symbol.for("Symbol.asyncIterator");
-
 // Register all built-in protocols
 import { FileProtocol } from './protocols/file';
 import { HTTPProtocol } from './protocols/http';

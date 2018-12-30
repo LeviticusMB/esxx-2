@@ -63,7 +63,7 @@ export class HTTPProtocol extends URI {
         return this.requireValidStatus(await this._query(method, headers || {}, data, sendCT, recvCT));
     }
 
-    protected requireValidStatus<T>(result: T): T {
+    protected requireValidStatus<T>(result: T & object): T {
         const [code, message] = [(result as any)[URI.statusCode], (result as any)[URI.statusMessage]];
 
         if (code < 200 || code >= 300) {

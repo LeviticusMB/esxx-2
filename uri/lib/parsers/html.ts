@@ -144,7 +144,7 @@ export class XMLTreeAdapter implements AST.TreeAdapter {
         const attrs = [];
 
         for (let i = 0; i < element.attributes.length; ++i) {
-            const attr = element.attributes.item(i);
+            const attr = element.attributes.item(i)!;
             attrs.push({
                 name:      attr.name,
                 value:     attr.value,

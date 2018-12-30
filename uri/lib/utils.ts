@@ -9,12 +9,12 @@ export interface Params {
 
 export function kvWrapper(wrapped: any): Params {
     return new Proxy(wrapped, {
-        has: (target, prop) => {
+        has: (target: any, prop: any) => {
             console.log(`kvWrapper.has ${prop} => ${target[prop] !== undefined}`);
             return target[prop] !== undefined;
         },
 
-        get: (target, prop) => {
+        get: (target: any, prop: any) => {
             console.log(`kvWrapper.get ${prop} => ${target[prop]}`);
             return target[prop];
         },
@@ -58,7 +58,7 @@ export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?
 }
 
 export class IteratorStream extends Readable {
-    private iterator: AsyncIterator<Buffer>;
+    private iterator?: AsyncIterator<Buffer>;
     private done = false;
 
     constructor(private stream: AsyncIterable<Buffer>) {

@@ -43,9 +43,9 @@ export class ContentType {
     }
 
     private unparsed?: string;
-    private type: string;
-    private subtype: string;
-    private params: Map<string, string>;
+    private type?: string;
+    private subtype?: string;
+    private params?: Map<string, string>;
 
     constructor(ct: string) {
         const match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
@@ -138,7 +138,7 @@ export class URI {
     jars: any;
     headers: any;
 
-    private uri: uri.URIComponents;
+    private uri!: uri.URIComponents;
 
     constructor(base: string | URI | url.Url, relative?: string | URI | url.Url , params?: utils.Params) {
         if (arguments.length === 1 && this.constructor !== URI && base.constructor === URI) {

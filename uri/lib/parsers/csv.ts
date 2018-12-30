@@ -22,6 +22,10 @@ export class CSVParser extends Parser {
                 delimiter: separator,
                 quoteChar: quote,
 
+                beforeFirstChunk: (chunk) => {
+                    return chunk.charCodeAt(0) === 0xFEFF /* BOM */ ? chunk.substr(1) : undefined;
+                },
+
                 error: (error) => {
                     reject(new URIException(error.message, undefined, error));
                 },

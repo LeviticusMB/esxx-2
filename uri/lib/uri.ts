@@ -51,8 +51,19 @@ export class ContentType {
         const match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
 
         if (match) {
-            this.type    = match[1].toLowerCase();
-            this.subtype = match[2].toLowerCase();
+            this.type    = match[1].toLowerCase().trim();
+            this.subtype = match[2].toLowerCase().trim();
+
+            if (match[3]) {
+                this.params = new Map();
+
+                // See RFC 2045, Section 5.1.
+                const pr = /;\s*([-!#$%&'*+.^_`{|}~0-9a-zA-Z]+)=(?:([-!#$%&'*+.^_`{|}~0-9a-zA-Z]+)|"((?:[^"\\\r]|\\.)+)")[^;]*/g;
+
+                for (let param = pr.exec(match[3]); param; param = pr.exec(match[3])) {
+                    this.params.set(param[1], param[2] !== undefined ? param[2] : param[3].replace(/\\(.)/g, '$1'));
+                }
+            }
         }
         else {
             this.unparsed = ct;
@@ -66,7 +77,7 @@ export class ContentType {
     param(key: string): string | undefined;
     param(key: string, fallback: string): string;
     param(key: string, fallback?: string): any {
-        return this.params && this.params.get(key) || fallback;
+        return this.params && this.params.has(key) ? this.params.get(key) : fallback;
     }
 
     valueOf(): string {

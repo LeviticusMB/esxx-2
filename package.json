@@ -1,16 +1,16 @@
 {
-  "name": "@bestest/undefined",
+  "name": "@divine/esxx-2",
   "version": "1.0.0",
-  "description": "A collection of awesome Node modules",
-  "private": true,
-  "main": "index.js",
-  "repository": "martin@blom.org:/opt/git/esxx-2.git",
+  "description": "A collection of awesome web-related Node modules",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "private": true,
+  "repository": "martin@blom.org:/opt/git/esxx-2.git",
   "devDependencies": {
-    "tslint": "^5.4.3",
-    "tslint-language-service": "^0.9.6",
-    "typescript": "rc"
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.3"
   },
-  "dependencies": {}
+  "workspaces": {
+    "packages": [ "*" ]
+  }
 }

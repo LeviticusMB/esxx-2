@@ -1,0 +1,23 @@
+{
+  "name": "@divine/web-service",
+  "version": "1.0.0",
+  "description": "The Divine HTTP WebService Library",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "author": "Martin Blom",
+  "license": "Apache-2.0",
+  "files": [
+    "build/src",
+    "src"
+  ],
+  "dependencies": {
+    "@divine/headers": "^1.1.0",
+    "tslib": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.18",
+    "alsatian": "^3.1.0",
+    "nyc": "^15.0.0",
+    "typescript": "^3.7.4"
+  }
+}

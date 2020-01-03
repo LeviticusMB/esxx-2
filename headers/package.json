@@ -2,12 +2,12 @@
   "name": "@divine/headers",
   "version": "1.2.0",
   "description": "The Divine HTTP Header Library",
-  "main": "lib/src/index.js",
-  "types": "lib/src/index.d.ts",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "author": "Martin Blom",
   "license": "Apache-2.0",
   "files": [
-    "lib/src",
+    "build/src",
     "src"
   ],
   "dependencies": {

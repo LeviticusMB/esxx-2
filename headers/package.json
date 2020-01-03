@@ -1,0 +1,20 @@
+{
+  "name": "@divine/headers",
+  "version": "1.2.0",
+  "description": "The Divine HTTP Header Library",
+  "main": "lib/src/index.js",
+  "types": "lib/src/index.d.ts",
+  "author": "Martin Blom",
+  "license": "Apache-2.0",
+  "files": [
+    "lib/src",
+    "src"
+  ],
+  "dependencies": {
+    "tslib": "^1.10.0"
+  },
+  "devDependencies": {
+    "nyc": "^14.1.1",
+    "typescript": "^3.7.3"
+  }
+}

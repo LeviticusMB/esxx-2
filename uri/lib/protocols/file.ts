@@ -12,8 +12,8 @@ export class FileProtocol extends URI {
     constructor(uri: URI) {
         super(uri);
 
-        if ((this.uriHost !== undefined && this.uriHost !== '' && this.uriHost !== 'localhost') ||
-            this.uriPort !== undefined || this.uriQuery !== undefined || this.uriFragment !== undefined) {
+        if ((this.uriHost !== null && this.uriHost !== '' && this.uriHost !== 'localhost') ||
+            this.uriPort !== null || this.uriQuery !== null || this.uriFragment !== null) {
             throw new URIException(`URI ${this}: Host/port/query/fragment parts not allowed`);
         }
         else if (typeof this.uriPath !== 'string' || /%2F/i.test(this.uriPath) /* No encoded slashes */) {

@@ -263,24 +263,34 @@ export class URI {
         return this.uri.scheme as string;
     }
 
-    get uriHost(): string | undefined {
-        return this.uri.host;
+    get uriHost(): string | null {
+        return this.uri.host !== undefined ? this.uri.host : null;
     }
 
-    get uriPort(): string | undefined {
-        return this.uri.port !== undefined ? this.uri.port.toString() : undefined;
+    get uriPort(): string | null {
+        return this.uri.port !== undefined ? this.uri.port.toString() : null;
     }
 
-    get uriPath(): string | undefined {
-        return this.uri.path;
+    get uriPath(): string | null {
+        return this.uri.path !== undefined ? this.uri.path : null;
     }
 
-    get uriQuery(): string | undefined {
-        return this.uri.query;
+    get uriQuery(): string | null {
+        return this.uri.query !== undefined ? this.uri.query : null;
     }
 
-    get uriFragment(): string | undefined {
-        return this.uri.fragment;
+    get uriFragment(): string | null {
+        return this.uri.fragment !== undefined ? this.uri.fragment : null;
+    }
+
+    setParams(params: Param[]): this {
+        this.params = params;
+        return this;
+    }
+
+    setAuth(auth: Auth[]): this {
+        this.auth = auth;
+        return this;
     }
 
     async info(): Promise<DirectoryEntry> {

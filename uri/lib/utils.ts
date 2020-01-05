@@ -46,7 +46,7 @@ export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?
 
         if (data !== null) {
             if (!(data instanceof Buffer)) {
-                data = Buffer.from(data.toString(), charset);
+                data = Buffer.from(data.toString(), charset); // TODO: Encoding
             }
 
             yield data;

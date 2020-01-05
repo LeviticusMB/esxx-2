@@ -106,7 +106,7 @@ export class StringParser extends Parser {
     }
 
     async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
-        const cs = this.contentType.param('charset', 'utf8');
+        const cs = this.contentType.param('charset', 'utf8'); // TODO: Encoding
         this.assertSerializebleData(data !== null && data !== undefined, data);
 
         yield data instanceof Buffer ? data : Buffer.from(data!.toString(), cs);

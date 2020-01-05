@@ -16,7 +16,7 @@ export class CSVParser extends Parser {
             const quote     = this.contentType.param('x-quote',     '"');
 
             Papa.parse(new IteratorStream(stream) as any as File, {
-                encoding:  charset,
+                encoding:  charset, // TODO: Encoding
                 header:    header === 'present',
                 newline:   eol,
                 delimiter: separator,
@@ -58,7 +58,7 @@ export class CSVParser extends Parser {
                 line.push(column === null || column === undefined ? '' : quote + column.toString().replace(search, replace) + quote);
             }
 
-            return Buffer.from(line.join(separator) + eol, charset);
+            return Buffer.from(line.join(separator) + eol, charset); // TODO: Encoding
         }
 
         for (let row of data) {

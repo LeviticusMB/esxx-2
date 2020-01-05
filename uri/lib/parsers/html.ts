@@ -8,7 +8,7 @@ export class HTMLParser extends Parser {
         const parser = new ParserStream({ treeAdapter: new XMLTreeAdapter() });
 
         for await (const chunk of stream) {
-            parser.write(chunk);
+            parser.write(chunk); // TODO: Encoding?
         }
 
         return parser.document as Document;

@@ -1,0 +1,18 @@
+{
+  "name": "@divine/uri-image-parser",
+  "version": "1.0.0",
+  "description": "Adds support for images to @divine/uri",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "author": "Martin Blom <martin@blom.org>",
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@divine/uri": "~1.0.0"
+  },
+  "dependencies": {
+    "canvas": "^2.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.4"
+  }
+}

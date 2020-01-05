@@ -4,8 +4,8 @@
   "description": "A divine URI class for accessing and manipulating local and remote resources",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "dependencies": {
     "mime-types": "^2.1.21",
     "mz": "^2.7.0",

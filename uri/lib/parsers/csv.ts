@@ -40,7 +40,7 @@ export class CSVParser extends Parser {
     async *serialize(data: string[][] | object[]): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(Array.isArray(data), data);
 
-        const charset   = this.contentType.param('charset',     'utf8');
+        const charset   = this.contentType.param('charset',     'utf8') as BufferEncoding;
         const header    = this.contentType.param('header',      'absent');
         const eol       = this.contentType.param('x-eol',       '\r\n');
         const separator = this.contentType.param('x-separator', this.contentType.baseType() === 'text/csv' ? ',' : '\t');

@@ -40,7 +40,7 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?: string): AsyncIterableIterator<Buffer> {
+export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?: BufferEncoding): AsyncIterableIterator<Buffer> {
     while (true) {
         let data = await readChunk(readable);
 

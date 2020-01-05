@@ -3,8 +3,8 @@ import { Parser } from '../parsers';
 import { ContentType, DirectoryEntry, Headers, URI, URIException } from '../uri';
 import { IteratorStream, toAsyncIterable } from '../utils';
 
-import * as path from 'path';
-import * as request from 'request';
+import path from 'path';
+import request from 'request';
 
 export class HTTPProtocol extends URI {
     async info(): Promise<DirectoryEntry> {

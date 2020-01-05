@@ -1,3 +1,4 @@
+import { OAuthOptions } from 'request';
 
 import * as path  from 'path';
 import * as uri   from 'uri-js';
@@ -14,11 +15,43 @@ export interface Headers {
     [key: string]: string | undefined;
 }
 
+export interface PropertyFilter {
+    realm?:      string | RegExp | null;
+    authScheme?: string | RegExp | null;
+    scheme?:     string | RegExp;
+    path?:       string | RegExp | null;
+    port?:       number | RegExp | null;
+    host?:       string | RegExp | null;
+    uri?:        string | RegExp;
+}
+
+export interface HawkCredentials {
+    id:         string;
+    key:        string;
+    algorithm?: string;
+}
+
+export interface Auth extends PropertyFilter {
+    identity?:   string;
+    credentials: string | HawkCredentials | OAuthOptions;
+    preemptive?: boolean;
+}
+
+export interface Param extends PropertyFilter {
+    name:  string;
+    value: string | number;
+}
+
+export interface Header extends PropertyFilter {
+    name:  string;
+    value: string | number;
+}
+
 export interface DirectoryEntry {
-    uri: string;
-    name: string;
-    type: string;
-    length?: number;
+    uri:      string;
+    name:     string;
+    type:     string;
+    length?:  number;
     created?: Date;
     updated?: Date;
 }
@@ -144,10 +177,10 @@ export class URI {
 
     private static protocols = new Map<string, typeof URI>();
 
-    params: any;
-    auth: any;
-    jars: any;
-    headers: any;
+    params: Param[] = [];
+    auth: Auth[] = [];
+    jars: any = [];
+    headers: Header[] = [];
 
     private uri!: uri.URIComponents;
 
@@ -231,8 +264,8 @@ export class URI {
             const ui = /([^:]*)(:(.*))?/.exec(this.uri.userinfo);
 
             if (ui) {
-                this.auth = [ { username: ui[1] && decodeURIComponent(ui[1]),
-                                password: ui[2] && decodeURIComponent(ui[3]) } ];
+                // this.auth = [ { name: ui[1] && decodeURIComponent(ui[1]),
+                //                 auth: ui[2] && decodeURIComponent(ui[3]) } ];
             }
 
             // Always strip credentials from URI for security reasons
@@ -323,6 +356,66 @@ export class URI {
 
     async query(..._args: any[]): Promise<object> {
         throw new URIException(`URI ${this} does not support query()`);
+    }
+
+    protected getBestProperty<T extends PropertyFilter>(props?: T[], authScheme?: string | null, realm?: string | null): T | null {
+        let result: T | null = null;
+        let score = -1;
+
+        for (const { prop: p, score: s } of this.enumerateProperties(props, authScheme, realm)) {
+            if (s > score) {
+                result = p;
+                score  = s;
+            }
+        }
+
+        return result;
+    }
+
+    protected filterProperties<T extends PropertyFilter>(props?: T[], authScheme?: string | null, realm?: string | null): T[] {
+        const result: T[] = [];
+
+        for (const { prop } of this.enumerateProperties(props, authScheme, realm)) {
+            result.push(prop);
+        }
+
+        return result;
+    }
+
+    private *enumerateProperties<T extends PropertyFilter>(props?: T[] | null, authScheme?: string | null, realm?: string | null): IterableIterator<{ prop: T, score: number }> {
+        if (!props) {
+            return;
+        }
+
+        const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string | number | undefined | null): number => {
+            const expected = prop[key];
+
+            if (expected === undefined || value === undefined) {
+                return 0;
+            }
+            else if (expected instanceof RegExp) {
+                return value !== null && expected.test(value.toString()) ? 1 : -Infinity;
+            }
+            else {
+                return expected === value ? 1 : -Infinity;
+            }
+        };
+
+        for (const prop of props) {
+            let score = 0;
+
+            score += propertyScore(prop, 'realm',      realm)          * 1;
+            score += propertyScore(prop, 'authScheme', authScheme)     * 2;
+            score += propertyScore(prop, 'scheme',     this.uriScheme) * 4;
+            score += propertyScore(prop, 'path',       this.uriPath)   * 8;
+            score += propertyScore(prop, 'port',       this.uriPort)   * 16;
+            score += propertyScore(prop, 'host',       this.uriHost)   * 32;
+            score += propertyScore(prop, 'uri',        this.valueOf()) * 64;
+
+            if (score >= 0) {
+                yield { prop, score };
+            }
+        }
     }
 }
 

@@ -80,6 +80,11 @@ export class HTTPProtocol extends URI {
             const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
 
+            // let auth = this.getBestProperty(this.auth, undefined, undefined);
+
+            // if (auth) {
+            // }
+
             const iterable = toAsyncIterable(request({
                     method:   method,
                     uri:      this.toASCIIString(),

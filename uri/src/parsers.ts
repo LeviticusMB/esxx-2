@@ -1,6 +1,7 @@
 
-import { DOMParser, XMLSerializer }       from 'xmldom';
-import { ContentType, URI, URIException } from './uri';
+import { ContentType } from '@divine/headers';
+import { DOMParser, XMLSerializer } from 'xmldom';
+import { URI, URIException } from './uri';
 
 export type ObjectOrPrimitive = object | string | number | boolean | symbol | null | undefined;
 
@@ -20,9 +21,7 @@ export abstract class Parser {
 
     static async parse(contentType: ContentType, stream: AsyncIterable<Buffer>): Promise<object> {
         try {
-            const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
-
-            const result = await new (parser as any)(contentType).parse(stream);
+            const result = Parser.create(contentType).parse(stream);
 
             // Never return primitive types or null/undefined
             return result === undefined       ? Object(URI.void) :
@@ -52,9 +51,7 @@ export abstract class Parser {
                 isDOMNode(data)        ? ContentType.xml :
                 ContentType.text);
 
-            const parser = Parser.parsers.get(contentType.baseType()) || BufferParser;
-
-            return [contentType, new (parser as any)(contentType).serialize(data)];
+            return [contentType, Parser.create(contentType).serialize(data)];
         }
         catch (ex) {
             throw new URIException(`${contentType} serializer failed: ${ex}`, ex);
@@ -62,6 +59,10 @@ export abstract class Parser {
     }
 
     private static parsers = new Map<string, typeof Parser>();
+
+    private static create(contentType: ContentType): Parser {
+        return new (Parser.parsers.get(contentType.type) as any || BufferParser)(contentType);
+    }
 
     constructor(protected contentType: ContentType) { }
     abstract parse(stream: AsyncIterable<Buffer>): Promise<ObjectOrPrimitive>;
@@ -71,7 +72,7 @@ export abstract class Parser {
         if (!condition) {
             const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
-            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.baseType()}`,
+            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.type}`,
                 undefined, Object(data));
         }
     }

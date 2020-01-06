@@ -1,10 +1,10 @@
+import { ContentType } from '@divine/headers';
+import mime from 'mime-types';
+import { fs } from 'mz';
+import path from 'path';
 import { Parser } from '../parsers';
-import { ContentType, DirectoryEntry, URI, URIException } from '../uri';
+import { DirectoryEntry, URI, URIException } from '../uri';
 import { copyStream, IteratorStream, toAsyncIterable } from '../utils';
-
-import * as mime from 'mime-types';
-import * as fs   from 'mz/fs';
-import * as path from 'path';
 
 export class FileProtocol extends URI {
     private _path: string;
@@ -30,7 +30,7 @@ export class FileProtocol extends URI {
         return {
             uri:     this.valueOf(),
             name:    path.basename(this._path),
-            type:    ct.baseType(),
+            type:    ct.type,
             length:  stats.size,
             created: stats.birthtime,
             updated: stats.mtime,

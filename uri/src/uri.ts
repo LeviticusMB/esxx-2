@@ -1,8 +1,8 @@
+import { ContentType } from '@divine/headers';
+import * as path from 'path';
 import { OAuthOptions } from 'request';
-
-import * as path  from 'path';
-import * as uri   from 'uri-js';
-import * as url   from 'url';
+import * as uri from 'uri-js';
+import * as url from 'url';
 import * as utils from './utils';
 
 const URI_OPTIONS: uri.URIOptions = {
@@ -54,68 +54,6 @@ export interface DirectoryEntry {
     length?:  number;
     created?: Date;
     updated?: Date;
-}
-
-export class ContentType {
-    static readonly bytes = new ContentType('application/octet-stream');
-    static readonly dir   = new ContentType('application/vnd.esxx.directory+json');
-    static readonly csv   = new ContentType('text/csv');
-    static readonly json  = new ContentType('application/json');
-    static readonly text  = new ContentType('text/plain');
-    static readonly xml   = new ContentType('application/xml');
-
-    static create(ct: string | string[] | ContentType | null | undefined, fallback?: string | string[] | ContentType | null): ContentType {
-        if (Array.isArray(ct)) {
-            ct = new ContentType(ct.join(', '));
-        }
-        else if (typeof ct === 'string') {
-            ct = new ContentType(ct);
-        }
-
-        return ct || ContentType.create(fallback, ContentType.bytes);
-    }
-
-    private unparsed?: string;
-    private type?: string;
-    private subtype?: string;
-    private params?: Map<string, string>;
-
-    constructor(ct: string) {
-        const match = /([^\/]+)\/([^;]+)(;(.*))?/.exec(ct);
-
-        if (match) {
-            this.type    = match[1].toLowerCase().trim();
-            this.subtype = match[2].toLowerCase().trim();
-
-            if (match[3]) {
-                this.params = new Map();
-
-                // See RFC 2045, Section 5.1.
-                const pr = /;\s*([-!#$%&'*+.^_`{|}~0-9a-zA-Z]+)=(?:([-!#$%&'*+.^_`{|}~0-9a-zA-Z]+)|"((?:[^"\\\r]|\\.)+)")[^;]*/g;
-
-                for (let param = pr.exec(match[3]); param; param = pr.exec(match[3])) {
-                    this.params.set(param[1], param[2] !== undefined ? param[2] : param[3].replace(/\\(.)/g, '$1'));
-                }
-            }
-        }
-        else {
-            this.unparsed = ct;
-        }
-    }
-
-    baseType() {
-        return this.unparsed || `${this.type}/${this.subtype}`;
-    }
-
-    param(key: string): string | undefined;
-    param(key: string, fallback: string): string;
-    param(key: string, fallback?: string): any {
-        return this.params && this.params.has(key) ? this.params.get(key) : fallback;
-    }
-
-    valueOf(): string {
-        return this.baseType();
-    }
 }
 
 export class URIException extends URIError {

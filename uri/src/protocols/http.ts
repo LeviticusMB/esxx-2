@@ -1,10 +1,10 @@
-import { PassThrough } from 'stream';
-import { Parser } from '../parsers';
-import { ContentType, DirectoryEntry, Headers, URI, URIException } from '../uri';
-import { IteratorStream, toAsyncIterable } from '../utils';
-
+import { ContentType } from '@divine/headers';
 import path from 'path';
 import request from 'request';
+import { PassThrough } from 'stream';
+import { Parser } from '../parsers';
+import { DirectoryEntry, Headers, URI, URIException } from '../uri';
+import { IteratorStream, toAsyncIterable } from '../utils';
 
 export class HTTPProtocol extends URI {
     async info(): Promise<DirectoryEntry> {

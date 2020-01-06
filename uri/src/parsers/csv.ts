@@ -43,7 +43,7 @@ export class CSVParser extends Parser {
         const charset   = this.contentType.param('charset',     'utf8') as BufferEncoding;
         const header    = this.contentType.param('header',      'absent');
         const eol       = this.contentType.param('x-eol',       '\r\n');
-        const separator = this.contentType.param('x-separator', this.contentType.baseType() === 'text/csv' ? ',' : '\t');
+        const separator = this.contentType.param('x-separator', this.contentType.type === 'text/csv' ? ',' : '\t');
         const quote     = this.contentType.param('x-quote',     '"');
         const escape    = this.contentType.param('x-escape',    quote);
 

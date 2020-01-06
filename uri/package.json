@@ -7,6 +7,7 @@
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "dependencies": {
+    "@divine/headers": "^1.1.0",
     "mime-types": "^2.1.21",
     "mz": "^2.7.0",
     "papaparse": "4.6.2",

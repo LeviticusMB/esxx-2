@@ -81,6 +81,17 @@ export class ContentHeader {
 }
 
 export class ContentDisposition extends ContentHeader {
+    static readonly attachment = new ContentDisposition('attachment');
+    static readonly inline     = new ContentDisposition('inline');
+
+    static create(cd: string | ContentDisposition | null | undefined, fallback?: string | ContentDisposition | null): ContentDisposition {
+        if (typeof cd === 'string') {
+            cd = new ContentDisposition(cd);
+        }
+
+        return cd ?? ContentDisposition.create(fallback, ContentDisposition.inline);
+    }
+
     constructor(unparsed: string, filename?: string) {
         super(unparsed, 'content-disposition');
 
@@ -100,10 +111,18 @@ export class ContentType extends ContentHeader {
     static readonly text  = new ContentType('text/plain');
     static readonly xml   = new ContentType('application/xml');
 
+    static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
+        if (typeof ct === 'string') {
+            ct = new ContentType(ct);
+        }
+
+        return ct ?? ContentType.create(fallback, ContentType.bytes);
+    }
+
     constructor(unparsed: string, charset?: string) {
         super(unparsed, 'content-type');
 
-        this.setParam('filename', charset);
+        this.setParam('charset', charset);
     }
 
     get charset() {

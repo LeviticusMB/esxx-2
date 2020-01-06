@@ -1,5 +1,5 @@
 
-import { Readable } from 'stream';
+import { pipeline, Readable } from 'stream';
 
 export type ValueEncoder = (this: void, value: string) => string;
 
@@ -129,8 +129,6 @@ export function readChunk(stream: NodeJS.ReadableStream): Promise<Buffer | strin
 
 export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStream): Promise<typeof to> {
     return new Promise<typeof to>((resolve, reject) => {
-        from.pipe(to)
-            .once('finish', () => resolve(to))
-            .once('error', reject);
+        pipeline(from, to, (err) => err ? reject(err) : resolve(to));
     });
 }

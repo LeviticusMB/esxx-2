@@ -1,10 +1,10 @@
 import { ContentType } from '@divine/headers';
-import mime from 'mime-types';
-import { fs } from 'mz';
-import path from 'path';
+import { createReadStream, createWriteStream, promises as fs } from 'fs';
+import { lookup } from 'mime-types';
+import { basename } from 'path';
 import { Parser } from '../parsers';
 import { DirectoryEntry, URI, URIException } from '../uri';
-import { copyStream, IteratorStream, toAsyncIterable } from '../utils';
+import { copyStream, IteratorStream } from '../utils';
 
 export class FileProtocol extends URI {
     private _path: string;
@@ -25,11 +25,11 @@ export class FileProtocol extends URI {
 
     async info(): Promise<DirectoryEntry> {
         const stats = await fs.stat(this._path);
-        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(mime.lookup(this._path) || undefined);
+        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(lookup(this._path) || undefined);
 
         return {
             uri:     this.valueOf(),
-            name:    path.basename(this._path),
+            name:    basename(this._path),
             type:    ct.type,
             length:  stats.size,
             created: stats.birthtime,
@@ -40,14 +40,13 @@ export class FileProtocol extends URI {
     async list(): Promise<DirectoryEntry[]> {
         const children = await fs.readdir(this._path);
 
-        return await Promise.all(children.map((child) => this.resolvePath(child).info()));
+        return Promise.all(children.map((child) => this.resolvePath(child).info()));
     }
 
     async load(recvCT?: ContentType | string): Promise<object> {
-        const stream = fs.createReadStream(this._path, { flags: 'r', encoding: undefined });
+        const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
 
-        return await Parser.parse(ContentType.create(recvCT, mime.lookup(this._path) || undefined),
-                                  toAsyncIterable(stream));
+        return Parser.parse(ContentType.create(recvCT, lookup(this._path) || undefined), stream);
     }
 
     async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
@@ -97,6 +96,6 @@ export class FileProtocol extends URI {
         const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
 
         await copyStream(new IteratorStream(serialized),
-                         fs.createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
+                         createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }
 }

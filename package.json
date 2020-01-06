@@ -7,8 +7,10 @@
   "private": true,
   "repository": "martin@blom.org:/opt/git/esxx-2.git",
   "devDependencies": {
+    "alsatian": "^3.2.0",
+    "nyc": "^15.0.0",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.3"
+    "typescript": "^3.7.4"
   },
   "workspaces": {
     "packages": [ "*" ]

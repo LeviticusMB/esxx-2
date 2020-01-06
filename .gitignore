@@ -1,5 +1,7 @@
 /*/build
 /.vscode
+.nyc_output
+coverage
 node_modules
 npm-debug.log
 yarn-error.log

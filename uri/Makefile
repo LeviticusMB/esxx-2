@@ -4,11 +4,11 @@ prepare:
 	yarn
 
 build:		prepare
-	npx tsc
+	yarn run tsc
 
 test:		build
-	-npx nyc --reporter=lcov --reporter=html alsatian build/test/*.js
-	npx nyc report
+	-yarn run nyc --reporter=lcov --reporter=html alsatian build/test/*.js
+	yarn run nyc report
 
 clean:
 	rm -rf build .nyc_output coverage node_modules/.cache/nyc

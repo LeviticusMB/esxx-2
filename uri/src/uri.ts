@@ -1,27 +1,22 @@
 import { ContentType } from '@divine/headers';
-import * as path from 'path';
+import path from 'path';
 import { OAuthOptions } from 'request';
-import * as uri from 'uri-js';
-import * as url from 'url';
+import url, { Url } from 'url';
 import * as utils from './utils';
 
-const URI_OPTIONS: uri.URIOptions = {
-    domainHost:     true,
-    iri:            true,
-    unicodeSupport: true,
-};
+const urlObject = (url as any).Url;
 
 export interface Headers {
     [key: string]: string | undefined;
 }
 
 export interface PropertyFilter {
-    realm?:      string | RegExp | null;
-    authScheme?: string | RegExp | null;
-    scheme?:     string | RegExp;
-    path?:       string | RegExp | null;
-    port?:       number | RegExp | null;
-    host?:       string | RegExp | null;
+    realm?:      string | RegExp;
+    authScheme?: string | RegExp;
+    protocol?:   string | RegExp;
+    pathname?:   string | RegExp;
+    port?:       string | RegExp | number;
+    hostname?:   string | RegExp;
     uri?:        string | RegExp;
 }
 
@@ -62,7 +57,77 @@ export class URIException extends URIError {
     }
 }
 
-export class URI {
+function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params): URL {
+    // base argument is optional ...
+    if (params === undefined && typeof base !== 'string' && !(base instanceof URL) && !(base instanceof urlObject)) {
+        params = base as utils.Params | undefined;
+        base   = undefined;
+    }
+
+    // ... and so is params
+    if (params !== undefined) {
+        params = utils.kvWrapper(params);
+    }
+
+    if (typeof url === 'string' && params) {
+        url = utils.esxxEncoder(url, params, encodeURIComponent);
+    }
+    else if (url instanceof urlObject) {
+        url = (url as Url).href;
+    }
+
+    if (typeof base === 'string' && params) {
+        base = utils.esxxEncoder(base, params, encodeURIComponent);
+    }
+    else if (base instanceof urlObject) {
+        base = (base as Url).href;
+    }
+
+    if (url instanceof URL && base === undefined && params === undefined) {
+        return url;
+    }
+    else {
+        return new URL(url?.toString() ?? '', new URL(base?.toString() ?? '', `file://${process.cwd()}/`));
+    }
+}
+
+function *enumerateProperties<T extends PropertyFilter>(props: T[] | undefined, url: URL, authScheme: string, realm: string): IterableIterator<{ prop: T, score: number }> {
+    if (!props) {
+        return;
+    }
+
+    const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string): number => {
+        const expected = prop[key];
+
+        if (expected === undefined) {
+            return 0;
+        }
+        else if (expected instanceof RegExp) {
+            return expected.test(value.toString()) ? 1 : -Infinity;
+        }
+        else {
+            return String(expected) === value ? 1 : -Infinity;
+        }
+    };
+
+    for (const prop of props) {
+        let score = 0;
+
+        score += propertyScore(prop, 'realm',      realm)           * 1;
+        score += propertyScore(prop, 'authScheme', authScheme)      * 2;
+        score += propertyScore(prop, 'protocol',   url.protocol)   * 4;
+        score += propertyScore(prop, 'pathname',   url.pathname)   * 8;
+        score += propertyScore(prop, 'port',       url.port)       * 16;
+        score += propertyScore(prop, 'hostname',   url.hostname)   * 32;
+        score += propertyScore(prop, 'uri',        url.toString()) * 64;
+
+        if (score >= 0) {
+            yield { prop, score };
+        }
+    }
+}
+
+export class URI extends URL {
     static readonly void          = Symbol('Represents a void result');
     static readonly null          = Symbol('Represents a null result');
     static readonly headers       = Symbol('Used to access the response headers');
@@ -70,8 +135,8 @@ export class URI {
     static readonly statusCode    = Symbol('Used to access the response status code');
     static readonly statusMessage = Symbol('Used to access the response status message');
 
-    static register(scheme: string, uri: typeof URI): typeof URI {
-        URI.protocols.set(scheme, uri);
+    static register(protocol: string, uri: typeof URI): typeof URI {
+        URI.protocols.set(protocol, uri);
         return URI;
     }
 
@@ -112,7 +177,6 @@ export class URI {
         return utils.es6Encoder(strings, values, encodeURIComponent);
     }
 
-
     private static protocols = new Map<string, typeof URI>();
 
     params: Param[] = [];
@@ -120,148 +184,46 @@ export class URI {
     jars: any = [];
     headers: Header[] = [];
 
-    private uri!: uri.URIComponents;
+    readonly href!: string;
+    readonly origin!: string;
+    readonly protocol!: string;
 
-    constructor(base: string | URI | url.Url, relative?: string | URI | url.Url , params?: utils.Params) {
-        if (arguments.length === 1 && this.constructor !== URI && base.constructor === URI) {
-            Object.assign(this, base);
+    constructor(url?: string | URL | Url, params?: utils.Params);
+    constructor(url?: string | URL | Url, base?: string | URL | Url, params?: utils.Params);
+    constructor(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params) {
+        super(resolveURL(url, base, params).href);
+
+        if (arguments.length === 1 && this.constructor !== URI && url instanceof URI && url.constructor === URI) {
+            this.params  = url.params;
+            this.auth    = url.auth;
+            this.jars    = url.jars;
+            this.headers = url.headers;
             return;
         }
 
-        const Url = (url as any).Url;
-
-        // relative argument is optional ...
-        if (params === undefined && typeof relative !== 'string' && !(relative instanceof URI) && !(relative instanceof Url)) {
-            params   = relative as any;
-            relative = undefined;
-        }
-
-        // ... and so is params
-        if (params !== undefined) {
-            params = utils.kvWrapper(params);
-        }
-
-        if (typeof base === 'string') {
-            if (params !== undefined) {
-                base = utils.esxxEncoder(base, params, encodeURIComponent);
-            }
-
-            this.uri = uri.parse(base, URI_OPTIONS);
-        }
-        else if (base instanceof URI) {
-            this.uri     = base.uri;
+        if (base instanceof URI) {
             this.params  = base.params;
             this.auth    = base.auth;
             this.jars    = base.jars;
             this.headers = base.headers;
         }
-        else if (base instanceof Url) {
-            this.uri = uri.parse(url.format(base), URI_OPTIONS);
-        }
-        else {
-            throw new URIException('First argument must be of type string, URI or Url');
-        }
 
-        let relativeURI: uri.URIComponents | undefined;
-
-        if (typeof relative === 'string') {
-            if (params !== undefined) {
-                relative = utils.esxxEncoder(relative, params, encodeURIComponent);
-            }
-
-            relativeURI = uri.parse(relative, URI_OPTIONS);
-        }
-        else if (relative instanceof URI) {
-            relativeURI = relative.uri;
-        }
-        else if (relative instanceof Url) {
-            relativeURI = uri.parse(url.format(relative as url.Url), URI_OPTIONS);
-        }
-        else if (relative !== undefined) {
-            throw new URIException('Relative argument must be type string, URI or Url, if provided');
-        }
-
-        if (this.uri.reference === 'same-document' || this.uri.reference === 'relative') {
-            // base is relative -- resolve it against current working directory first
-            this.uri = uri.resolveComponents(uri.parse(`file://${process.cwd()}/`, { tolerant: true }), this.uri, URI_OPTIONS, true);
-        }
-
-        if (relativeURI !== undefined) {
-            if (this.uri.host !== undefined) {
-                this.uri = uri.resolveComponents(this.uri, relativeURI, URI_OPTIONS, true);
-            }
-            else if (relativeURI.reference === 'same-document') {
-                this.uri.fragment = relativeURI.fragment;
-            }
-            else {
-                throw new URIException('Relative argument must be fragment only, if base URI is not a URL');
-            }
-        }
-
-        if (this.uri.userinfo) {
-            const ui = /([^:]*)(:(.*))?/.exec(this.uri.userinfo);
-
-            if (ui) {
-                // this.auth = [ { name: ui[1] && decodeURIComponent(ui[1]),
-                //                 auth: ui[2] && decodeURIComponent(ui[3]) } ];
-            }
+        if (this.username || this.password) {
+            // this.auth = ...;
 
             // Always strip credentials from URI for security reasons
-            delete this.uri.userinfo;
+            this.username = this.password = '';
         }
 
-        this.uri = uri.normalize(this.uri);
-
-        return new (this.uri.scheme && URI.protocols.get(this.uri.scheme) || UnknownURI)(this);
+        return new (this.protocol && URI.protocols.get(this.protocol) || UnknownURI)(this);
     }
 
     resolvePath(filepath: string): this {
-        return new URI(this, URI.encodePath(filepath)) as this;
+        return new URI(URI.encodePath(filepath), this) as this;
     }
 
-    toASCIIString(): string {
-        return uri.serialize({ ...this.uri }, {
-            unicodeSupport: true,
-            domainHost:     true,
-        });
-    }
-
-    valueOf(): string {
-        return uri.serialize({ ...this.uri }, URI_OPTIONS);
-    }
-
-    get uriScheme(): string {
-        return this.uri.scheme as string;
-    }
-
-    get uriHost(): string | null {
-        return this.uri.host !== undefined ? this.uri.host : null;
-    }
-
-    get uriPort(): string | null {
-        return this.uri.port !== undefined ? this.uri.port.toString() : null;
-    }
-
-    get uriPath(): string | null {
-        return this.uri.path !== undefined ? this.uri.path : null;
-    }
-
-    get uriQuery(): string | null {
-        return this.uri.query !== undefined ? this.uri.query : null;
-    }
-
-    get uriFragment(): string | null {
-        return this.uri.fragment !== undefined ? this.uri.fragment : null;
-    }
-
-    setParams(params: Param[]): this {
-        this.params = params;
-        return this;
-    }
-
-    setAuth(auth: Auth[]): this {
-        this.auth = auth;
-        return this;
+    toString(): string {
+        return this.href;
     }
 
     async info(): Promise<DirectoryEntry> {
@@ -296,64 +258,22 @@ export class URI {
         throw new URIException(`URI ${this} does not support query()`);
     }
 
-    protected getBestProperty<T extends PropertyFilter>(props?: T[], authScheme?: string | null, realm?: string | null): T | null {
+    protected getBestProperty<T extends PropertyFilter>(props: T[] | undefined, authScheme: string, realm: string): T | null {
         let result: T | null = null;
-        let score = -1;
+        let bestScore = -1;
 
-        for (const { prop: p, score: s } of this.enumerateProperties(props, authScheme, realm)) {
-            if (s > score) {
-                result = p;
-                score  = s;
+        for (const e of enumerateProperties(props, this, authScheme, realm)) {
+            if (e.score > bestScore) {
+                result = e.prop;
+                bestScore = e.score;
             }
         }
 
         return result;
     }
 
-    protected filterProperties<T extends PropertyFilter>(props?: T[], authScheme?: string | null, realm?: string | null): T[] {
-        const result: T[] = [];
-
-        for (const { prop } of this.enumerateProperties(props, authScheme, realm)) {
-            result.push(prop);
-        }
-
-        return result;
-    }
-
-    private *enumerateProperties<T extends PropertyFilter>(props?: T[] | null, authScheme?: string | null, realm?: string | null): IterableIterator<{ prop: T, score: number }> {
-        if (!props) {
-            return;
-        }
-
-        const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string | number | undefined | null): number => {
-            const expected = prop[key];
-
-            if (expected === undefined || value === undefined) {
-                return 0;
-            }
-            else if (expected instanceof RegExp) {
-                return value !== null && expected.test(value.toString()) ? 1 : -Infinity;
-            }
-            else {
-                return expected === value ? 1 : -Infinity;
-            }
-        };
-
-        for (const prop of props) {
-            let score = 0;
-
-            score += propertyScore(prop, 'realm',      realm)          * 1;
-            score += propertyScore(prop, 'authScheme', authScheme)     * 2;
-            score += propertyScore(prop, 'scheme',     this.uriScheme) * 4;
-            score += propertyScore(prop, 'path',       this.uriPath)   * 8;
-            score += propertyScore(prop, 'port',       this.uriPort)   * 16;
-            score += propertyScore(prop, 'host',       this.uriHost)   * 32;
-            score += propertyScore(prop, 'uri',        this.valueOf()) * 64;
-
-            if (score >= 0) {
-                yield { prop, score };
-            }
-        }
+    protected filterProperties<T extends PropertyFilter>(props: T[], authScheme: string, realm: string): T[] {
+        return [...enumerateProperties(props, this, authScheme, realm)].map((e) => e.prop);
     }
 }
 

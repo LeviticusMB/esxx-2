@@ -12,15 +12,14 @@ export class FileProtocol extends URI {
     constructor(uri: URI) {
         super(uri);
 
-        if ((this.uriHost !== null && this.uriHost !== '' && this.uriHost !== 'localhost') ||
-            this.uriPort !== null || this.uriQuery !== null || this.uriFragment !== null) {
+        if ((this.hostname !== '' && this.hostname !== 'localhost') || this.port !== '' || this.search !== '' || this.hash !== '') {
             throw new URIException(`URI ${this}: Host/port/query/fragment parts not allowed`);
         }
-        else if (typeof this.uriPath !== 'string' || /%2F/i.test(this.uriPath) /* No encoded slashes */) {
-            throw new URIException(`URI ${this}: Path missing/invalid`);
+        else if (/%2F/i.test(this.pathname) /* No encoded slashes */) {
+            throw new URIException(`URI ${this}: Path invalid`);
         }
 
-        this._path = decodeURIComponent(this.uriPath);
+        this._path = decodeURIComponent(this.pathname);
     }
 
     async info(): Promise<DirectoryEntry> {
@@ -28,7 +27,7 @@ export class FileProtocol extends URI {
         const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(lookup(this._path) || undefined);
 
         return {
-            uri:     this.valueOf(),
+            uri:     this.toString(),
             name:    basename(this._path),
             type:    ct.type,
             length:  stats.size,

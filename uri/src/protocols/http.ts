@@ -10,15 +10,15 @@ export class HTTPProtocol extends URI {
     async info(): Promise<DirectoryEntry> {
         const response: object = await this._query('HEAD', {}, null, undefined, undefined);
         const headers: Headers = (response as any)[URI.headers];
-        const location = new URI(this, headers['content-location']);
+        const location = new URI(headers['content-location'] || '', this);
         const length   = headers['content-length'];
         const type     = headers['content-type'];
         const modified = headers['last-modified'];
 
         // tslint:disable-next-line:prefer-object-spread
         return this.requireValidStatus(Object.assign(response, {
-            uri:     this.valueOf(),
-            name:    path.posix.basename(location.uriPath || ''),
+            uri:     this.toString(),
+            name:    path.posix.basename(location.pathname),
             type:    type || 'application/octet-stream',
             length:  typeof length === 'string' ? Number(length) : undefined,
             updated: typeof modified === 'string' ? new Date(modified) : undefined,
@@ -87,7 +87,7 @@ export class HTTPProtocol extends URI {
 
             const iterable = toAsyncIterable(request({
                     method:   method,
-                    uri:      this.toASCIIString(),
+                    uri:      this.toString(),
                     headers:  bodyLess ? headers : { 'content-type': contentType, ...headers },
                     body:     bodyLess ? null    : new IteratorStream(serialized),
                     encoding: null,

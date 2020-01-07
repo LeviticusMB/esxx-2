@@ -9,9 +9,9 @@ import { FileProtocol } from './protocols/file';
 import { HTTPProtocol } from './protocols/http';
 
 URI
-    .register('file',  FileProtocol)
-    .register('http',  HTTPProtocol)
-    .register('https', HTTPProtocol)
+    .register('file:',  FileProtocol)
+    .register('http:',  HTTPProtocol)
+    .register('https:', HTTPProtocol)
 ;
 
 // Register all built-in parsers

@@ -128,12 +128,12 @@ function *enumerateProperties<T extends PropertyFilter>(props: T[] | undefined, 
 }
 
 export class URI extends URL {
-    static readonly void          = Symbol('Represents a void result');
-    static readonly null          = Symbol('Represents a null result');
-    static readonly headers       = Symbol('Used to access the response headers');
-    static readonly trailers      = Symbol('Used to access the response trailers');
-    static readonly statusCode    = Symbol('Used to access the response status code');
-    static readonly statusMessage = Symbol('Used to access the response status message');
+    static readonly void          = Symbol('URI.void');
+    static readonly null          = Symbol('URI.null');
+    static readonly headers       = Symbol('URI.headers');
+    static readonly trailers      = Symbol('URI.trailers');
+    static readonly statusCode    = Symbol('URI.statusCode');
+    static readonly statusMessage = Symbol('URI.statusMessage');
 
     static register(protocol: string, uri: typeof URI): typeof URI {
         URI.protocols.set(protocol, uri);

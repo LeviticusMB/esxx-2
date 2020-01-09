@@ -1,6 +1,6 @@
 
 import * as Papa from 'papaparse';
-import { ObjectOrPrimitive, Parser } from '../parsers';
+import { Parser } from '../parsers';
 import { URIException } from '../uri';
 import { IteratorStream } from '../utils';
 
@@ -51,11 +51,11 @@ export class CSVParser extends Parser {
         const replace   = escape + search;
         let   fields    = null;
 
-        function convertRow(row: Iterable<ObjectOrPrimitive>): Buffer {
+        function convertRow(row: Iterable<unknown>): Buffer {
             const line: string[] = [];
 
-            for (const column of row as Iterable<ObjectOrPrimitive>) {
-                line.push(column === null || column === undefined ? '' : quote + column.toString().replace(search, replace) + quote);
+            for (const column of row as Iterable<unknown>) {
+                line.push(column === null || column === undefined ? '' : quote + String(column).replace(search, replace) + quote);
             }
 
             return Buffer.from(line.join(separator) + eol, charset); // TODO: Encoding
@@ -76,7 +76,7 @@ export class CSVParser extends Parser {
                 row = fields.map((key) => (row as any)[key]);
             }
 
-            yield convertRow(row as Iterable<ObjectOrPrimitive>);
+            yield convertRow(row as Iterable<unknown>);
         }
     }
 }

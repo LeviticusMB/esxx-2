@@ -42,7 +42,7 @@ export class ContentHeader {
 
     param(name: string): string | undefined;
     param(name: string, fallback: string): string;
-    param(name: string, fallback?: string): any {
+    param(name: string, fallback?: string): string | undefined {
         return this.params[name] !== undefined ? this.params[name] : fallback;
     }
 

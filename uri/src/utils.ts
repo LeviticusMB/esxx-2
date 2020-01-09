@@ -21,7 +21,7 @@ export function kvWrapper(wrapped: any): Params {
     });
 }
 
-export function es6Encoder(strings: TemplateStringsArray, values: any[], encoder: ValueEncoder) {
+export function es6Encoder(strings: TemplateStringsArray, values: unknown[], encoder: ValueEncoder) {
     let result = strings[0];
 
     for (let i = 0; i < values.length; ++i) {

@@ -106,15 +106,15 @@ export class URI extends URL {
         }
     }
 
-    static $(strings: TemplateStringsArray, ...values: any[]): URI {
+    static $(strings: TemplateStringsArray, ...values: unknown[]): URI {
         return new URI(URI.encodeURIComponent(strings, ...values));
     }
 
-    static encodeURI(strings: TemplateStringsArray, ...values: any[]): string {
+    static encodeURI(strings: TemplateStringsArray, ...values: unknown[]): string {
         return utils.es6Encoder(strings, values, encodeURI);
     }
 
-    static encodeURIComponent(strings: TemplateStringsArray, ...values: any[]): string {
+    static encodeURIComponent(strings: TemplateStringsArray, ...values: unknown[]): string {
         return utils.es6Encoder(strings, values, encodeURIComponent);
     }
 

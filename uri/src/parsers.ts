@@ -1,15 +1,13 @@
 
 import { ContentType } from '@divine/headers';
 import { DOMParser, XMLSerializer } from 'xmldom';
-import { URI, URIException } from './uri';
+import { NULL, URIException, VOID } from './uri';
 
-export type ObjectOrPrimitive = object | string | number | boolean | symbol | null | undefined;
-
-export function isDOMNode(obj: ObjectOrPrimitive): obj is Node {
+export function isDOMNode(obj: unknown): obj is Node {
     return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
 }
 
-export function isJSON(obj: ObjectOrPrimitive): boolean {
+export function isJSON(obj: unknown): boolean {
     return obj instanceof Array || !!obj && Object.getPrototypeOf(obj) === Object.prototype;
 }
 
@@ -35,7 +33,7 @@ export abstract class Parser {
     }
 
     static async serialize(contentType: ContentType | string | undefined,
-                           data: ObjectOrPrimitive): Promise<[ContentType, AsyncIterableIterator<Buffer>]> {
+                           data: unknown): Promise<[ContentType, AsyncIterableIterator<Buffer>]> {
         try {
             while (data instanceof Promise) {
                 data = await data;
@@ -65,10 +63,10 @@ export abstract class Parser {
     }
 
     constructor(protected contentType: ContentType) { }
-    abstract parse(stream: AsyncIterable<Buffer>): Promise<ObjectOrPrimitive>;
-    abstract serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer>;
+    abstract parse(stream: AsyncIterable<Buffer>): Promise<unknown>;
+    abstract serialize(data: unknown): AsyncIterableIterator<Buffer>;
 
-    protected assertSerializebleData(condition: boolean, data: ObjectOrPrimitive): void {
+    protected assertSerializebleData(condition: boolean, data: unknown): void {
         if (!condition) {
             const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
@@ -89,7 +87,7 @@ export class BufferParser extends Parser {
         return result;
     }
 
-    async* serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+    async* serialize(data: unknown): AsyncIterableIterator<Buffer> {
         yield* new StringParser(this.contentType).serialize(data);
     }
 }
@@ -106,11 +104,11 @@ export class StringParser extends Parser {
         return result;
     }
 
-    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+    async *serialize(data: unknown): AsyncIterableIterator<Buffer> {
         const cs = this.contentType.param('charset', 'utf8') as BufferEncoding; // TODO: Encoding
         this.assertSerializebleData(data !== null && data !== undefined, data);
 
-        yield data instanceof Buffer ? data : Buffer.from(data!.toString(), cs);
+        yield data instanceof Buffer ? data : Buffer.from(String(data), cs);
     }
 }
 
@@ -119,7 +117,7 @@ export class JSONParser extends Parser {
         return JSON.parse(await new StringParser(this.contentType).parse(stream));
     }
 
-    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+    async *serialize(data: unknown): AsyncIterableIterator<Buffer> {
         try {
             data = JSON.stringify(data);
         }
@@ -136,7 +134,7 @@ export class XMLParser extends Parser {
         return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(stream));
     }
 
-    async *serialize(data: ObjectOrPrimitive): AsyncIterableIterator<Buffer> {
+    async *serialize(data: unknown): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(isDOMNode(data), data);
 
         yield* new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));

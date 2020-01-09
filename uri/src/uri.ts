@@ -4,10 +4,22 @@ import { OAuthOptions } from 'request';
 import url, { Url } from 'url';
 import * as utils from './utils';
 
-const urlObject = (url as any).Url;
+export const VOID        = Symbol('VOID');
+export const NULL        = Symbol('NULL');
+export const HEADERS     = Symbol('HEADERS');
+export const STATUS      = Symbol('STATUS');
+export const STATUS_TEXT = Symbol('STATUS_TEXT');
+
+const urlObject  = (url as any).Url;
 
 export interface Headers {
     [key: string]: string | undefined;
+}
+
+export interface Metadata {
+    [STATUS]?:      number;
+    [STATUS_TEXT]?: string;
+    [HEADERS]?:     Headers;
 }
 
 export interface PropertyFilter {
@@ -57,83 +69,12 @@ export class URIException extends URIError {
     }
 }
 
-function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params): URL {
-    // base argument is optional ...
-    if (params === undefined && typeof base !== 'string' && !(base instanceof URL) && !(base instanceof urlObject)) {
-        params = base as utils.Params | undefined;
-        base   = undefined;
-    }
-
-    // ... and so is params
-    if (params !== undefined) {
-        params = utils.kvWrapper(params);
-    }
-
-    if (typeof url === 'string' && params) {
-        url = utils.esxxEncoder(url, params, encodeURIComponent);
-    }
-    else if (url instanceof urlObject) {
-        url = (url as Url).href;
-    }
-
-    if (typeof base === 'string' && params) {
-        base = utils.esxxEncoder(base, params, encodeURIComponent);
-    }
-    else if (base instanceof urlObject) {
-        base = (base as Url).href;
-    }
-
-    if (url instanceof URL && base === undefined && params === undefined) {
-        return url;
-    }
-    else {
-        return new URL(url?.toString() ?? '', new URL(base?.toString() ?? '', `file://${process.cwd()}/`));
-    }
-}
-
-function *enumerateProperties<T extends PropertyFilter>(props: T[] | undefined, url: URL, authScheme: string, realm: string): IterableIterator<{ prop: T, score: number }> {
-    if (!props) {
-        return;
-    }
-
-    const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string): number => {
-        const expected = prop[key];
-
-        if (expected === undefined) {
-            return 0;
-        }
-        else if (expected instanceof RegExp) {
-            return expected.test(value.toString()) ? 1 : -Infinity;
-        }
-        else {
-            return String(expected) === value ? 1 : -Infinity;
-        }
-    };
-
-    for (const prop of props) {
-        let score = 0;
-
-        score += propertyScore(prop, 'realm',      realm)           * 1;
-        score += propertyScore(prop, 'authScheme', authScheme)      * 2;
-        score += propertyScore(prop, 'protocol',   url.protocol)   * 4;
-        score += propertyScore(prop, 'pathname',   url.pathname)   * 8;
-        score += propertyScore(prop, 'port',       url.port)       * 16;
-        score += propertyScore(prop, 'hostname',   url.hostname)   * 32;
-        score += propertyScore(prop, 'uri',        url.toString()) * 64;
-
-        if (score >= 0) {
-            yield { prop, score };
-        }
-    }
-}
-
 export class URI extends URL {
-    static readonly void          = Symbol('URI.void');
-    static readonly null          = Symbol('URI.null');
-    static readonly headers       = Symbol('URI.headers');
-    static readonly trailers      = Symbol('URI.trailers');
-    static readonly statusCode    = Symbol('URI.statusCode');
-    static readonly statusMessage = Symbol('URI.statusMessage');
+    static readonly VOID        = VOID;
+    static readonly NULL        = VOID;
+    static readonly HEADERS     = HEADERS;
+    static readonly STATUS      = STATUS;
+    static readonly STATUS_TEXT = STATUS_TEXT;
 
     static register(protocol: string, uri: typeof URI): typeof URI {
         URI.protocols.set(protocol, uri);
@@ -161,7 +102,7 @@ export class URI extends URL {
             return filepath.split('/').map((part) => encodeURIComponent(part)).join('/');
         }
         else {
-            throw new TypeError(`Invalid type: ${type}`);
+            throw new URIException(`Invalid filepath type: ${type}`);
         }
     }
 
@@ -226,36 +167,40 @@ export class URI extends URL {
         return this.href;
     }
 
-    async info(): Promise<DirectoryEntry> {
+    async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support info()`);
     }
 
-    async list(): Promise<DirectoryEntry[]> {
+    async list<T extends DirectoryEntry>(): Promise<T[] & Metadata> {
         throw new URIException(`URI ${this} does not support list()`);
     }
 
-    async load(_recvCT?: ContentType | string): Promise<object> {
+    async load<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support load()`);
     }
 
-    async save(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
+    async save<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support save()`);
     }
 
-    async append(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
+    async append<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support append()`);
     }
 
-    async modify(_data: any, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<object> {
+    async modify<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support modify()`);
     }
 
-    async remove(_recvCT?: ContentType | string): Promise<object> {
+    async remove<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support remove()`);
     }
 
-    async query(..._args: any[]): Promise<object> {
+    async query<T extends object>(..._args: unknown[]): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support query()`);
+    }
+
+    protected makeException(err: NodeJS.ErrnoException): URIException {
+        return err instanceof URIException ? err : new URIException(`URI ${this} operation failed`, err, metadata(err));
     }
 
     protected getBestProperty<T extends PropertyFilter>(props: T[] | undefined, authScheme: string, realm: string): T | null {
@@ -278,3 +223,86 @@ export class URI extends URL {
 }
 
 class UnknownURI extends URI {}
+
+function metadata(err: NodeJS.ErrnoException): Metadata {
+    return {
+        [STATUS]:      typeof err.errno === 'number' ? -err.errno : -1,
+        [STATUS_TEXT]: err.code ?? err.constructor?.name,
+        [HEADERS]:     Object.fromEntries(Object.entries(err).filter(([name]) => !/^(errno|code|message|stack)$/.test(name))),
+    };
+}
+
+function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params): URL {
+    try {
+        // base argument is optional ...
+        if (params === undefined && typeof base !== 'string' && !(base instanceof URL) && !(base instanceof urlObject)) {
+            params = base as utils.Params | undefined;
+            base   = undefined;
+        }
+
+        // ... and so is params
+        if (params !== undefined) {
+            params = utils.kvWrapper(params);
+        }
+
+        if (typeof url === 'string' && params) {
+            url = utils.esxxEncoder(url, params, encodeURIComponent);
+        }
+        else if (url instanceof urlObject) {
+            url = (url as Url).href;
+        }
+
+        if (typeof base === 'string' && params) {
+            base = utils.esxxEncoder(base, params, encodeURIComponent);
+        }
+        else if (base instanceof urlObject) {
+            base = (base as Url).href;
+        }
+
+        if (url instanceof URL && base === undefined && params === undefined) {
+            return url;
+        }
+        else {
+            return new URL(url?.toString() ?? '', new URL(base?.toString() ?? '', `file://${process.cwd()}/`));
+        }
+    }
+    catch (err) {
+        throw new URIException(`Failed to construct URI`, err, metadata(err));
+    }
+}
+
+function *enumerateProperties<T extends PropertyFilter>(props: T[] | undefined, url: URL, authScheme: string, realm: string): IterableIterator<{ prop: T, score: number }> {
+    if (!props) {
+        return;
+    }
+
+    const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string): number => {
+        const expected = prop[key];
+
+        if (expected === undefined) {
+            return 0;
+        }
+        else if (expected instanceof RegExp) {
+            return expected.test(value.toString()) ? 1 : -Infinity;
+        }
+        else {
+            return String(expected) === value ? 1 : -Infinity;
+        }
+    };
+
+    for (const prop of props) {
+        let score = 0;
+
+        score += propertyScore(prop, 'realm',      realm)           * 1;
+        score += propertyScore(prop, 'authScheme', authScheme)      * 2;
+        score += propertyScore(prop, 'protocol',   url.protocol)   * 4;
+        score += propertyScore(prop, 'pathname',   url.pathname)   * 8;
+        score += propertyScore(prop, 'port',       url.port)       * 16;
+        score += propertyScore(prop, 'hostname',   url.hostname)   * 32;
+        score += propertyScore(prop, 'uri',        url.toString()) * 64;
+
+        if (score >= 0) {
+            yield { prop, score };
+        }
+    }
+}

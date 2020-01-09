@@ -3,7 +3,7 @@ import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
 import { basename } from 'path';
 import { Parser } from '../parsers';
-import { DirectoryEntry, URI, URIException } from '../uri';
+import { DirectoryEntry, Metadata, URI, URIException, VOID } from '../uri';
 import { copyStream, IteratorStream } from '../utils';
 
 export class FileProtocol extends URI {
@@ -22,56 +22,80 @@ export class FileProtocol extends URI {
         this._path = decodeURIComponent(this.pathname);
     }
 
-    async info(): Promise<DirectoryEntry> {
-        const stats = await fs.stat(this._path);
-        const ct = stats.isDirectory() ? ContentType.dir : ContentType.create(lookup(this._path) || undefined);
+    async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
+        try {
+            const stats = await fs.stat(this._path);
+            const ctype = stats.isDirectory() ? ContentType.dir : ContentType.create(lookup(this._path) || undefined);
+            const entry: DirectoryEntry = {
+                uri:     this.toString(),
+                name:    basename(this._path),
+                type:    ctype.type,
+                length:  stats.size,
+                created: stats.birthtime,
+                updated: stats.mtime,
+            };
 
-        return {
-            uri:     this.toString(),
-            name:    basename(this._path),
-            type:    ct.type,
-            length:  stats.size,
-            created: stats.birthtime,
-            updated: stats.mtime,
-        };
+            return entry as T;
+        }
+        catch(err) {
+            throw this.makeException(err);
+        }
     }
 
-    async list(): Promise<DirectoryEntry[]> {
-        const children = await fs.readdir(this._path);
+    async list<T extends DirectoryEntry>(): Promise<T[] & Metadata> {
+        try {
+            const children = await fs.readdir(this._path);
 
-        return Promise.all(children.map((child) => this.resolvePath(child).info()));
+            return await Promise.all(children.sort().map((child) => this.resolvePath(child).info<T>()));
+        }
+        catch (err) {
+            throw this.makeException(err);
+        }
     }
 
-    async load(recvCT?: ContentType | string): Promise<object> {
-        const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
+    async load<T extends object>(recvCT?: ContentType | string): Promise<T & Metadata> {
+        try {
+            const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
 
-        return Parser.parse(ContentType.create(recvCT, lookup(this._path) || undefined), stream);
+            return await Parser.parse(ContentType.create(recvCT, lookup(this._path) || undefined), stream) as T;
+        }
+        catch (err) {
+            throw this.makeException(err);
+        }
     }
 
-    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
+    async save<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType): Promise<T & Metadata> {
         if (recvCT !== undefined) {
             throw new URIException(`URI ${this}: save: recvCT argument is not supported`);
         }
 
-        await this._write(data, sendCT, false);
-        return Object(URI.void);
+        try {
+            await this._write(data, sendCT, false);
+            return Object(VOID);
+        }
+        catch (err) {
+            throw this.makeException(err);
+        }
     }
 
-    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    async append<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
         if (recvCT !== undefined) {
             throw new URIException(`URI ${this}: append: recvCT argument is not supported`);
         }
 
-        await this._write(data, sendCT, true);
-        return Object(URI.void);
+        try {
+            await this._write(data, sendCT, true);
+            return Object(VOID);
+        }
+        catch (err) {
+            throw this.makeException(err);
+        }
     }
 
-    // async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    // async modify<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
     // }
 
-    async remove(_recvCT?: ContentType | string): Promise<object> {
-        let rc = false;
-
+    async remove<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
         try {
             if ((await fs.stat(this._path)).isDirectory()) {
                 await fs.rmdir(this._path);
@@ -80,18 +104,19 @@ export class FileProtocol extends URI {
                 await fs.unlink(this._path);
             }
 
-            rc = true;
+            return Object(true);
         }
         catch (err) {
-            if (err.code !== 'ENOENT') {
-                throw err;
+            if (err.code === 'ENOENT') {
+                return Object(false);
+            }
+            else {
+                throw this.makeException(err);
             }
         }
-
-        return Object(rc);
     }
 
-    private async _write(data: any, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
+    private async _write(data: unknown, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
         const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
 
         await copyStream(new IteratorStream(serialized),

@@ -3,50 +3,49 @@ import path from 'path';
 import request from 'request';
 import { PassThrough } from 'stream';
 import { Parser } from '../parsers';
-import { DirectoryEntry, Headers, URI, URIException } from '../uri';
+import { DirectoryEntry, Headers, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
 import { IteratorStream, toAsyncIterable } from '../utils';
 
 export class HTTPProtocol extends URI {
-    async info(): Promise<DirectoryEntry> {
-        const response: object = await this._query('HEAD', {}, null, undefined, undefined);
-        const headers: Headers = (response as any)[URI.headers];
-        const location = new URI(headers['content-location'] || '', this);
+    async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
+        const response = await this._query<T>('HEAD', {}, null, undefined, undefined);
+        const headers  = response[HEADERS]!;
+        const location = new URI(headers['content-location'] ?? '', this);
         const length   = headers['content-length'];
         const type     = headers['content-type'];
         const modified = headers['last-modified'];
 
-        // tslint:disable-next-line:prefer-object-spread
-        return this.requireValidStatus(Object.assign(response, {
+        return this.requireValidStatus<DirectoryEntry>({
+            ...extractMetadata(response),
             uri:     this.toString(),
             name:    path.posix.basename(location.pathname),
             type:    type || 'application/octet-stream',
             length:  typeof length === 'string' ? Number(length) : undefined,
             updated: typeof modified === 'string' ? new Date(modified) : undefined,
-        }));
+        }) as T & Metadata;
     }
 
-    async load(recvCT?: ContentType | string): Promise<object> {
+    async load<T extends object>(recvCT?: ContentType | string): Promise<T> {
         return this.requireValidStatus(await this._query('GET', {}, null, undefined, recvCT));
     }
 
-    async save(data: any, sendCT?: ContentType | string, recvCT?: ContentType): Promise<object> {
+    async save<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         return this.requireValidStatus(await this._query('PUT', {}, data, sendCT, recvCT));
     }
 
-    async append(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    async append<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         return this.requireValidStatus(await this._query('POST', {}, data, sendCT, recvCT));
     }
 
-    async modify(data: any, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    async modify<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         return this.requireValidStatus(await this._query('PATCH', {}, data, sendCT, recvCT));
     }
 
-    async remove(recvCT?: ContentType | string): Promise<object> {
+    async remove<T extends object>(recvCT?: ContentType | string): Promise<T> {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
-    async query(method: string, headers?: Headers | null, data?: any,
-                sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    async query<T extends object>(method: string, headers?: Headers | null, data?: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         if (typeof method !== 'string') {
             throw new URIException(`URI ${this}: query: 'method' argument missing/invalid`);
         }
@@ -63,19 +62,18 @@ export class HTTPProtocol extends URI {
         return this.requireValidStatus(await this._query(method, headers || {}, data, sendCT, recvCT));
     }
 
-    protected requireValidStatus<T>(result: T & object): T {
-        const [code, message] = [(result as any)[URI.statusCode], (result as any)[URI.statusMessage]];
+    protected requireValidStatus<T extends object & Metadata>(result: T): T {
+        const status = result[STATUS];
 
-        if (code < 200 || code >= 300) {
-            throw new URIException(`URI ${this} request failed: ${message} [${code}]`, undefined, result);
+        if (status && (status < 200 || status >= 300)) {
+            throw new URIException(`URI ${this} request failed: ${result[STATUS_TEXT]} [${status}]`, undefined, result);
         }
         else {
             return result;
         }
     }
 
-    private _query(method: string, headers: Headers, data: any,
-                   sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
+    private _query<T>(method: string, headers: Headers, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
         return new Promise(async (resolve, reject) => {
             const bodyLess = data === null || data === undefined;
             const [contentType, serialized] = await Parser.serialize(sendCT, data);
@@ -95,23 +93,37 @@ export class HTTPProtocol extends URI {
                 })
                 .on('response', async (response) => {
                     try {
-                        const result = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(URI.void) :
+                        const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
                             await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), iterable);
 
-                        result[URI.headers]       = response.headers;
-                        result[URI.trailers]      = response.trailers;
-                        result[URI.statusCode]    = response.statusCode;
-                        result[URI.statusMessage] = response.statusMessage;
+                        result[HEADERS]     = convertHeaders(response);
+                        result[STATUS]      = response.statusCode;
+                        result[STATUS_TEXT] = response.statusMessage;
 
                         resolve(result);
                     }
-                    catch (ex) {
-                        reject(ex);
+                    catch (err) {
+                        reject(this.makeException(err));
                     }
                 })
+                .on('error', (err) => reject(this.makeException(err)))
                 .pipe(new PassThrough())
-                .on('error', reject)
+                .on('error', (err) => reject(this.makeException(err)))
             );
         });
     }
+}
+
+function extractMetadata(m: Metadata) {
+    return { [STATUS]: m[STATUS], [STATUS_TEXT]: m[STATUS_TEXT], [HEADERS]: m[HEADERS] };
+}
+
+function convertHeaders(response: request.Response): Headers {
+    const result: Headers = {};
+
+    for (const [name, value] of Object.entries({ ...response.headers, ...response.trailers })) {
+        result[name] = Array.isArray(value) ? value.join(',') : value;
+    }
+
+    return result;
 }

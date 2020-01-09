@@ -24,8 +24,8 @@ export abstract class Parser {
             const result = Parser.create(contentType).parse(stream);
 
             // Never return primitive types or null/undefined
-            return result === undefined       ? Object(URI.void) :
-                   result === null            ? Object(URI.null) :
+            return result === undefined       ? Object(VOID) :
+                   result === null            ? Object(NULL) :
                    typeof result !== 'object' ? Object(result) :
                    result;
         }

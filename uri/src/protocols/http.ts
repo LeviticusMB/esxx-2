@@ -1,10 +1,9 @@
 import { ContentType } from '@divine/headers';
 import path from 'path';
 import request from 'request';
-import { PassThrough } from 'stream';
+import { PassThrough, Readable } from 'stream';
 import { Parser } from '../parsers';
 import { DirectoryEntry, Headers, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
-import { IteratorStream, toAsyncIterable } from '../utils';
 
 export class HTTPProtocol extends URI {
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -83,11 +82,11 @@ export class HTTPProtocol extends URI {
             // if (auth) {
             // }
 
-            const iterable = toAsyncIterable(request({
+            const iterable = request({
                     method:   method,
                     uri:      this.toString(),
                     headers:  bodyLess ? headers : { 'content-type': contentType, ...headers },
-                    body:     bodyLess ? null    : new IteratorStream(serialized),
+                    body:     bodyLess ? null    : Readable.from(serialized),
                     encoding: null,
                     gzip:     true,
                 })
@@ -107,9 +106,7 @@ export class HTTPProtocol extends URI {
                     }
                 })
                 .on('error', (err) => reject(this.makeException(err)))
-                .pipe(new PassThrough())
-                .on('error', (err) => reject(this.makeException(err)))
-            );
+                .pipe(new PassThrough());
         });
     }
 }

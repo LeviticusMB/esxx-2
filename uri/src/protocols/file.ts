@@ -2,9 +2,10 @@ import { ContentType } from '@divine/headers';
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
 import { basename } from 'path';
+import { Readable } from 'stream';
 import { Parser } from '../parsers';
 import { DirectoryEntry, Metadata, URI, URIException, VOID } from '../uri';
-import { copyStream, IteratorStream } from '../utils';
+import { copyStream } from '../utils';
 
 export class FileProtocol extends URI {
     private _path: string;
@@ -119,7 +120,6 @@ export class FileProtocol extends URI {
     private async _write(data: unknown, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
         const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
 
-        await copyStream(new IteratorStream(serialized),
-                         createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
+        await copyStream(Readable.from(serialized), createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }
 }

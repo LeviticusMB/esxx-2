@@ -1,8 +1,8 @@
 
 import * as Papa from 'papaparse';
+import { Readable } from 'stream';
 import { Parser } from '../parsers';
 import { URIException } from '../uri';
-import { IteratorStream } from '../utils';
 
 // See https://tools.ietf.org/html/rfc4180
 
@@ -15,7 +15,7 @@ export class CSVParser extends Parser {
             const separator = this.contentType.param('x-separator', '');
             const quote     = this.contentType.param('x-quote',     '"');
 
-            Papa.parse(new IteratorStream(stream) as any as File, {
+            Papa.parse(Readable.from(stream), {
                 encoding:  charset, // TODO: Encoding
                 header:    header === 'present',
                 newline:   eol,

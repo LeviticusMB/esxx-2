@@ -1,5 +1,4 @@
-
-import { pipeline, Readable } from 'stream';
+import { pipeline } from 'stream';
 
 export type ValueEncoder = (this: void, value: string) => string;
 
@@ -37,93 +36,6 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
         const value = params[match.substring(start + 1, match.length - 1)];
 
         return match.substring(0, start) + (value !== undefined ? encoder(String(value)) : '');
-    });
-}
-
-export async function *toAsyncIterable(readable: NodeJS.ReadableStream, charset?: BufferEncoding): AsyncIterableIterator<Buffer> {
-    while (true) {
-        let data = await readChunk(readable);
-
-        if (data !== null) {
-            if (!(data instanceof Buffer)) {
-                data = Buffer.from(data.toString(), charset); // TODO: Encoding
-            }
-
-            yield data;
-        }
-        else {
-            break;
-        }
-    }
-}
-
-export class IteratorStream extends Readable {
-    private iterator?: AsyncIterator<Buffer>;
-    private done = false;
-
-    constructor(private stream: AsyncIterable<Buffer>) {
-        super({ encoding: undefined, objectMode: false });
-    }
-
-    async _read(size: number): Promise<void> {
-        try {
-            while (size > 0 && !this.done) {
-                if (!this.iterator) {
-                    this.iterator = this.stream[Symbol.asyncIterator]();
-                }
-
-                const next = await this.iterator.next();
-
-                if (next.done) {
-                    this.done = true;
-                    this.push(null);
-                }
-                else {
-                    size -= next.value.length;
-
-                    if (!this.push(next.value)) {
-                        break;
-                    }
-                }
-            }
-        }
-        catch (error) {
-            process.nextTick(() => this.emit('error', error));
-        }
-    }
-}
-
-export function readChunk(stream: NodeJS.ReadableStream): Promise<Buffer | string | null> {
-    return new Promise<Buffer | string | null>((resolve, reject) => {
-        const data = stream.read();
-
-        if (data !== null) {
-            resolve(data);
-        }
-        else {
-            const end = () => {
-                cleanup();
-                resolve(null);
-            };
-
-            const error = (err: Error) => {
-                cleanup();
-                reject(err);
-            };
-
-            const readable = () => {
-                cleanup();
-                resolve(readChunk(stream));
-            };
-
-            const cleanup = () => {
-                stream.removeListener('end', end);
-                stream.removeListener('error', error);
-                stream.removeListener('readable', readable);
-            };
-
-            stream.on('readable', readable).on('end', end).on('error', error);
-        }
     });
 }
 

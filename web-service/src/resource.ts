@@ -2,7 +2,7 @@ import { ContentType } from '@divine/headers';
 import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 import { pipeline } from 'stream';
 import { TLSSocket } from 'tls';
-import { WebError, WebResponseHeaders, WebStatus } from './error';
+import { WebException, WebResponseHeaders, WebStatus } from './error';
 import { WebServiceConfig } from './service';
 import { isReadableStream } from './utils';
 
@@ -49,7 +49,7 @@ export class WebRequest {
 
         if (value === undefined || value instanceof Array && value[0] === undefined) {
             if (def === undefined) {
-                throw new WebError(WebStatus.BAD_REQUEST, `Missing request header '${name}'`);
+                throw new WebException(WebStatus.BAD_REQUEST, `Missing request header '${name}'`);
             }
 
             value = def;
@@ -73,7 +73,7 @@ export class WebRequest {
             return false;
         }
         else {
-            throw new WebError(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid boolean`);
+            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid boolean`);
         }
     }
 
@@ -81,7 +81,7 @@ export class WebRequest {
         const value = new Date(this.string(param, def?.toISOString()));
 
         if (isNaN(value.getTime())) {
-            throw new WebError(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid date`);
+            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid date`);
         }
 
         return value;
@@ -91,7 +91,7 @@ export class WebRequest {
         const value = Number(this.string(param, def?.toString()));
 
         if (isNaN(value)) {
-            throw new WebError(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid number`);
+            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid number`);
         }
 
         return value;
@@ -102,7 +102,7 @@ export class WebRequest {
 
         if (value === undefined) {
             if (def === undefined) {
-                throw new WebError(WebStatus.BAD_REQUEST, `Missing URL parameter '${param}'`);
+                throw new WebException(WebStatus.BAD_REQUEST, `Missing URL parameter '${param}'`);
             }
 
             return def;
@@ -149,7 +149,7 @@ export class WebResponse {
             this.body = Buffer.from(JSON.stringify(body));
         }
         else {
-            throw new WebError(WebStatus.INTERNAL_SERVER_ERROR, `Unsupported response data type: ${typeof body}`);
+            throw new WebException(WebStatus.INTERNAL_SERVER_ERROR, `Unsupported response data type: ${typeof body}`);
         }
 
         if (this.body instanceof Buffer) {

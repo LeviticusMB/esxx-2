@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import { WebError, WebStatus } from './error';
+import { WebException, WebStatus } from './error';
 import { WebRequest, WebResource, WebResourceCtor, WebResponse } from './resource';
 import { isReadableStream } from './utils';
 
@@ -86,7 +86,7 @@ export class WebService<Context> {
                 webres = await this.dispatchRequest(webreq);
             }
             catch (err) {
-                if (err instanceof WebError) {
+                if (err instanceof WebException) {
                     webres = new WebResponse(err.status, { message: err.message }, err.headers);
                 }
                 else {
@@ -141,7 +141,7 @@ export class WebService<Context> {
             }
         }
 
-        throw new WebError(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
+        throw new WebException(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
     }
 
     private async handleRequest(webreq: WebRequest, desc: ResourceDescriptor<Context>, offset: number, match: RegExpExecArray): Promise<WebResponse> {
@@ -179,7 +179,7 @@ export class WebService<Context> {
             });
         }
         else {
-            throw new WebError(WebStatus.METHOD_NOT_ALLOWED, `This resource does not handle ${webreq.method} requests`, {
+            throw new WebException(WebStatus.METHOD_NOT_ALLOWED, `This resource does not handle ${webreq.method} requests`, {
                 allow: WebService.makeAllowHeader(rsrc)
             });
         }

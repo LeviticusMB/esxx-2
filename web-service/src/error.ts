@@ -1,6 +1,6 @@
 import { ContentType } from '@divine/headers';
 
-export class WebError extends Error {
+export class WebException extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {
         super(message);
     }

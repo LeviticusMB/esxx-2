@@ -1,9 +1,10 @@
-import { ContentType } from '@divine/headers';
+import { Authorization, ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
 import path from 'path';
 import request from 'request';
 import { PassThrough, Readable } from 'stream';
+import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Parser } from '../parsers';
-import { DirectoryEntry, Headers, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
+import { DirectoryEntry, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
 
 export class HTTPProtocol extends URI {
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -44,7 +45,7 @@ export class HTTPProtocol extends URI {
         return this.requireValidStatus(await this._query('DELETE', {}, null, undefined, recvCT));
     }
 
-    async query<T extends object>(method: string, headers?: Headers | null, data?: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
+    async query<T extends object>(method: string, headers?: KVPairs | null, data?: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         if (typeof method !== 'string') {
             throw new URIException(`URI ${this}: query: 'method' argument missing/invalid`);
         }
@@ -72,41 +73,74 @@ export class HTTPProtocol extends URI {
         }
     }
 
-    private _query<T>(method: string, headers: Headers, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
+    private async _getAuthorization(req: AuthSchemeRequest, payload?: Buffer | AsyncIterable<Buffer>, challenges?: WWWAuthenticate[]): Promise<Authorization | undefined> {
+        let session = this.getBestSelector(this.selectors?.session);
+
+        if (!session?.authScheme) {
+            const { auth, challenge } = (challenges?.length ? challenges : [undefined as WWWAuthenticate | undefined])
+                .map((challenge) => ({ auth: this.getBestSelector(this.selectors?.auth, challenge), challenge }))
+                .filter((entry) => !!entry.auth)
+                [0];
+
+            if (auth && (challenge || auth.preemptive)) {
+                this.selectors = this.selectors ?? {};
+                this.selectors.session = this.selectors.session ?? [];
+
+                if (!session) {
+                    this.selectors.session.push(session = { selector: {} });
+                }
+
+                if (auth.credentials instanceof AuthScheme) {
+                    session.authScheme = auth.credentials;
+                }
+                else if (challenge) {
+                    session.authScheme = AuthScheme.create(challenge).setCredentialsProvider(auth.credentials);
+                }
+                else if (auth.selector.authScheme) {
+                    session.authScheme = AuthScheme.create(auth.selector.authScheme).setCredentialsProvider(auth.credentials);
+                }
+            }
+        }
+
+        const challenge = challenges?.find((challenge) => challenge.scheme === session?.authScheme?.scheme);
+        return session?.authScheme?.createAuthorization(challenge, req, payload instanceof Buffer ? payload : undefined);
+    }
+
+    private async _query<T>(method: string, headers: KVPairs, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
+        const bodyLess = data === null || data === undefined;
+        const [contentType, serialized] = await Parser.serialize(sendCT, data);
+        headers = bodyLess ? headers : { 'content-type': contentType.toString(), ...headers };
+
+        if (!headers.authorization) {
+            headers.authorization = (await this._getAuthorization({ method, url: this, headers }, serialized))?.toString();
+        }
+
         return new Promise(async (resolve, reject) => {
-            const bodyLess = data === null || data === undefined;
-            const [contentType, serialized] = await Parser.serialize(sendCT, data);
-
-            // let auth = this.getBestProperty(this.auth, undefined, undefined);
-
-            // if (auth) {
-            // }
-
             const iterable = request({
-                    method:   method,
-                    uri:      this.toString(),
-                    headers:  bodyLess ? headers : { 'content-type': contentType, ...headers },
-                    body:     bodyLess ? null    : Readable.from(serialized),
-                    encoding: null,
-                    gzip:     true,
-                })
-                .on('response', async (response) => {
-                    try {
-                        const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
-                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), iterable);
+                method,
+                uri:      this.toString(),
+                headers,
+                body:     bodyLess ? null : Readable.from(serialized),
+                encoding: null,
+                gzip:     true,
+            })
+            .on('response', async (response) => {
+                try {
+                    const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
+                        await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), iterable);
 
-                        result[HEADERS]     = convertHeaders(response);
-                        result[STATUS]      = response.statusCode;
-                        result[STATUS_TEXT] = response.statusMessage;
+                    result[HEADERS]     = convertHeaders(response);
+                    result[STATUS]      = response.statusCode;
+                    result[STATUS_TEXT] = response.statusMessage;
 
-                        resolve(result);
-                    }
-                    catch (err) {
-                        reject(this.makeException(err));
-                    }
-                })
-                .on('error', (err) => reject(this.makeException(err)))
-                .pipe(new PassThrough());
+                    resolve(result);
+                }
+                catch (err) {
+                    reject(this.makeException(err));
+                }
+            })
+            .on('error', (err) => reject(this.makeException(err)))
+            .pipe(new PassThrough());
         });
     }
 }
@@ -115,8 +149,8 @@ function extractMetadata(m: Metadata) {
     return { [STATUS]: m[STATUS], [STATUS_TEXT]: m[STATUS_TEXT], [HEADERS]: m[HEADERS] };
 }
 
-function convertHeaders(response: request.Response): Headers {
-    const result: Headers = {};
+function convertHeaders(response: request.Response): KVPairs {
+    const result: KVPairs = {};
 
     for (const [name, value] of Object.entries({ ...response.headers, ...response.trailers })) {
         result[name] = Array.isArray(value) ? value.join(',') : value;

@@ -1,7 +1,7 @@
-import { ContentType } from '@divine/headers';
+import { ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
 import path from 'path';
-import { OAuthOptions } from 'request';
 import url, { Url } from 'url';
+import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
 import * as utils from './utils';
 
 export const VOID        = Symbol('VOID');
@@ -12,18 +12,14 @@ export const STATUS_TEXT = Symbol('STATUS_TEXT');
 
 const urlObject  = (url as any).Url;
 
-export interface Headers {
-    [key: string]: string | undefined;
-}
-
 export interface Metadata {
     [STATUS]?:      number;
     [STATUS_TEXT]?: string;
-    [HEADERS]?:     Headers;
+    [HEADERS]?:     KVPairs;
 }
 
-export interface PropertyFilter {
-    realm?:      string | RegExp;
+export interface Selector {
+    authRealm?:  string | RegExp;
     authScheme?: string | RegExp;
     protocol?:   string | RegExp;
     pathname?:   string | RegExp;
@@ -32,26 +28,25 @@ export interface PropertyFilter {
     uri?:        string | RegExp;
 }
 
-export interface HawkCredentials {
-    id:         string;
-    key:        string;
-    algorithm?: string;
+interface SelectorBase {
+    selector: Selector;
 }
 
-export interface Auth extends PropertyFilter {
-    identity?:   string;
-    credentials: string | HawkCredentials | OAuthOptions;
+export interface AuthSelector extends SelectorBase {
+    credentials: CredentialsProvider<Credentials> | Credentials | AuthScheme<Credentials>;
     preemptive?: boolean;
 }
 
-export interface Param extends PropertyFilter {
-    name:  string;
-    value: string | number;
+export interface HeadersSelector extends SelectorBase {
+    headers: KVPairs;
 }
 
-export interface Header extends PropertyFilter {
-    name:  string;
-    value: string | number;
+export interface ParamsSelector extends SelectorBase {
+    params: KVPairs;
+}
+
+export interface SessionSelector extends SelectorBase {
+    authScheme?: AuthScheme<Credentials>;
 }
 
 export interface DirectoryEntry {
@@ -120,10 +115,12 @@ export class URI extends URL {
 
     private static protocols = new Map<string, typeof URI>();
 
-    params: Param[] = [];
-    auth: Auth[] = [];
-    jars: any = [];
-    headers: Header[] = [];
+    selectors?: {
+        auth?:    AuthSelector[];
+        header?:  HeadersSelector[];
+        param?:   ParamsSelector[];
+        session?: SessionSelector[];
+    };
 
     readonly href!: string;
     readonly origin!: string;
@@ -135,18 +132,12 @@ export class URI extends URL {
         super(resolveURL(url, base, params).href);
 
         if (arguments.length === 1 && this.constructor !== URI && url instanceof URI && url.constructor === URI) {
-            this.params  = url.params;
-            this.auth    = url.auth;
-            this.jars    = url.jars;
-            this.headers = url.headers;
+            this.selectors = url.selectors;
             return;
         }
 
         if (base instanceof URI) {
-            this.params  = base.params;
-            this.auth    = base.auth;
-            this.jars    = base.jars;
-            this.headers = base.headers;
+            this.selectors = base.selectors;
         }
 
         if (this.username || this.password) {
@@ -203,13 +194,13 @@ export class URI extends URL {
         return err instanceof URIException ? err : new URIException(`URI ${this} operation failed`, err, metadata(err));
     }
 
-    protected getBestProperty<T extends PropertyFilter>(props: T[] | undefined, authScheme: string, realm: string): T | null {
+    protected getBestSelector<T extends SelectorBase>(sels: T[] | undefined, challenge?: WWWAuthenticate): T | null {
         let result: T | null = null;
         let bestScore = -1;
 
-        for (const e of enumerateProperties(props, this, authScheme, realm)) {
+        for (const e of enumerateSelectors(sels, this, challenge)) {
             if (e.score > bestScore) {
-                result = e.prop;
+                result = e.sel;
                 bestScore = e.score;
             }
         }
@@ -217,8 +208,8 @@ export class URI extends URL {
         return result;
     }
 
-    protected filterProperties<T extends PropertyFilter>(props: T[], authScheme: string, realm: string): T[] {
-        return [...enumerateProperties(props, this, authScheme, realm)].map((e) => e.prop);
+    protected filterSelectors<T extends SelectorBase>(sels: T[] | undefined, challenge?: WWWAuthenticate): T[] {
+        return [...enumerateSelectors(sels, this, challenge)].map((e) => e.sel);
     }
 }
 
@@ -271,38 +262,34 @@ function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.
     }
 }
 
-function *enumerateProperties<T extends PropertyFilter>(props: T[] | undefined, url: URL, authScheme: string, realm: string): IterableIterator<{ prop: T, score: number }> {
-    if (!props) {
-        return;
-    }
-
-    const propertyScore = (prop: PropertyFilter, key: keyof PropertyFilter, value: string): number => {
-        const expected = prop[key];
-
-        if (expected === undefined) {
-            return 0;
-        }
-        else if (expected instanceof RegExp) {
-            return expected.test(value.toString()) ? 1 : -Infinity;
-        }
-        else {
-            return String(expected) === value ? 1 : -Infinity;
-        }
-    };
-
-    for (const prop of props) {
+function *enumerateSelectors<T extends SelectorBase>(sels: T[] | undefined, url: URL, challenge?: WWWAuthenticate): Generator<{ sel: T, score: number }> {
+    for (const sel of sels ?? []) {
         let score = 0;
 
-        score += propertyScore(prop, 'realm',      realm)           * 1;
-        score += propertyScore(prop, 'authScheme', authScheme)      * 2;
-        score += propertyScore(prop, 'protocol',   url.protocol)   * 4;
-        score += propertyScore(prop, 'pathname',   url.pathname)   * 8;
-        score += propertyScore(prop, 'port',       url.port)       * 16;
-        score += propertyScore(prop, 'hostname',   url.hostname)   * 32;
-        score += propertyScore(prop, 'uri',        url.toString()) * 64;
+        score += selectorScore(sel, 'authRealm',  challenge?.realm)  * 1;
+        score += selectorScore(sel, 'authScheme', challenge?.scheme) * 2;
+        score += selectorScore(sel, 'protocol',   url.protocol)      * 4;
+        score += selectorScore(sel, 'pathname',   url.pathname)      * 8;
+        score += selectorScore(sel, 'port',       url.port)          * 16;
+        score += selectorScore(sel, 'hostname',   url.hostname)      * 32;
+        score += selectorScore(sel, 'uri',        url.toString())    * 64;
 
         if (score >= 0) {
-            yield { prop, score };
+            yield { sel, score };
         }
+    }
+}
+
+function selectorScore(sel: SelectorBase, key: keyof Selector, value?: string): number {
+    const expected = sel.selector[key];
+
+    if (expected === undefined || value === undefined) {
+        return 0;
+    }
+    else if (expected instanceof RegExp) {
+        return expected.test(value) ? 1 : -Infinity;
+    }
+    else {
+        return String(expected) === value ? 1 : -Infinity;
     }
 }

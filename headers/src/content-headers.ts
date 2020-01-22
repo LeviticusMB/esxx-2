@@ -1,10 +1,8 @@
-export interface ContentHeaderParams {
-    [name: string]: string | undefined;
-}
+import { KVPairs } from './common';
 
 export class ContentHeader {
     type: string;
-    params: ContentHeaderParams = {};
+    params: KVPairs = {};
 
     constructor(public unparsed: string, public name?: string) {
         const [, type, params] = /\s*([^\s;]*)\s*(.*)/.exec(unparsed)!;
@@ -43,7 +41,7 @@ export class ContentHeader {
     param(name: string): string | undefined;
     param(name: string, fallback: string): string;
     param(name: string, fallback?: string): string | undefined {
-        return this.params[name] !== undefined ? this.params[name] : fallback;
+        return this.params[name] ?? fallback;
     }
 
     setParam(name: string, value: string | number | undefined): this {
@@ -58,10 +56,6 @@ export class ContentHeader {
     }
 
     toString(): string {
-        return this.valueOf();
-    }
-
-    valueOf(): string {
         let params = '';
 
         for (let [name, value] of Object.entries(this.params)) {
@@ -77,6 +71,10 @@ export class ContentHeader {
         }
 
         return this.type + params;
+    }
+
+    valueOf(): string {
+        return this.toString();
     }
 }
 

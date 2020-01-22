@@ -1,4 +1,4 @@
-import { ContentType } from '@divine/headers';
+import { ContentType, KVPairs } from '@divine/headers';
 import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 import { pipeline } from 'stream';
 import { TLSSocket } from 'tls';
@@ -30,11 +30,10 @@ export interface WebResource {
 }
 
 export class WebRequest {
-    public readonly method: string;
     public readonly remote: string;
+    public readonly method: string;
     public readonly url: URL;
-
-    private params!: { [key: string]: string | undefined };
+    public readonly params: KVPairs = {};
 
     constructor(public incomingMessage: IncomingMessage, config: WebServiceConfig) {
         const scheme = String((config.trustForwardedProto ? this.header('x-forwarded-proto',      '') : '') || incomingMessage.socket instanceof TLSSocket ? 'https' : 'http');
@@ -44,7 +43,7 @@ export class WebRequest {
         this.url     = new URL(`${scheme}://${server}${incomingMessage.url}`);
     }
 
-    header(name: keyof IncomingHttpHeaders, def?: string | string[], concatenate = false): string {
+    header(name: keyof IncomingHttpHeaders, def?: string | string[], concatenate = true): string {
         let value = this.incomingMessage.headers[name];
 
         if (value === undefined || value instanceof Array && value[0] === undefined) {
@@ -120,8 +119,8 @@ export class WebRequest {
         return `[WebRequest: ${this.method} ${this.url.href} ${this.incomingMessage.httpVersion} {${this.remote}}]`;
     }
 
-    protected setParams(params: { [key: string]: string | undefined }): this {
-        this.params = { ...params, ...Object.fromEntries(Object.entries(this.url.searchParams).map(([k, v]) => [`?${k}`, v])) };
+    protected setParams(params: KVPairs): this {
+        (this as any).params = { ...params, ...Object.fromEntries(Object.entries(this.url.searchParams).map(([k, v]) => [`?${k}`, v])) };
 
         return this;
     }

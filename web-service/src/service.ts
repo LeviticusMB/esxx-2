@@ -1,3 +1,4 @@
+import { KVPairs } from '@divine/headers';
 import { IncomingMessage, ServerResponse } from 'http';
 import { WebException, WebStatus } from './error';
 import { WebRequest, WebResource, WebResourceCtor, WebResponse } from './resource';
@@ -146,7 +147,7 @@ export class WebService<Context> {
 
     private async handleRequest(webreq: WebRequest, desc: ResourceDescriptor<Context>, offset: number, match: RegExpExecArray): Promise<WebResponse> {
         const prefix = `_${offset}_`;
-        const params: { [param: string]: string } = {};
+        const params: KVPairs = {};
 
         for (let i = 1; i <= desc.groups; ++i) {
             params[i] = match[offset + i];

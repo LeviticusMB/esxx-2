@@ -1,5 +1,6 @@
 import { pipeline } from 'stream';
 
+export type Constructor<T> = new (...args: any[]) => T;
 export type ValueEncoder = (this: void, value: string) => string;
 
 export interface Params {
@@ -43,4 +44,12 @@ export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStrea
     return new Promise<typeof to>((resolve, reject) => {
         pipeline(from, to, (err) => err ? reject(err) : resolve(to));
     });
+}
+
+export function b64Decode(b64: string): string {
+    return Buffer.from(b64, 'base64').toString();
+}
+
+export function b64Encode(str: string): string {
+    return Buffer.from(str).toString('base64');
 }

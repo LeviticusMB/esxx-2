@@ -59,7 +59,7 @@ export class HTTPProtocol extends URI {
             throw new URIException(`URI ${this}: query: 'recvCT' argument invalid`);
         }
 
-        return this.requireValidStatus(await this._query(method, headers || {}, data, sendCT, recvCT));
+        return this.requireValidStatus(await this._query(method, headers || {}, data, this.guessContentType(sendCT), recvCT));
     }
 
     protected requireValidStatus<T extends object & Metadata>(result: T): T {

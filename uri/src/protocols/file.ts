@@ -4,7 +4,7 @@ import { lookup } from 'mime-types';
 import { basename } from 'path';
 import { Readable } from 'stream';
 import { Parser } from '../parsers';
-import { DirectoryEntry, Metadata, URI, URIException, VOID } from '../uri';
+import { DirectoryEntry, encodeFilePath, Metadata, URI, URIException, VOID } from '../uri';
 import { copyStream } from '../utils';
 
 export class FileProtocol extends URI {
@@ -38,7 +38,7 @@ export class FileProtocol extends URI {
 
             return entry as T;
         }
-        catch(err) {
+        catch (err) {
             throw this.makeException(err);
         }
     }
@@ -47,7 +47,7 @@ export class FileProtocol extends URI {
         try {
             const children = await fs.readdir(this._path);
 
-            return await Promise.all(children.sort().map((child) => this.resolvePath(child).info<T>()));
+            return await Promise.all(children.sort().map((child) => new URI(encodeFilePath(child), this).info<T>()));
         }
         catch (err) {
             throw this.makeException(err);
@@ -71,7 +71,7 @@ export class FileProtocol extends URI {
         }
 
         try {
-            await this._write(data, sendCT, false);
+            await this._write(data, this.guessContentType(sendCT), false);
             return Object(VOID);
         }
         catch (err) {
@@ -85,7 +85,7 @@ export class FileProtocol extends URI {
         }
 
         try {
-            await this._write(data, sendCT, true);
+            await this._write(data, this.guessContentType(sendCT), true);
             return Object(VOID);
         }
         catch (err) {
@@ -118,7 +118,7 @@ export class FileProtocol extends URI {
     }
 
     private async _write(data: unknown, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
-        const [/* contentType */, serialized] = await Parser.serialize(sendCT, data);
+        const [/* contentType */, serialized] = await Parser.serialize(this.guessContentType(sendCT), data);
 
         await copyStream(Readable.from(serialized), createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }

@@ -1,6 +1,7 @@
 import { ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
+import { lookup } from 'mime-types';
 import path from 'path';
-import url, { Url } from 'url';
+import url, { Url, URL } from 'url';
 import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
 import * as utils from './utils';
 
@@ -59,8 +60,41 @@ export interface DirectoryEntry {
 }
 
 export class URIException extends URIError {
-    constructor(message: string, public cause?: Error, public data?: object) {
+    constructor(message: string, public cause?: Error, public data?: object & Metadata) {
         super(cause ? `${message}: ${cause.toString()}` : message);
+    }
+}
+
+export function uri(strings: TemplateStringsArray, ...values: unknown[]): string {
+    return utils.es6Encoder(strings, values, encodeURI);
+}
+
+export function uriComponent(strings: TemplateStringsArray, ...values: unknown[]): string {
+    return utils.es6Encoder(strings, values, encodeURIComponent);
+}
+
+export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): string {
+    type = type || process.platform === 'win32' ? 'windows' : 'posix';
+
+    if (type === 'windows') {
+        filepath = path.win32.normalize(filepath);
+
+        let prefix = '';
+
+        if (/^[A-Za-z]:/.test(filepath)) {
+            prefix = '///' + filepath.substr(0, 2).toUpperCase();
+            filepath = filepath.substr(2);
+        }
+
+        return prefix + filepath.split(/\\/).map((part) => encodeURIComponent(part)).join('/');
+    }
+    else if (type === 'posix') {
+        filepath = path.posix.normalize(filepath);
+
+        return filepath.split('/').map((part) => encodeURIComponent(part)).join('/');
+    }
+    else {
+        throw new URIException(`Invalid filepath type: ${type}`);
     }
 }
 
@@ -76,41 +110,8 @@ export class URI extends URL {
         return URI;
     }
 
-    static encodePath(filepath: string, type?: 'posix' | 'windows'): string {
-        type = type || process.platform === 'win32' ? 'windows' : 'posix';
-
-        if (type === 'windows') {
-            filepath = path.win32.normalize(filepath);
-
-            let prefix = '';
-
-            if (/^[A-Za-z]:/.test(filepath)) {
-                prefix = '///' + filepath.substr(0, 2).toUpperCase();
-                filepath = filepath.substr(2);
-            }
-
-            return prefix + filepath.split(/\\/).map((part) => encodeURIComponent(part)).join('/');
-        }
-        else if (type === 'posix') {
-            filepath = path.posix.normalize(filepath);
-
-            return filepath.split('/').map((part) => encodeURIComponent(part)).join('/');
-        }
-        else {
-            throw new URIException(`Invalid filepath type: ${type}`);
-        }
-    }
-
     static $(strings: TemplateStringsArray, ...values: unknown[]): URI {
-        return new URI(URI.encodeURIComponent(strings, ...values));
-    }
-
-    static encodeURI(strings: TemplateStringsArray, ...values: unknown[]): string {
-        return utils.es6Encoder(strings, values, encodeURI);
-    }
-
-    static encodeURIComponent(strings: TemplateStringsArray, ...values: unknown[]): string {
-        return utils.es6Encoder(strings, values, encodeURIComponent);
+        return new URI(uriComponent(strings, ...values));
     }
 
     private static protocols = new Map<string, typeof URI>();
@@ -150,12 +151,8 @@ export class URI extends URL {
         return new (this.protocol && URI.protocols.get(this.protocol) || UnknownURI)(this);
     }
 
-    resolvePath(filepath: string): this {
-        return new URI(URI.encodePath(filepath), this) as this;
-    }
-
-    toString(): string {
-        return this.href;
+    $(strings: TemplateStringsArray, ...values: unknown[]): URI {
+        return new URI(uriComponent(strings, ...values), this);
     }
 
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -188,6 +185,12 @@ export class URI extends URL {
 
     async query<T extends object>(..._args: unknown[]): Promise<T & Metadata> {
         throw new URIException(`URI ${this} does not support query()`);
+    }
+
+    protected guessContentType(knownContentType?: ContentType | string): ContentType | undefined {
+        const ct = knownContentType ?? lookup(this.pathname);
+
+        return ct instanceof ContentType ? ct : ct ? new ContentType(ct) : undefined;
     }
 
     protected makeException(err: NodeJS.ErrnoException): URIException {

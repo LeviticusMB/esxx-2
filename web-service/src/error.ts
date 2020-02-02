@@ -1,4 +1,4 @@
-import { ContentType } from '@divine/headers';
+import { WebResponseHeaders } from './resource';
 
 export class WebException extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {
@@ -71,11 +71,4 @@ export enum WebStatus {
     BANDWIDTH_LIMIT_EXCEEDED        = 509,
     NOT_EXTENDED                    = 510,
     NETWORK_AUTHENTICATION_REQUIRED = 511,
-}
-
-export interface WebResponseHeaders {
-    'allow'?: string[];
-    'content-length'?: number;
-    'content-type'?: ContentType;
-    'etag'?: string;
 }

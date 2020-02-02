@@ -1,7 +1,7 @@
 // tslint:disable-next-line: no-implicit-dependencies
 import { Expect, Test } from 'alsatian';
 import { IncomingMessage } from 'http';
-import { WebRequest, WebResponse, WebService, WebStatus } from '../src';
+import { WebArguments, WebRequest, WebResponse, WebService, WebStatus } from '../src';
 
 function fakedReq(method: string, url: string, _payload?: object) {
     // tslint:disable-next-line: no-object-literal-type-assertion
@@ -28,21 +28,21 @@ export class WebServiceTest {
             .addResource(class {
                 static path = /default/;
 
-                constructor(req: WebRequest, context: any) {
-                    Expect(req.url.href).toEqual('http://localhost/default?foo');
+                constructor(args: WebArguments) {
+                    Expect(args.request.url.href).toEqual('http://localhost/default?foo');
                     Expect(context).toEqual('context');
                 }
 
-                async default(req: WebRequest) {
-                    return `default ${req.method}`;
+                async default(args: WebArguments) {
+                    return `default ${args.request.method}`;
                 }
             })
             .addResource(class {
                 static path = /options/;
 
-                async OPTIONS(req: WebRequest) {
-                    Expect(req.method).toEqual('OPTIONS');
-                    return `options ${req.method}`;
+                async OPTIONS(args: WebArguments) {
+                    Expect(args.request.method).toEqual('OPTIONS');
+                    return `options ${args.request.method}`;
                 }
             })
             .addResource(class {
@@ -75,12 +75,14 @@ export class WebServiceTest {
                 static path = /GET\/(?<id>\d)/;
                 private digit: number;
 
-                constructor(req: WebRequest) {
-                    Expect(req.string('1') === req.string('id')).toBe(true);
-                    this.digit = req.number('1');
+                constructor(args: WebArguments) {
+                    Expect(args.string('1') === args.string('id')).toBe(true);
+                    this.digit = args.number('1');
                 }
 
-                async GET(_req: WebRequest) {
+                async GET(args: WebArguments) {
+                    Expect(args.string('1') === args.string('id')).toBe(true);
+
                     switch (this.digit) {
                         case 0: return null;
                         case 1: return '1';

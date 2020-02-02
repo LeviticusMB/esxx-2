@@ -1,4 +1,5 @@
 import { AuthenticationInfo, AuthHeader, Authorization, KVPairs, ServerAuthorization, WWWAuthenticate } from '@divine/headers';
+import { URL } from 'url';
 import { Constructor } from './utils';
 
 export abstract class Credentials {

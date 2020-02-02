@@ -1,7 +1,8 @@
 
 import { AST, ParserStream, serialize } from 'parse5';
 import { DOMImplementation } from 'xmldom';
-import { isDOMNode, Parser, StringParser } from '../parsers';
+import { Parser, StringParser } from '../parsers';
+import { isDOMNode } from '../utils';
 
 export class HTMLParser extends Parser {
     async parse(stream: AsyncIterable<Buffer>): Promise<Document> {
@@ -14,11 +15,11 @@ export class HTMLParser extends Parser {
         return parser.document as Document;
     }
 
-    async *serialize(data: Node): AsyncIterableIterator<Buffer> {
+    serialize(data: Node): Buffer {
         this.assertSerializebleData(isDOMNode(data), data);
 
         const html = serialize(data, { treeAdapter: new XMLTreeAdapter() });
-        yield* new StringParser(this.contentType).serialize(html);
+        return new StringParser(this.contentType).serialize(html);
     }
 }
 

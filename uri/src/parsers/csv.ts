@@ -1,4 +1,5 @@
 
+import iconv from 'iconv-lite';
 import * as Papa from 'papaparse';
 import { Readable } from 'stream';
 import { Parser } from '../parsers';
@@ -40,8 +41,9 @@ export class CSVParser extends Parser {
     async *serialize(data: string[][] | object[]): AsyncIterableIterator<Buffer> {
         this.assertSerializebleData(Array.isArray(data), data);
 
-        const charset   = this.contentType.param('charset',     'utf8') as BufferEncoding;
+        const charset   = this.contentType.param('charset',     'utf8');
         const header    = this.contentType.param('header',      'absent');
+        const bom       = this.contentType.param('x-bom',       'absent');
         const eol       = this.contentType.param('x-eol',       '\r\n');
         const separator = this.contentType.param('x-separator', this.contentType.type === 'text/csv' ? ',' : '\t');
         const quote     = this.contentType.param('x-quote',     '"');
@@ -58,7 +60,11 @@ export class CSVParser extends Parser {
                 line.push(column === null || column === undefined ? '' : quote + String(column).replace(search, replace) + quote);
             }
 
-            return Buffer.from(line.join(separator) + eol, charset); // TODO: Encoding
+            return iconv.encode(line.join(separator) + eol, charset);
+        }
+
+        if (bom === 'present') {
+            yield iconv.encode('', charset, { addBOM: true });
         }
 
         for (let row of data) {

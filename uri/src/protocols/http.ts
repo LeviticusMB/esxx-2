@@ -80,7 +80,7 @@ export class HTTPProtocol extends URI {
             const { auth, challenge } = (challenges?.length ? challenges : [undefined as WWWAuthenticate | undefined])
                 .map((challenge) => ({ auth: this.getBestSelector(this.selectors?.auth, challenge), challenge }))
                 .filter((entry) => !!entry.auth)
-                [0];
+                [0] ?? { auth: null, challenge: null };
 
             if (auth && (challenge || auth.preemptive)) {
                 this.selectors = this.selectors ?? {};
@@ -107,12 +107,17 @@ export class HTTPProtocol extends URI {
     }
 
     private async _query<T>(method: string, headers: KVPairs, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
-        const bodyLess = data === null || data === undefined;
-        const [contentType, serialized] = await Parser.serialize(sendCT, data);
-        headers = bodyLess ? headers : { 'content-type': contentType.toString(), ...headers };
+        let body: Buffer | AsyncIterable<Buffer> | undefined;
+
+        if (data !== null && data !== undefined) {
+            const [contentType, serialized] = Parser.serialize(sendCT, data);
+
+            headers = { 'content-type': contentType.toString(), ...headers };
+            body = serialized;
+        }
 
         if (!headers.authorization) {
-            headers.authorization = (await this._getAuthorization({ method, url: this, headers }, serialized))?.toString();
+            headers.authorization = (await this._getAuthorization({ method, url: this, headers }, body))?.toString();
         }
 
         return new Promise(async (resolve, reject) => {
@@ -120,7 +125,7 @@ export class HTTPProtocol extends URI {
                 method,
                 uri:      this.toString(),
                 headers,
-                body:     bodyLess ? null : Readable.from(serialized),
+                body:     body ? body instanceof Buffer ? body : Readable.from(body) : null,
                 encoding: null,
                 gzip:     true,
             })

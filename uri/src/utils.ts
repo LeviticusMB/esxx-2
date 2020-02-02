@@ -46,6 +46,18 @@ export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStrea
     });
 }
 
+export function isAsyncIterable(object: any): object is AsyncIterable<any> {
+    return typeof object[Symbol.asyncIterator] === 'function';
+}
+
+export function isDOMNode(obj: unknown): obj is Node {
+    return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
+}
+
+export function isJSON(obj: unknown): boolean {
+    return obj instanceof Array || !!obj && Object.getPrototypeOf(obj) === Object.prototype;
+}
+
 export function b64Decode(b64: string): string {
     return Buffer.from(b64, 'base64').toString();
 }

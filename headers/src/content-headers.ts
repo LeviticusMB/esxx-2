@@ -93,10 +93,12 @@ export class ContentDisposition extends ContentHeader {
     constructor(unparsed: string, filename?: string) {
         super(unparsed, 'content-disposition');
 
-        this.setParam('filename', filename);
+        if (filename !== undefined) {
+            this.setParam('filename', filename);
+        }
     }
 
-    get filename() {
+    get filename(): string | undefined {
         return this.param('filename');
     }
 }
@@ -120,10 +122,12 @@ export class ContentType extends ContentHeader {
     constructor(unparsed: string, charset?: string) {
         super(unparsed, 'content-type');
 
-        this.setParam('charset', charset);
+        if (charset !== undefined) {
+            this.setParam('charset', charset);
+        }
     }
 
-    get charset() {
+    get charset(): string | undefined {
         return this.param('charset');
     }
 }

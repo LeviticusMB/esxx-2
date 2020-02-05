@@ -30,7 +30,7 @@ export class FileProtocol extends URI {
             const entry: DirectoryEntry = {
                 uri:     this.toString(),
                 name:    basename(this._path),
-                type:    ctype.type,
+                type:    ctype,
                 length:  stats.size,
                 created: stats.birthtime,
                 updated: stats.mtime,

@@ -53,7 +53,7 @@ export interface SessionSelector extends SelectorBase {
 export interface DirectoryEntry {
     uri:      string;
     name:     string;
-    type:     string;
+    type:     ContentType;
     length?:  number;
     created?: Date;
     updated?: Date;

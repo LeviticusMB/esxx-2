@@ -19,7 +19,7 @@ export class HTTPProtocol extends URI {
             ...extractMetadata(response),
             uri:     this.toString(),
             name:    path.posix.basename(location.pathname),
-            type:    type || 'application/octet-stream',
+            type:    ContentType.create(type),
             length:  typeof length === 'string' ? Number(length) : undefined,
             updated: typeof modified === 'string' ? new Date(modified) : undefined,
         }) as T & Metadata;

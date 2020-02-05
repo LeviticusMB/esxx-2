@@ -2,7 +2,7 @@ import { ContentType } from '@divine/headers';
 import TOML from '@iarna/toml';
 import iconv from 'iconv-lite';
 import { DOMParser, XMLSerializer } from 'xmldom';
-import { NULL, URIException, VOID } from './uri';
+import { Finalizable, NULL, URIException, VOID } from './uri';
 import { isAsyncIterable, isDOMNode, isJSON } from './utils';
 
 export function toObject(result: unknown) {
@@ -12,21 +12,25 @@ export function toObject(result: unknown) {
            result;
 }
 
+async function *toAsyncIterable(data: string | Buffer) {
+    yield data instanceof Buffer ? data : Buffer.from(data);
+}
+
 export abstract class Parser {
     static register(baseType: string, parser: typeof Parser): typeof Parser {
         Parser.parsers.set(baseType, parser);
         return Parser;
     }
 
-    static async parse(contentType: ContentType, stream: AsyncIterable<Buffer>): Promise<object> {
+    static async parse(contentType: ContentType | string, stream: Buffer | AsyncIterable<Buffer> | string): Promise<object & Finalizable> {
         try {
-            const result = await Parser.create(contentType).parse(stream);
+            const result = await Parser.create(ContentType.create(contentType)).parse(isAsyncIterable<Buffer>(stream) ? stream : toAsyncIterable(stream));
 
             // Never return primitive types or null/undefined
             return toObject(result);
         }
-        catch (ex) {
-            throw new URIException(`${contentType} parser failed: ${ex}`, ex);
+        catch (err) {
+            throw new URIException(`${contentType} parser failed: ${err.message}`, err);
         }
     }
 
@@ -35,15 +39,16 @@ export abstract class Parser {
         try {
             contentType = ContentType.create(contentType,
                 data instanceof Buffer ? ContentType.bytes :
+                isAsyncIterable(data)  ? ContentType.bytes :
                 isJSON(data)           ? ContentType.json :
                 isDOMNode(data)        ? ContentType.xml :
                 ContentType.text);
 
-            const serialized = Parser.create(contentType).serialize(data);
-            return [contentType, isAsyncIterable(serialized) ? serialized : serialized];
+            // Pass Buffer and AsyncIterable<Buffer> streams right through; parse everything else
+            return [contentType, data instanceof Buffer || isAsyncIterable<Buffer>(data) ? data : Parser.create(contentType).serialize(data)];
         }
-        catch (ex) {
-            throw new URIException(`${contentType} serializer failed: ${ex}`, ex);
+        catch (err) {
+            throw new URIException(`${contentType} serializer failed: ${err.message}`, err);
         }
     }
 
@@ -57,7 +62,7 @@ export abstract class Parser {
     abstract parse(stream: AsyncIterable<Buffer>): Promise<unknown>;
     abstract serialize(data: unknown): Buffer | AsyncIterable<Buffer>;
 
-    protected assertSerializebleData(condition: boolean, data: unknown, cause?: Error): void {
+    protected assertSerializebleData(condition: boolean, data: unknown, cause?: Error): asserts condition {
         if (!condition) {
             const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
@@ -78,7 +83,9 @@ export class BufferParser extends Parser {
     }
 
     serialize(data: unknown): Buffer {
-        return new StringParser(this.contentType).serialize(data);
+        this.assertSerializebleData(data instanceof Buffer, data);
+
+        return data;
     }
 }
 
@@ -100,7 +107,7 @@ export class StringParser extends Parser {
         const bom     = this.contentType.param('x-bom',   'absent');
         this.assertSerializebleData(data !== null && data !== undefined, data);
 
-        return data instanceof Buffer ? data : iconv.encode(String(data), charset, { addBOM: bom === 'present'});
+        return iconv.encode(String(data), charset, { addBOM: bom === 'present'});
     }
 }
 

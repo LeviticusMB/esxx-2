@@ -158,7 +158,7 @@ function convertHeaders(response: request.Response): KVPairs {
     const result: KVPairs = {};
 
     for (const [name, value] of Object.entries({ ...response.headers, ...response.trailers })) {
-        result[name] = Array.isArray(value) ? value.join(',') : value;
+        result[name] = Array.isArray(value) ? value.join(', ') : value;
     }
 
     return result;

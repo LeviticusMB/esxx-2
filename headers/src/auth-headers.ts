@@ -19,11 +19,15 @@ export abstract class AuthHeader {
         return result;
     }
 
-    scheme!: string;
-    credentials?: string;
-    params?: AuthHeaderParams;
+    readonly scheme!: string;
+    readonly credentials?: string;
+    readonly params: AuthHeaderParams = {};
 
-    protected constructor(public unparsed: string, public name: string) {
+    protected constructor(unparsed: string | AuthHeader, public readonly headerName: string) {
+        if (unparsed instanceof AuthHeader) {
+            return;
+        }
+
         const parsed = AUTH_HEADER.exec(unparsed);
         const groups = parsed?.groups!;
         const scheme = groups?.scheme?.toLowerCase();
@@ -36,8 +40,6 @@ export abstract class AuthHeader {
         this.credentials = groups.token68;
 
         if (groups.params) {
-            this.params = {};
-
             for (let pattern = new RegExp(AUTH_PARAM, 'g'), match = pattern.exec(groups.params); match; match = pattern.exec(groups.params)) {
                 const groups = match.groups!;
                 const quoted = groups.qvalue !== undefined;
@@ -50,12 +52,10 @@ export abstract class AuthHeader {
     param(name: string): string | undefined;
     param(name: string, fallback: string): string;
     param(name: string, fallback?: string): string | undefined {
-        return this.params?.[name]?.value ?? fallback;
+        return this.params[name]?.value ?? fallback;
     }
 
     setParam(name: string, value: string | number | undefined, quoted?: boolean): this {
-        this.params = this.params ?? {};
-
         if (value !== undefined) {
             this.params[name] = { value: String(value), quoted };
         }
@@ -75,11 +75,11 @@ export abstract class AuthHeader {
     }
 
     isProxyHeader(): boolean {
-        return this.name.startsWith('proxy-');
+        return this.headerName.startsWith('proxy-');
     }
 
     protected formatParams() {
-        return Object.entries(this.params ?? {})
+        return Object.entries(this.params)
             .map(([param, info]) => info!.quoted ?? (!/^[-!#$%&'*+.0-9=A-Z^_`a-z|~]+$/.test(info!.value) || param === 'realm' /* [sic!] */)
                 ? `${param}="${info!.value.replace(/([\\"])/g, '\\$1')}"`
                 : `${param}=${info!.value}`)
@@ -89,29 +89,34 @@ export abstract class AuthHeader {
 }
 
 export class Authorization extends AuthHeader {
-    public constructor(unparsed: string, proxy = false) {
+    public constructor(unparsed: string | Authorization, proxy = false) {
         super(unparsed, proxy ? 'proxy-authorization' : 'authorization');
     }
 }
 
 export class AuthenticationInfo extends AuthHeader {
-    public constructor(unparsed: string, proxy = false) {
+    public constructor(unparsed: string | AuthenticationInfo, proxy = false) {
         super(unparsed, proxy ? 'proxy-authentication-info' : 'authorization-info');
     }
 }
 
 export class ServerAuthorization extends AuthHeader {
-    public constructor(unparsed: string, proxy = false) {
+    public constructor(unparsed: string | ServerAuthorization, proxy = false) {
         super(unparsed, proxy ? 'proxy-server-authorization' : 'server-authorization');
     }
 }
 
 export class WWWAuthenticate extends AuthHeader {
-    static create(unparsed: string): WWWAuthenticate[] {
-        return AuthHeader.split(unparsed).map((header) => new WWWAuthenticate(header));
+    static create(unparsed: string | WWWAuthenticate[]): WWWAuthenticate[] {
+        if (typeof unparsed === 'string') {
+            return AuthHeader.split(unparsed).map((header) => new WWWAuthenticate(header));
+        }
+        else {
+            return unparsed.map((header) => new WWWAuthenticate(header));
+        }
     }
 
-    public constructor(unparsed: string, proxy = false) {
+    public constructor(unparsed: string | WWWAuthenticate, proxy = false) {
         super(unparsed, proxy ? 'proxy-authenticate' : 'www-authenticate');
     }
 }

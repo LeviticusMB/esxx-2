@@ -1,10 +1,16 @@
 import { KVPairs } from './common';
 
 export class ContentHeader {
-    type: string;
-    params: KVPairs = {};
+    readonly type: string;
+    readonly params: KVPairs = {};
 
-    constructor(public unparsed: string, public name?: string) {
+    constructor(unparsed: string | ContentHeader, public readonly headerName?: string) {
+        if (unparsed instanceof ContentHeader) {
+            this.type   = unparsed.type;
+            this.params = JSON.parse(JSON.stringify(unparsed.params));
+            return;
+        }
+
         const [, type, params] = /\s*([^\s;]*)\s*(.*)/.exec(unparsed)!;
 
         this.type = type;
@@ -36,6 +42,10 @@ export class ContentHeader {
                 this.params[name] = value;
             }
         }
+    }
+
+    get baseType(): string {
+        return this.type.split('/')[0];
     }
 
     param(name: string): string | undefined;
@@ -79,18 +89,19 @@ export class ContentHeader {
 }
 
 export class ContentDisposition extends ContentHeader {
-    static readonly attachment = new ContentDisposition('attachment');
-    static readonly inline     = new ContentDisposition('inline');
+    static get attachment() { return new ContentDisposition('attachment'); }
+    static get inline()     { return new ContentDisposition('inline');     }
+    static get formData()   { return new ContentDisposition('form-data');  }
 
     static create(cd: string | ContentDisposition | null | undefined, fallback?: string | ContentDisposition | null): ContentDisposition {
-        if (typeof cd === 'string') {
+        if (typeof cd === 'string' || cd instanceof ContentDisposition) {
             cd = new ContentDisposition(cd);
         }
 
         return cd ?? ContentDisposition.create(fallback, ContentDisposition.inline);
     }
 
-    constructor(unparsed: string, filename?: string) {
+    constructor(unparsed: string | ContentDisposition, filename?: string) {
         super(unparsed, 'content-disposition');
 
         if (filename !== undefined) {
@@ -104,22 +115,22 @@ export class ContentDisposition extends ContentHeader {
 }
 
 export class ContentType extends ContentHeader {
-    static readonly bytes = new ContentType('application/octet-stream');
-    static readonly dir   = new ContentType('application/vnd.esxx.directory+json');
-    static readonly csv   = new ContentType('text/csv');
-    static readonly json  = new ContentType('application/json');
-    static readonly text  = new ContentType('text/plain');
-    static readonly xml   = new ContentType('application/xml');
+    static get bytes() { return new ContentType('application/octet-stream');            }
+    static get dir()   { return new ContentType('application/vnd.esxx.directory+json'); }
+    static get csv()   { return new ContentType('text/csv');                            }
+    static get json()  { return new ContentType('application/json');                    }
+    static get text()  { return new ContentType('text/plain');                          }
+    static get xml()   { return new ContentType('application/xml');                     }
 
     static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
-        if (typeof ct === 'string') {
+        if (typeof ct === 'string' || ct instanceof ContentType) {
             ct = new ContentType(ct);
         }
 
         return ct ?? ContentType.create(fallback, ContentType.bytes);
     }
 
-    constructor(unparsed: string, charset?: string) {
+    constructor(unparsed: string | ContentType, charset?: string) {
         super(unparsed, 'content-type');
 
         if (charset !== undefined) {

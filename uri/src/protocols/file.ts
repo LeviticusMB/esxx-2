@@ -2,10 +2,9 @@ import { ContentType } from '@divine/headers';
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
 import { basename } from 'path';
-import { Readable } from 'stream';
 import { Parser } from '../parsers';
 import { DirectoryEntry, encodeFilePath, Metadata, URI, URIException, VOID } from '../uri';
-import { copyStream } from '../utils';
+import { copyStream, toReadableStream } from '../utils';
 
 export class FileProtocol extends URI {
     private _path: string;
@@ -71,7 +70,7 @@ export class FileProtocol extends URI {
         }
 
         try {
-            await this._write(data, this.guessContentType(sendCT), false);
+            await this._write(data, sendCT, false);
             return Object(VOID);
         }
         catch (err) {
@@ -85,7 +84,7 @@ export class FileProtocol extends URI {
         }
 
         try {
-            await this._write(data, this.guessContentType(sendCT), true);
+            await this._write(data, sendCT, true);
             return Object(VOID);
         }
         catch (err) {
@@ -96,7 +95,11 @@ export class FileProtocol extends URI {
     // async modify<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<object> {
     // }
 
-    async remove<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
+    async remove<T extends object>(recvCT?: ContentType | string): Promise<T & Metadata> {
+        if (recvCT !== undefined) {
+            throw new URIException(`URI ${this}: remove: recvCT argument is not supported`);
+        }
+
         try {
             if ((await fs.stat(this._path)).isDirectory()) {
                 await fs.rmdir(this._path);
@@ -118,8 +121,10 @@ export class FileProtocol extends URI {
     }
 
     private async _write(data: unknown, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
-        const [/* contentType */, serialized] = await Parser.serialize(this.guessContentType(sendCT), data);
+        const [/* contentType */, serialized] = Parser.serialize(this.guessContentType(sendCT), data);
 
-        await copyStream(Readable.from(serialized), createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
+        await copyStream(toReadableStream(serialized), createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }
 }
+
+URI.register('file:', FileProtocol);

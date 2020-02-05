@@ -1,4 +1,4 @@
-import { pipeline } from 'stream';
+import { pipeline, Readable } from 'stream';
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type ValueEncoder = (this: void, value: string) => string;
@@ -40,13 +40,22 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
+export function toReadableStream(data: Buffer | AsyncIterable<Buffer>): Readable {
+    if (data instanceof Buffer) {
+        return Readable.from((async function*() { yield data; })());
+    }
+    else {
+        return Readable.from(data);
+    }
+}
+
 export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStream): Promise<typeof to> {
     return new Promise<typeof to>((resolve, reject) => {
         pipeline(from, to, (err) => err ? reject(err) : resolve(to));
     });
 }
 
-export function isAsyncIterable(object: any): object is AsyncIterable<any> {
+export function isAsyncIterable<T = unknown>(object: any): object is AsyncIterable<T> {
     return typeof object[Symbol.asyncIterator] === 'function';
 }
 

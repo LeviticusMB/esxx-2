@@ -7,7 +7,7 @@ import { UAParser } from 'ua-parser-js';
 import { URL } from 'url';
 import { WebException, WebStatus } from './error';
 import { WebServiceConfig } from './service';
-import { isReadableStream } from './utils';
+import { isReadableStream, SizeLimitedReadableStream } from './utils';
 
 export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResponse | Promise<WebResponse>;
 
@@ -50,8 +50,8 @@ export class WebArguments {
         return this.request.header(name, def, concatenate);
     }
 
-    message<T extends object>(): Promise<T> {
-        return Parser.parse(ContentType.create(this.request.header('content-type')), this.request.incomingMessage) as Promise<T>;
+    body<T extends object>(maxContentLength?: number): Promise<T> {
+        return this.request.body<T>(maxContentLength);
     }
 
     boolean(param: string, def?: boolean): boolean {
@@ -164,14 +164,16 @@ export class WebRequest {
         }
     }
 
-    async message(): Promise<Buffer> {
-        const buffers = [];
+    async body<T extends object>(maxContentLength = 1_000_000): Promise<T> {
+        const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
 
-        for await (const chunk of this.incomingMessage) {
-            buffers.push(chunk);
+        if (Number(this.header('content-length', '-1')) > maxContentLength) {
+            throw new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
         }
 
-        return Buffer.concat(buffers);
+        const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
+
+        return Parser.parse(ContentType.create(this.header('content-type')), limited) as Promise<T>;
     }
 
     toString(): string {

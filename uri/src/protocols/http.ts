@@ -163,3 +163,8 @@ function convertHeaders(response: request.Response): KVPairs {
 
     return result;
 }
+
+URI
+    .register('http:',  HTTPProtocol)
+    .register('https:', HTTPProtocol)
+;

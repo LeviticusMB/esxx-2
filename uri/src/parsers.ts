@@ -31,7 +31,7 @@ export abstract class Parser {
     }
 
     static serialize(contentType: ContentType | string | undefined,
-                     data: unknown): [ContentType, Buffer | AsyncIterableIterator<Buffer>] {
+                     data: unknown): [ContentType, Buffer | AsyncIterable<Buffer>] {
         try {
             contentType = ContentType.create(contentType,
                 data instanceof Buffer ? ContentType.bytes :
@@ -55,7 +55,7 @@ export abstract class Parser {
 
     constructor(protected contentType: ContentType) { }
     abstract parse(stream: AsyncIterable<Buffer>): Promise<unknown>;
-    abstract serialize(data: unknown): Buffer | AsyncIterableIterator<Buffer>;
+    abstract serialize(data: unknown): Buffer | AsyncIterable<Buffer>;
 
     protected assertSerializebleData(condition: boolean, data: unknown, cause?: Error): void {
         if (!condition) {

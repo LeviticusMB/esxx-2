@@ -58,3 +58,5 @@ export class BasicAuthScheme extends AuthScheme<BasicCredentials> {
         return typeof credentials.identity === 'string' && typeof credentials.secret === 'string';
     }
 }
+
+AuthScheme.register('basic', BasicAuthScheme);

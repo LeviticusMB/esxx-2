@@ -38,7 +38,7 @@ export class CSVParser extends Parser {
         });
     }
 
-    async *serialize(data: string[][] | object[]): AsyncIterableIterator<Buffer> {
+    async *serialize(data: string[][] | object[]): AsyncIterable<Buffer> {
         this.assertSerializebleData(Array.isArray(data), data);
 
         const charset   = this.contentType.param('charset',     'utf8');
@@ -86,3 +86,9 @@ export class CSVParser extends Parser {
         }
     }
 }
+
+Parser
+    .register('text/csv',                   CSVParser)
+    .register('text/tab-separated-values',  CSVParser)
+    .register('text/tsv' /* Unofficial */,  CSVParser)
+;

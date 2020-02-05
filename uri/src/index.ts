@@ -3,40 +3,24 @@ export * from './auth-schemes/basic';
 export * from './auth-schemes/bearer';
 export * from './auth-schemes/hawk';
 export * from './parsers';
+export * from './parsers/csv';
+export * from './parsers/html';
+export * from './protocols/file';
+export * from './protocols/http';
 export * from './uri';
 
 export { KVPairs } from '@divine/headers';
 
-import { AuthScheme } from './auth-schemes';
-import { Parser } from './parsers';
-import { URI }    from './uri';
-
 // Register all built-in auth-schemes
-import { BasicAuthScheme }  from './auth-schemes/basic';
-import { BearerAuthScheme } from './auth-schemes/bearer';
-
-AuthScheme
-    .register('basic',  BasicAuthScheme)
-    .register('bearer', BearerAuthScheme)
-;
+import './auth-schemes/basic';
+import './auth-schemes/bearer';
 
 // Register all built-in protocols
-import { FileProtocol } from './protocols/file';
-import { HTTPProtocol } from './protocols/http';
-
-URI
-    .register('file:',  FileProtocol)
-    .register('http:',  HTTPProtocol)
-    .register('https:', HTTPProtocol)
-;
+import './protocols/cache';
+import './protocols/file';
+import './protocols/http';
 
 // Register all built-in parsers
-import { CSVParser }  from './parsers/csv';
-import { HTMLParser } from './parsers/html';
-
-Parser
-    .register('text/csv',                   CSVParser)
-    .register('text/html',                  HTMLParser)
-    .register('text/tab-separated-values',  CSVParser)
-    .register('text/tsv' /* Unofficial */,  CSVParser)
-;
+import './parsers';
+import './parsers/csv';
+import './parsers/html';

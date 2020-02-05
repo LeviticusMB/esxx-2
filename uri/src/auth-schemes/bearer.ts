@@ -44,3 +44,4 @@ export class BearerAuthScheme extends AuthScheme<BearerCredentials> {
     }
 }
 
+AuthScheme.register('bearer', BearerAuthScheme);

@@ -201,3 +201,5 @@ export class XMLTreeAdapter implements AST.TreeAdapter {
         return node.nodeType === 1 /* Node.ELEMENT_NODE */;
     }
 }
+
+Parser.register('text/html', HTMLParser);

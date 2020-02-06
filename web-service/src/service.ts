@@ -160,9 +160,12 @@ export class WebService<Context> {
                         webres = new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { message: 'Unexpected WebService/WebResource error' });
                     }
                 }
+                finally {
+                    await webreq.close();
+                }
 
                 if (/^(HEAD|GET)$/.test(webreq.method) && webres.headers.etag && webres.headers.etag === req.headers['if-none-match']) {
-                    webres.close();
+                    await webres.close();
                     webres = new WebResponse(WebStatus.NOT_MODIFIED, null, webres.headers);
                 }
 
@@ -181,6 +184,9 @@ export class WebService<Context> {
                 }
                 catch (err) {
                     this.webServiceConfig.console.warn(`${webres} could not be sent to ${webreq.remoteAgent}: ${err}`);
+                }
+                finally {
+                    await webres.close();
                 }
             }
             catch (err) {

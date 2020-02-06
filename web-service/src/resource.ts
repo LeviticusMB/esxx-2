@@ -1,5 +1,5 @@
 import { ContentType, KVPairs } from '@divine/headers';
-import { Parser } from '@divine/uri';
+import { Finalizable, FINALIZE, Parser } from '@divine/uri';
 import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 import { pipeline, Readable } from 'stream';
 import { TLSSocket } from 'tls';
@@ -119,6 +119,8 @@ export class WebRequest {
     public readonly url: URL;
     public readonly userAgent: UserAgent;
 
+    private _finalizers: Array<() => Promise<void>> = [];
+
     constructor(public incomingMessage: IncomingMessage, config: WebServiceConfig) {
         const incomingScheme = incomingMessage.socket instanceof TLSSocket ? 'https' : 'http';
         const incomingServer = incomingMessage.headers.host ?? `${incomingMessage.socket.localAddress}:${incomingMessage.socket.localPort}`;
@@ -173,7 +175,23 @@ export class WebRequest {
 
         const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
 
-        return Parser.parse(ContentType.create(this.header('content-type')), limited) as Promise<T>;
+        return this.addFinalizer(await Parser.parse<T>(ContentType.create(this.header('content-type')), limited));
+    }
+
+    addFinalizer<T extends object>(finalizable: T & Finalizable): T {
+        const finalize = finalizable[FINALIZE];
+
+        if (finalize) {
+            this._finalizers.push(finalize);
+        }
+
+        return finalizable;
+    }
+
+    close() {
+        const a = this.addFinalizer(new Date());
+        // Run all finalizers, but do propagate first error
+        return Promise.all(this._finalizers.map((finalize) => finalize()));
     }
 
     toString(): string {
@@ -221,7 +239,7 @@ export class WebResponse {
         return this;
     }
 
-    close() {
+    async close() {
         if (this.body instanceof Readable) {
             this.body.destroy();
         }

@@ -62,7 +62,7 @@ export class FileURI extends URI {
         try {
             const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
 
-            return await Parser.parse(ContentType.create(recvCT, lookup(this._path) || undefined), stream) as T;
+            return await Parser.parse<T>(ContentType.create(recvCT, lookup(this._path) || undefined), stream);
         }
         catch (err) {
             throw this.makeException(err);

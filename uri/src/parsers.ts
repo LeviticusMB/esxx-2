@@ -22,7 +22,7 @@ export abstract class Parser {
         return Parser;
     }
 
-    static async parse(contentType: ContentType | string, stream: Buffer | AsyncIterable<Buffer> | string): Promise<object & Finalizable> {
+    static async parse<T extends object>(contentType: ContentType | string, stream: Buffer | AsyncIterable<Buffer> | string): Promise<T & Finalizable> {
         try {
             const result = await Parser.create(ContentType.create(contentType)).parse(isAsyncIterable<Buffer>(stream) ? stream : toAsyncIterable(stream));
 

@@ -1,12 +1,16 @@
 import { ContentType } from '@divine/headers';
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
-import { basename } from 'path';
+import { basename, join, normalize } from 'path';
 import { Parser } from '../parsers';
 import { DirectoryEntry, encodeFilePath, Metadata, URI, URIException, VOID } from '../uri';
 import { copyStream, toReadableStream } from '../utils';
 
-export class FileProtocol extends URI {
+export class FileURI extends URI {
+    static create(path: string, base?: URI): URI {
+        return new URI(`${encodeFilePath(path)}`, base);
+    }
+
     private _path: string;
 
     constructor(uri: URI) {
@@ -19,7 +23,7 @@ export class FileProtocol extends URI {
             throw new URIException(`URI ${this}: Path invalid`);
         }
 
-        this._path = decodeURIComponent(this.pathname);
+        this._path = normalize(decodeURIComponent(this.pathname));
     }
 
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -27,7 +31,7 @@ export class FileProtocol extends URI {
             const stats = await fs.stat(this._path);
             const ctype = stats.isDirectory() ? ContentType.dir : ContentType.create(lookup(this._path) || undefined);
             const entry: DirectoryEntry = {
-                uri:     this.toString(),
+                uri:     this,
                 name:    basename(this._path),
                 type:    ctype,
                 length:  stats.size,
@@ -46,7 +50,8 @@ export class FileProtocol extends URI {
         try {
             const children = await fs.readdir(this._path);
 
-            return await Promise.all(children.sort().map((child) => new URI(encodeFilePath(child), this).info<T>()));
+            // NOTE: Make the path absolute first, since `this` might not end with a '/' even though it might be a directory.
+            return await Promise.all(children.sort().map((child) => FileURI.create(join(this._path, child), this).info<T>()));
         }
         catch (err) {
             throw this.makeException(err);
@@ -127,4 +132,4 @@ export class FileProtocol extends URI {
     }
 }
 
-URI.register('file:', FileProtocol);
+URI.register('file:', FileURI);

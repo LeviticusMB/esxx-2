@@ -6,7 +6,7 @@ import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Parser } from '../parsers';
 import { DirectoryEntry, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
 
-export class HTTPProtocol extends URI {
+export class HTTPURI extends URI {
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
         const response = await this._query<T>('HEAD', {}, null, undefined, undefined);
         const headers  = response[HEADERS]!;
@@ -17,7 +17,7 @@ export class HTTPProtocol extends URI {
 
         return this.requireValidStatus<DirectoryEntry>({
             ...extractMetadata(response),
-            uri:     this.toString(),
+            uri:     this,
             name:    path.posix.basename(location.pathname),
             type:    ContentType.create(type),
             length:  typeof length === 'string' ? Number(length) : undefined,
@@ -165,6 +165,6 @@ function convertHeaders(response: request.Response): KVPairs {
 }
 
 URI
-    .register('http:',  HTTPProtocol)
-    .register('https:', HTTPProtocol)
+    .register('http:',  HTTPURI)
+    .register('https:', HTTPURI)
 ;

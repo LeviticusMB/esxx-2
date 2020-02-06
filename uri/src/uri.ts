@@ -58,7 +58,7 @@ export interface SessionSelector extends SelectorBase {
 }
 
 export interface DirectoryEntry {
-    uri:      string;
+    uri:      URI;
     name:     string;
     type:     ContentType;
     length?:  number;
@@ -89,7 +89,7 @@ export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): st
         let prefix = '';
 
         if (/^[A-Za-z]:/.test(filepath)) {
-            prefix = '///' + filepath.substr(0, 2).toUpperCase();
+            prefix = '/' + filepath.substr(0, 2).toUpperCase();
             filepath = filepath.substr(2);
         }
 

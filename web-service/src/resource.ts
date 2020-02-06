@@ -175,7 +175,7 @@ export class WebRequest {
 
         const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
 
-        return this.addFinalizer(await Parser.parse<T>(ContentType.create(this.header('content-type')), limited));
+        return this.addFinalizer(await Parser.parse<T>(ContentType.create(this.header('content-type')), this.incomingMessage.pipe(limited)));
     }
 
     addFinalizer<T extends object>(finalizable: T & Finalizable): T {

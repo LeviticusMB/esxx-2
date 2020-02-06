@@ -189,7 +189,6 @@ export class WebRequest {
     }
 
     close() {
-        const a = this.addFinalizer(new Date());
         // Run all finalizers, but do propagate first error
         return Promise.all(this._finalizers.map((finalize) => finalize()));
     }

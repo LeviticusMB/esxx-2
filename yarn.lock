@@ -153,6 +153,13 @@
   resolved "https://registry.yarnpkg.com/@types/color-name/-/color-name-1.1.1.tgz#1c1261bbeaa10a8055bbc5d8ab84b7b2afc846a0"
   integrity sha512-rr+OQyAjxze7GgWrSaJwydHStIhHq2lvY3BOC2Mj7KnzI7XK0Uw1TOOdI9lDoajEbSWLiYgoo4f1R51erQfhPQ==
 
+"@types/dicer@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@types/dicer/-/dicer-0.2.0.tgz#8c922e73a8ccf077718d38f3d527e48507238b0e"
+  integrity sha512-S85N2bzETv74kRmD5Mmai22/vExHS6ONR6vQvh6geWbo025nOEUsOQmublwKGBvAzHL1oRpOaMtCRxK7DAKzaA==
+  dependencies:
+    "@types/node" "*"
+
 "@types/ink@^0.5.2":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@types/ink/-/ink-0.5.2.tgz#5e51b233d14639ee95df4d3c8b7f7845c51d094c"
@@ -726,6 +733,13 @@ detect-libc@^1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-1.0.3.tgz#fa137c4bd698edf55cd5cd02ac559f91a4c4ba9b"
   integrity sha1-+hN8S9aY7fVc1c0CrFWfkaTEups=
+
+dicer@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/dicer/-/dicer-0.3.0.tgz#eacd98b3bfbf92e8ab5c2fdb71aaac44bb06b872"
+  integrity sha512-MdceRRWqltEG2dZqO769g27N/3PXfcKl04VhYnBlo2YhH7zPi88VebsjTKclaOyiuMaGU72hTfw3VkUitGcVCA==
+  dependencies:
+    streamsearch "0.1.2"
 
 diff@3.5.0, diff@^3.1.0:
   version "3.5.0"
@@ -1879,6 +1893,11 @@ os-locale@^3.0.0, os-locale@^3.1.0:
     lcid "^2.0.0"
     mem "^4.0.0"
 
+os-paths@^4.0.1:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/os-paths/-/os-paths-4.2.0.tgz#9fc5209d76c5859e581e30832d5287341df01059"
+  integrity sha512-EH766lvboIFLggwsdUxyCnNJLGRvG4v58Om37WYK9rCUMk1FP6DoMSqOlsrcs0oibgmpsSQ6+TJHJ9VQI6qCIg==
+
 os-tmpdir@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/os-tmpdir/-/os-tmpdir-1.0.2.tgz#bbe67406c79aa85c5cfec766fe5734555dfa1274"
@@ -2456,6 +2475,11 @@ sshpk@^1.7.0:
     safer-buffer "^2.0.2"
     tweetnacl "~0.14.0"
 
+streamsearch@0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/streamsearch/-/streamsearch-0.1.2.tgz#808b9d0e56fc273d809ba57338e929919a1a9f1a"
+  integrity sha1-gIudDlb8Jz2Am6VzOOkpkZoanxo=
+
 string-width@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-1.0.2.tgz#118bdf5b8cdc51a2a7e70d211e07e2b0b9b107d3"
@@ -2855,6 +2879,13 @@ write-file-atomic@^3.0.0:
     is-typedarray "^1.0.0"
     signal-exit "^3.0.2"
     typedarray-to-buffer "^3.1.5"
+
+xdg-portable@^7.2.1:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/xdg-portable/-/xdg-portable-7.2.1.tgz#4301ba0868b2cbc9de0c53b3699906adcc9d2560"
+  integrity sha512-cei7jiJbpiH+d5qqAcxVxTPNDolJQzwOZa64NYykO9XotK99q1x8NXaMJe4D08q7bigz003mKDSVTfH4lLiZKw==
+  dependencies:
+    os-paths "^4.0.1"
 
 xmldom@^0.1.27:
   version "0.1.31"

@@ -4,7 +4,9 @@ export * from './auth-schemes/bearer';
 export * from './auth-schemes/hawk';
 export * from './parsers';
 export * from './parsers/csv';
+export * from './parsers/forms';
 export * from './parsers/html';
+export * from './protocols/cache';
 export * from './protocols/file';
 export * from './protocols/http';
 export * from './uri';
@@ -23,4 +25,5 @@ import './protocols/http';
 // Register all built-in parsers
 import './parsers';
 import './parsers/csv';
+import './parsers/forms';
 import './parsers/html';

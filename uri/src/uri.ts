@@ -7,10 +7,11 @@ import * as utils from './utils';
 
 const urlObject  = (url as any).Url;
 
-export const FINALIZE    = Symbol('FINALIZE');
-
-export const VOID        = Symbol('VOID');
 export const NULL        = Symbol('NULL');
+export const VOID        = Symbol('VOID');
+
+export const FIELDS      = Symbol('FIELDS');
+export const FINALIZE    = Symbol('FINALIZE');
 
 export const HEADERS     = Symbol('HEADERS');
 export const STATUS      = Symbol('STATUS');
@@ -18,6 +19,10 @@ export const STATUS_TEXT = Symbol('STATUS_TEXT');
 
 export interface Finalizable {
     [FINALIZE]?: () => Promise<void>;
+}
+
+export interface WithFields<T extends object> {
+    [FIELDS]: T[];
 }
 
 export interface Metadata {

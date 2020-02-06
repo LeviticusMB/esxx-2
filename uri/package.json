@@ -9,6 +9,7 @@
   "dependencies": {
     "@divine/headers": "^1.1.0",
     "@iarna/toml": "^2.2.3",
+    "dicer": "^0.3.0",
     "iconv-lite": "^0.5.1",
     "mime-types": "^2.1.21",
     "papaparse": "4.6.2",
@@ -19,6 +20,7 @@
     "xmldom": "^0.1.27"
   },
   "devDependencies": {
+    "@types/dicer": "^0.2.0",
     "@types/node": "^12.12.18",
     "@types/papaparse": "^4.5.5",
     "@types/request": "^2.48.1",

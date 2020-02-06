@@ -55,7 +55,9 @@ export abstract class Parser {
     private static parsers = new Map<string, typeof Parser>();
 
     private static create(contentType: ContentType): Parser {
-        return new (Parser.parsers.get(contentType.type) as any || BufferParser)(contentType);
+        return new (Parser.parsers.get(contentType.type) ??
+                    Parser.parsers.get(contentType.type.replace(/\/.*/, '/*')) ??
+                    BufferParser as any)(contentType);
     }
 
     constructor(protected contentType: ContentType) { }

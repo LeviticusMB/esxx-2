@@ -40,9 +40,13 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export function toReadableStream(data: Buffer | AsyncIterable<Buffer>): Readable {
-    if (data instanceof Buffer) {
-        return Readable.from((async function*() { yield data; })());
+export async function *toAsyncIterable(data: string | Buffer) {
+    yield data instanceof Buffer ? data : Buffer.from(data);
+}
+
+export function toReadableStream(data: string | Buffer | AsyncIterable<Buffer>): Readable {
+    if (typeof data === 'string' || data instanceof Buffer) {
+        return Readable.from(toAsyncIterable(data));
     }
     else {
         return Readable.from(data);

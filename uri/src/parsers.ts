@@ -3,17 +3,13 @@ import TOML from '@iarna/toml';
 import iconv from 'iconv-lite';
 import { DOMParser, XMLSerializer } from 'xmldom';
 import { Finalizable, NULL, URIException, VOID } from './uri';
-import { isAsyncIterable, isDOMNode, isJSON } from './utils';
+import { isAsyncIterable, isDOMNode, isJSON, toAsyncIterable } from './utils';
 
 export function toObject(result: unknown) {
     return result === undefined       ? Object(VOID) :
            result === null            ? Object(NULL) :
            typeof result !== 'object' ? Object(result) :
            result;
-}
-
-async function *toAsyncIterable(data: string | Buffer) {
-    yield data instanceof Buffer ? data : Buffer.from(data);
 }
 
 export abstract class Parser {

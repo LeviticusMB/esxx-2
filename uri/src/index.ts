@@ -2,6 +2,7 @@ export * from './auth-schemes';
 export * from './auth-schemes/basic';
 export * from './auth-schemes/bearer';
 export * from './auth-schemes/hawk';
+export * from './encoders';
 export * from './parsers';
 export * from './parsers/csv';
 export * from './parsers/forms';

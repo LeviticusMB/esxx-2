@@ -3,11 +3,11 @@ import { randomBytes } from 'crypto';
 import Dicer from 'dicer';
 import { PassThrough, Readable } from 'stream';
 import { URLSearchParams } from 'url';
+import { Encoder } from '../encoders';
 import { Parser, StringParser } from '../parsers';
 import { CacheURI } from '../protocols/cache';
 import { FIELDS, Finalizable, FINALIZE, URI, WithFields } from '../uri';
 import { copyStream } from '../utils';
-import { Encoder } from '../encoders';
 
 export interface FormData extends WithFields<FormField> {
     [key: string]: string | undefined;
@@ -96,7 +96,7 @@ export class MultiPartParser extends Parser {
         const values: Array<Promise<MultiPartField>> = [];
         const caches: URI[] = [];
 
-        const saveToCache = async (stream: AsyncIterable<Buffer>, type: ContentType) => {
+        const saveToCache = async (type: ContentType, stream: AsyncIterable<Buffer>) => {
             const uri = CacheURI.create(type);
 
             caches.push(uri);
@@ -117,22 +117,17 @@ export class MultiPartParser extends Parser {
                             const headers: KVPairs = Object.fromEntries(Object.entries(_headers).map(([k, v]) => [k, v?.join(', ')]));
                             const type             = ContentType.create(headers['content-type'], MultiPartParser.defaultContentType);
                             const disposition      = headers['content-disposition'] && new ContentDisposition(headers['content-disposition']) || undefined;
-                            const encodings        = headers['content-transfer-encoding']?.split(/\s*,\s*/) ?? [];
                             const name             = disposition?.param('name');
                             const parsed           = disposition?.type === 'form-data' && disposition?.filename === undefined ||
                                                      disposition?.type !== 'form-data' && (type.baseType === 'multipart' || type.type === 'text/plain');
                             let body: object;
-                            let data: AsyncIterable<Buffer> = stream;
-
-                            for (const encoding of encodings.reverse()) {
-                                data = Encoder.decode(encoding, data);
-                            }
+                            const data: AsyncIterable<Buffer> = Encoder.decode(headers['content-transfer-encoding'] ?? [], stream);
 
                             if (parsed) {
                                 body = (await Parser.parse(type, data)).valueOf();
                             }
                             else {
-                                body = await saveToCache(data, type);
+                                body = await saveToCache(type, data);
                             }
 
                             resolve({ name, type, headers, body });

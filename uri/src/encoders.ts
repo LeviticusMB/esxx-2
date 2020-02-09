@@ -9,21 +9,35 @@ export abstract class Encoder {
         return Encoder;
     }
 
-    static encode(type: string, stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+    static encode(types: string | string[], stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+        stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
+        types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
+
         try {
-            return Encoder.create(type).encode(isAsyncIterable(stream) ? stream : toAsyncIterable(stream));
+            for (const type of types) {
+                stream = Encoder.create(type).encode(stream);
+            }
+
+            return stream;
         }
         catch (err) {
-            throw new URIException(`${type} encoder failed: ${err.message}`, err);
+            throw new URIException(`'${types}' encoder failed: ${err.message}`, err);
         }
     }
 
-    static decode(type: string, stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+    static decode(types: string | string[], stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+        stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
+        types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
+
         try {
-            return Encoder.create(type).decode(isAsyncIterable(stream) ? stream : toAsyncIterable(stream));
+            for (const type of types.reverse()) {
+                stream = Encoder.create(type).decode(stream);
+            }
+
+            return stream;
         }
         catch (err) {
-            throw new URIException(`${type} encoder failed: ${err.message}`, err);
+            throw new URIException(`'${types}' encoder failed: ${err.message}`, err);
         }
     }
 

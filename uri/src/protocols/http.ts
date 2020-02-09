@@ -3,6 +3,7 @@ import path from 'path';
 import request from 'request';
 import { PassThrough, Readable } from 'stream';
 import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
+import { Encoder } from '../encoders';
 import { Parser } from '../parsers';
 import { DirectoryEntry, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
 
@@ -109,6 +110,8 @@ export class HTTPURI extends URI {
     private async _query<T>(method: string, headers: KVPairs, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
         let body: Buffer | AsyncIterable<Buffer> | undefined;
 
+        headers = { 'accept-encoding': 'gzip, deflate, br', ...headers };
+
         if (data !== null && data !== undefined) {
             const [contentType, serialized] = Parser.serialize(sendCT, data);
 
@@ -127,12 +130,12 @@ export class HTTPURI extends URI {
                 headers,
                 body:     body ? body instanceof Buffer ? body : Readable.from(body) : null,
                 encoding: null,
-                gzip:     true,
             })
             .on('response', async (response) => {
                 try {
                     const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
-                        await Parser.parse(ContentType.create(recvCT, response.headers['content-type']), iterable);
+                        await Parser.parse(ContentType.create(recvCT, response.headers['content-type']),
+                                           Encoder.decode(response.headers['content-encoding'] ?? [], iterable));
 
                     result[HEADERS]     = convertHeaders(response);
                     result[STATUS]      = response.statusCode;

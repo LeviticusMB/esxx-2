@@ -247,7 +247,7 @@ export class WebRequest {
     toString(): string {
         const ct = this.incomingMessage.headers['content-type']?.replace(/;.*/, '');
 
-        return `[WebRequest: ${this.method} ${this.url.href} ${ct ?? 'empty'}]`;
+        return `[WebRequest: ${this.method} ${this.url.href} ${ct ?? '-'}]`;
     }
 }
 
@@ -318,7 +318,7 @@ export class WebResponse {
     toString(): string {
         const ct = this.headers['content-type']?.toString().replace(/;.*/, '');
 
-        return `[WebResponse: ${this.status} ${WebStatus[this.status] || this.status} ${ct ?? 'empty'}]`;
+        return `[WebResponse: ${this.status} ${WebStatus[this.status] || this.status} ${ct ?? '-'}]`;
     }
 }
 

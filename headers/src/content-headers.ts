@@ -115,12 +115,15 @@ export class ContentDisposition extends ContentHeader {
 }
 
 export class ContentType extends ContentHeader {
-    static get bytes() { return new ContentType('application/octet-stream');            }
-    static get dir()   { return new ContentType('application/vnd.esxx.directory+json'); }
-    static get csv()   { return new ContentType('text/csv');                            }
-    static get json()  { return new ContentType('application/json');                    }
-    static get text()  { return new ContentType('text/plain');                          }
-    static get xml()   { return new ContentType('application/xml');                     }
+    static get bytes()      { return new ContentType('application/octet-stream');            }
+    static get csv()        { return new ContentType('text/csv');                            }
+    static get dir()        { return new ContentType('application/vnd.esxx.directory+json'); }
+    static get formData()   { return new ContentType('multipart/form-data');                 }
+    static get html()       { return new ContentType('text/html');                           }
+    static get json()       { return new ContentType('application/json');                    }
+    static get text()       { return new ContentType('text/plain');                          }
+    static get urlencoded() { return new ContentType('application/x-www-form-urlencoded');   }
+    static get xml()        { return new ContentType('application/xml');                     }
 
     static create(ct: string | ContentType | null | undefined, fallback?: string | ContentType | null): ContentType {
         if (typeof ct === 'string' || ct instanceof ContentType) {

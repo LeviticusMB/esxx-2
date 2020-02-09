@@ -28,7 +28,7 @@ export class WebServiceTest {
             .addResource(class {
                 static path = /default/;
 
-                constructor(args: WebArguments) {
+                constructor(args: WebArguments, context: string) {
                     Expect(args.request.url.href).toEqual('http://localhost/default?foo');
                     Expect(context).toEqual('context');
                 }
@@ -76,12 +76,12 @@ export class WebServiceTest {
                 private digit: number;
 
                 constructor(args: WebArguments) {
-                    Expect(args.string('1') === args.string('id')).toBe(true);
-                    this.digit = args.number('1');
+                    Expect(args.string('$1') === args.string('$id')).toBe(true);
+                    this.digit = args.number('$1');
                 }
 
                 async GET(args: WebArguments) {
-                    Expect(args.string('1') === args.string('id')).toBe(true);
+                    Expect(args.string('$1') === args.string('$id')).toBe(true);
 
                     switch (this.digit) {
                         case 0: return null;

@@ -40,18 +40,34 @@ export interface WebResource {
 }
 
 export class WebArguments {
-    public readonly params: KVPairs;
+    public readonly params: { [key: string]: string | object | undefined };
 
     constructor(params: KVPairs, public readonly request: WebRequest) {
-        this.params = { ...params, ...Object.fromEntries([...request.url.searchParams.entries()].map(([k, v]) => [`?${k}`, v])) };
+        const headers = Object.entries(request.incomingMessage.headers);
+        const qparams = [...request.url.searchParams.entries()];
+
+        this.params = {
+            ...params,
+            ...Object.fromEntries(headers.map(([k, v]) => [`@${k}`, Array.isArray(v) ? v.join(', ') : v])),
+            ...Object.fromEntries(qparams.map(([k, v]) => [`?${k}`, v]))
+        };
     }
 
-    header(name: keyof IncomingHttpHeaders, def?: string | string[], concatenate = true): string {
-        return this.request.header(name, def, concatenate);
-    }
+    async body<T extends object>(maxContentLength?: number): Promise<T> {
+        const body = await this.request.body<T>(maxContentLength);
 
-    body<T extends object>(maxContentLength?: number): Promise<T> {
-        return this.request.body<T>(maxContentLength);
+        if (!Array.isArray(body)) {
+            for (const [k, v] of Object.entries(body)) {
+                if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+                    this.params[k] = String(v);
+                }
+                else if (typeof v === 'object') {
+                    this.params[k] = v;
+                }
+            }
+        }
+
+        return body;
     }
 
     boolean(param: string, def?: boolean): boolean {
@@ -64,7 +80,7 @@ export class WebArguments {
             return false;
         }
         else {
-            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid boolean`);
+            throw this._makeException(param, 'is not a valid boolean');
         }
     }
 
@@ -72,7 +88,7 @@ export class WebArguments {
         const value = new Date(this.string(param, def?.toISOString()));
 
         if (isNaN(value.getTime())) {
-            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid date`);
+            throw this._makeException(param, 'is not a valid date');
         }
 
         return value;
@@ -82,24 +98,59 @@ export class WebArguments {
         const value = Number(this.string(param, def?.toString()));
 
         if (isNaN(value)) {
-            throw new WebException(WebStatus.BAD_REQUEST, `URL parameter '${param}' is not a valid number`);
+            throw this._makeException(param, 'is not a valid number');
         }
 
         return value;
     }
 
     string(param: string, def?: string): string {
+        const value = this._param(param, def);
+
+        if (typeof value !== 'string') {
+            throw this._makeException(param, 'is not a string');
+        }
+
+        return value;
+    }
+
+    object<T extends object>(param: string, def?: T): T {
+        const value = this._param(param, def);
+
+        if (typeof value !== 'object') {
+            throw this._makeException(param, 'is not an object');
+        }
+
+        return value as T;
+    }
+
+    private _param(param: string, def?: string | object): string | object {
         const value = this.params[param];
 
         if (value === undefined) {
             if (def === undefined) {
-                throw new WebException(WebStatus.BAD_REQUEST, `Missing URL parameter '${param}'`);
+                throw this._makeException(param, 'is missing');
             }
 
             return def;
         }
         else {
             return value;
+        }
+    }
+
+    private _makeException(param: string, is: string): WebException {
+        const subject =
+            param[0] === '?' ? `Query parameter '${param.substr(1)}'` :
+            param[0] === '@' ? `Request header '${param.substr(1)}`   :
+            param[0] === '$' ? `URL parameter '${param.substr(1)}'`   :
+            undefined;
+
+        if (subject) {
+            return new WebException(WebStatus.BAD_REQUEST, `${subject} ${is}`);
+        }
+        else {
+            return new WebException(WebStatus.UNPROCESSABLE_ENTITY, `Request entity parameter ${param} ${is}`);
         }
     }
 }
@@ -194,7 +245,9 @@ export class WebRequest {
     }
 
     toString(): string {
-        return `[WebRequest: ${this.method} ${this.url.href} ${this.incomingMessage.headers['content-type'] ?? 'empty'}]`;
+        const ct = this.incomingMessage.headers['content-type']?.replace(/;.*/, '');
+
+        return `[WebRequest: ${this.method} ${this.url.href} ${ct ?? 'empty'}]`;
     }
 }
 
@@ -263,7 +316,9 @@ export class WebResponse {
     }
 
     toString(): string {
-        return `[WebResponse: ${this.status} ${WebStatus[this.status] || this.status} ${this.headers['content-type'] ?? 'empty'}]`;
+        const ct = this.headers['content-type']?.toString().replace(/;.*/, '');
+
+        return `[WebResponse: ${this.status} ${WebStatus[this.status] || this.status} ${ct ?? 'empty'}]`;
     }
 }
 

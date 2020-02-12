@@ -29,8 +29,8 @@ export class WebServiceTest {
                 static path = /default/;
 
                 constructor(args: WebArguments, context: string) {
-                    Expect(args.request.url.href).toEqual('http://localhost/default?foo');
-                    Expect(context).toEqual('context');
+                    Expect(args.request.url.href).toBe('http://localhost/default?foo');
+                    Expect(context).toBe('context');
                 }
 
                 async default(args: WebArguments) {
@@ -41,7 +41,7 @@ export class WebServiceTest {
                 static path = /options/;
 
                 async OPTIONS(args: WebArguments) {
-                    Expect(args.request.method).toEqual('OPTIONS');
+                    Expect(args.request.method).toBe('OPTIONS');
                     return `options ${args.request.method}`;
                 }
             })
@@ -54,16 +54,16 @@ export class WebServiceTest {
             });
 
         const r1 = await ws.dispatchRequest(fakedReq('X-SPECIAL', '/default?foo'));
-        Expect(r1.status).toEqual(WebStatus.OK);
-        Expect(r1.body!.toString()).toEqual('default X-SPECIAL');
+        Expect(r1.status).toBe(WebStatus.OK);
+        Expect(r1.body!.toString()).toBe('default X-SPECIAL');
 
         const r2 = await ws.dispatchRequest(fakedReq('OPTIONS', '/options'));
-        Expect(r2.status).toEqual(WebStatus.OK);
-        Expect(r2.body!.toString()).toEqual('options OPTIONS');
+        Expect(r2.status).toBe(WebStatus.OK);
+        Expect(r2.body!.toString()).toBe('options OPTIONS');
 
         const r3 = await ws.dispatchRequest(fakedReq('OPTIONS', '/other'));
-        Expect(r3.status).toEqual(WebStatus.OK);
-        Expect(r3.body).toEqual(null);
+        Expect(r3.status).toBe(WebStatus.OK);
+        Expect(r3.body).toBe(null);
         Expect(r3.headers.allow).toEqual(['GET', 'HEAD', 'OPTIONS']);
 
         await Expect(() => ws.dispatchRequest(fakedReq('POST', '/options'))).toThrowAsync();
@@ -96,31 +96,31 @@ export class WebServiceTest {
             });
 
         const r0a = await ws.dispatchRequest(fakedReq('GET', '/GET/0'));
-        Expect(r0a.status).toEqual(WebStatus.NO_CONTENT);
-        Expect(r0a.body).toEqual(null);
+        Expect(r0a.status).toBe(WebStatus.NO_CONTENT);
+        Expect(r0a.body).toBe(null);
 
         const r0b = await ws.dispatchRequest(fakedReq('HEAD', '/GET/0'));
-        Expect(r0b.status).toEqual(WebStatus.NO_CONTENT);
-        Expect(r0b.body).toEqual(null);
+        Expect(r0b.status).toBe(WebStatus.NO_CONTENT);
+        Expect(r0b.body).toBe(null);
 
         const r1 = await ws.dispatchRequest(fakedReq('GET', '/GET/1'));
-        Expect(r1.status).toEqual(WebStatus.OK);
-        Expect(r1.body!.toString()).toEqual('1');
+        Expect(r1.status).toBe(WebStatus.OK);
+        Expect(r1.body!.toString()).toBe('1');
 
         Expect(JSON.parse((await ws.dispatchRequest(fakedReq('GET', '/GET/2'))).body!.toString())).toEqual([2]);
         Expect(JSON.parse((await ws.dispatchRequest(fakedReq('GET', '/GET/3'))).body!.toString())).toEqual({ value: 3 });
 
         const r4 = await ws.dispatchRequest(fakedReq('GET', '/GET/4'));
-        Expect(r4.status).toEqual(WebStatus.ACCEPTED);
-        Expect(r4.body).toEqual(null);
+        Expect(r4.status).toBe(WebStatus.ACCEPTED);
+        Expect(r4.body).toBe(null);
 
         const r5 = await ws.dispatchRequest(fakedReq('GET', '/GET/5'));
-        Expect(r5.status).toEqual(WebStatus.ACCEPTED);
-        Expect(r5.body!.toString()).toEqual('five');
-        Expect(r5.headers.etag).toEqual('V');
-        Expect((r5 as any).headers['custom-header']).toEqual('v');
+        Expect(r5.status).toBe(WebStatus.ACCEPTED);
+        Expect(r5.body!.toString()).toBe('five');
+        Expect(r5.headers.etag).toBe('V');
+        Expect((r5 as any).headers['custom-header']).toBe('v');
 
-        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/6'))).body!.toString()).toEqual('default');
+        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/6'))).body!.toString()).toBe('default');
 
         await Expect(() => ws.dispatchRequest(fakedReq('POST', '/GET/1'))).toThrowAsync();
         await Expect(() => ws.dispatchRequest(fakedReq('GET', '/GET/'))).toThrowAsync();

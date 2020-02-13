@@ -239,7 +239,7 @@ export class WebService<Context> {
             const active = matches.shift();
             const params = active && new WebArguments(regExpParams(active.match, 0, active.match.length, ''), webreq);
             const result = active
-                ? await new active.ctor(params!, resource, this.context).filter(nextflt, params!, resource)
+                ? await new active.ctor(params!, this.context, resource).filter(nextflt, params!, resource)
                 : await resourceHandler();
 
             return result instanceof WebResponse ? result : new WebResponse(!!result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
@@ -258,6 +258,8 @@ export class WebService<Context> {
         const rsrc = new desc.resource(args, this.context);
 
         return this._handleFilters(webreq, rsrc, async () => {
+            await rsrc.init?.(args);
+
             let method = ALLOWED_METHODS.test(webreq.method) ? (rsrc as any)[webreq.method] as typeof rsrc.default : undefined;
 
             if (!method && webreq.method === 'HEAD') {
@@ -283,6 +285,9 @@ export class WebService<Context> {
             }
             catch (err) {
                 return this._handleError(err, (err) => rsrc.catch?.(err));
+            }
+            finally {
+                await rsrc.close?.();
             }
         });
     }

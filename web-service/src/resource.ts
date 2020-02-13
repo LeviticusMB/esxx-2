@@ -14,7 +14,7 @@ export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResp
 export interface WebFilterCtor<Context> {
     path: RegExp;
 
-    new(args: WebArguments, resource: WebResource | undefined, context: Context): WebFilter;
+    new(args: WebArguments, context: Context, resource: WebResource | undefined): WebFilter;
 }
 
 export interface WebFilter {
@@ -28,6 +28,9 @@ export interface WebResourceCtor<Context> {
 }
 
 export interface WebResource {
+    init    ?(args: WebArguments): Promise<void>;
+    close   ?(): Promise<void>;
+
     HEAD    ?(args: WebArguments): Promise<WebResponses>;
     GET     ?(args: WebArguments): Promise<WebResponses>;
     PUT     ?(args: WebArguments): Promise<WebResponses>;
@@ -327,10 +330,64 @@ export class WebResponse {
 }
 
 export interface WebResponseHeaders {
-    'allow'?: string[];
-    'content-length'?: number;
-    'content-type'?: string | ContentType;
-    'etag'?: string;
+    'accept-patch'?:                     string | ContentType;
+    'accept-ranges'?:                    string;
+    'access-control-allow-credentials'?: string | boolean;
+    'access-control-allow-headers'?:     string | string[];
+    'access-control-allow-methods'?:     string | string[];
+    'access-control-allow-origin'?:      string | URL;
+    'access-control-expose-headers'?:    string | string[];
+    'access-control-max-age'?:           string | number;
+    'age'?:                              string | number;
+    'allow'?:                            string | string[];
+    'alt-svc'?:                          string;
+    'cache-control'?:                    string;
+    'connection'?:                       string;
+    'content-disposition'?:              string | ContentDisposition;
+    'content-encoding'?:                 string | string[];
+    'content-language'?:                 string;
+    'content-length'?:                   string | number;
+    'content-location'?:                 string | URL;
+    'content-md5'?:                      string;
+    'content-range'?:                    string;
+    'content-security-policy'?:          string;
+    'content-type'?:                     string | ContentType;
+    'date'?:                             string | Date;
+    'delta-base'?:                       string;
+    'etag'?:                             string;
+    'expires'?:                          string | Date;
+    'im'?:                               string;
+    'last-modified'?:                    string | Date;
+    'link'?:                             string;
+    'location'?:                         string | URL;
+    'p3p'?:                              string;
+    'pragma'?:                           string;
+    'proxy-authenticate'?:               string | WWWAuthenticate | WWWAuthenticate[];
+    'public-key-pins'?:                  string;
+    'refresh'?:                          string | number | Date;
+    'retry-after'?:                      string;
+    'server'?:                           string;
+    'set-cookie'?:                       string;
+    'strict-transport-security'?:        string;
+    'timing-allow-origin'?:              string | string[];
+    'tk'?:                               string;
+    'trailer'?:                          string | string[];
+    'transfer-encoding'?:                string | string[];
+    'upgrade'?:                          string | string[];
+    'vary'?:                             string | string[];
+    'via'?:                              string | string[];
+    'warning'?:                          string;
+    'www-authenticate'?:                 string | WWWAuthenticate | WWWAuthenticate[];
+    'x-content-duration'?:               string | number;
+    'x-content-security-policy'?:        string;
+    'x-content-type-options'?:           string;
+    'x-correlation-id'?:                 string;
+    'x-frame-options'?:                  string;
+    'x-powered-by'?:                     string;
+    'x-request-id'?:                     string;
+    'x-ua-compatible'?:                  string;
+    'x-webkit-csp'?:                     string;
+    'x-xss-protection'?:                 string;
 }
 
 export type WebResponses = null | WebResponse | NodeJS.ReadableStream | Buffer | string | number | bigint | boolean | Date | object;

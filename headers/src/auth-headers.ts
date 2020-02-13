@@ -92,30 +92,53 @@ export abstract class AuthHeader {
 }
 
 export class Authorization extends AuthHeader {
+    static create(unparsed: string | Authorization): Authorization;
+    static create(unparsed: string | Authorization | undefined): Authorization | undefined;
+    static create(unparsed: string | Authorization | undefined): Authorization | undefined {
+        return unparsed !== undefined ? new Authorization(unparsed) : undefined;
+    }
+
     public constructor(unparsed: string | Authorization, proxy = false) {
         super(unparsed, proxy ? 'proxy-authorization' : 'authorization');
     }
 }
 
 export class AuthenticationInfo extends AuthHeader {
+    static create(unparsed: string | AuthenticationInfo): AuthenticationInfo;
+    static create(unparsed: string | AuthenticationInfo | undefined): AuthenticationInfo | undefined;
+    static create(unparsed: string | AuthenticationInfo | undefined): AuthenticationInfo | undefined {
+        return unparsed !== undefined ? new AuthenticationInfo(unparsed) : undefined;
+    }
+
     public constructor(unparsed: string | AuthenticationInfo, proxy = false) {
         super(unparsed, proxy ? 'proxy-authentication-info' : 'authorization-info');
     }
 }
 
 export class ServerAuthorization extends AuthHeader {
+    static create(unparsed: string | ServerAuthorization): ServerAuthorization;
+    static create(unparsed: string | ServerAuthorization | undefined): ServerAuthorization | undefined;
+    static create(unparsed: string | ServerAuthorization | undefined): ServerAuthorization | undefined {
+        return unparsed !== undefined ? new ServerAuthorization(unparsed) : undefined;
+    }
+
     public constructor(unparsed: string | ServerAuthorization, proxy = false) {
         super(unparsed, proxy ? 'proxy-server-authorization' : 'server-authorization');
     }
 }
 
 export class WWWAuthenticate extends AuthHeader {
-    static create(unparsed: string | WWWAuthenticate[]): WWWAuthenticate[] {
+    static create(unparsed: string | WWWAuthenticate[]): WWWAuthenticate[];
+    static create(unparsed: string | WWWAuthenticate[] | undefined): WWWAuthenticate[] | undefined;
+    static create(unparsed: string | WWWAuthenticate[] | undefined): WWWAuthenticate[] | undefined {
         if (typeof unparsed === 'string') {
             return AuthHeader.split(unparsed).map((header) => new WWWAuthenticate(header));
         }
-        else {
+        else if (unparsed !== undefined) {
             return unparsed.map((header) => new WWWAuthenticate(header));
+        }
+        else {
+            return undefined;
         }
     }
 

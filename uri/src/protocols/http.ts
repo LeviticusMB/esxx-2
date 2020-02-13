@@ -120,7 +120,7 @@ export class HTTPURI extends URI {
         }
 
         if (!headers.authorization) {
-            headers.authorization = (await this._getAuthorization({ method, url: this, headers }, body))?.toString();
+            headers.authorization = (await this._getAuthorization({ method, url: this, headers: Object.entries(headers)}, body))?.toString();
         }
 
         return new Promise(async (resolve, reject) => {

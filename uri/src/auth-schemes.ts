@@ -1,4 +1,4 @@
-import { AuthenticationInfo, AuthHeader, Authorization, KVPairs, ServerAuthorization, WWWAuthenticate } from '@divine/headers';
+import { AuthenticationInfo, AuthHeader, Authorization, ServerAuthorization, WWWAuthenticate } from '@divine/headers';
 import { URL } from 'url';
 import { Constructor } from './utils';
 
@@ -8,9 +8,9 @@ export abstract class Credentials {
 }
 
 export interface AuthSchemeRequest {
-    method: string;
-    url: URL;
-    headers: KVPairs;
+    method:  string;
+    url:     URL;
+    headers: Iterable<[string, string | undefined]>;
 }
 
 export class AuthSchemeException extends Error {

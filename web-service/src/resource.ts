@@ -1,5 +1,5 @@
-import { ContentType, KVPairs } from '@divine/headers';
-import { Finalizable, FINALIZE, Parser } from '@divine/uri';
+import { ContentType, KVPairs, ContentDisposition, WWWAuthenticate } from '@divine/headers';
+import { AuthSchemeRequest, Finalizable, FINALIZE, Parser } from '@divine/uri';
 import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 import { pipeline, Readable } from 'stream';
 import { TLSSocket } from 'tls';
@@ -164,10 +164,10 @@ export interface UserAgent {
     cpu:     { architecture?: '68k' | 'amd64' | 'arm' | 'arm64' | 'avr' | 'ia32' | 'ia64' | 'irix' | 'irix64' | 'mips' | 'mips64' | 'pa-risc' | 'ppc' | 'sparc' | 'spark64' };
 }
 
-export class WebRequest {
-    public readonly remote: string;
+export class WebRequest implements AuthSchemeRequest {
     public readonly method: string;
     public readonly url: URL;
+    public readonly remoteAddress: string;
     public readonly userAgent: UserAgent;
 
     private _finalizers: Array<() => Promise<void>> = [];
@@ -178,12 +178,12 @@ export class WebRequest {
         const incomingRemote = incomingMessage.socket.remoteAddress;
         const incomingMethod = incomingMessage.method;
 
-        const scheme   = String((config.trustForwardedProto ? this.header('x-forwarded-proto',      '', false) : '') || incomingScheme);
-        const server   = String((config.trustForwardedHost  ? this.header('x-forwarded-host',       '', false) : '') || incomingServer);
-        this.remote    = String((config.trustForwardedFor   ? this.header('x-forwarded-for',        '', false) : '') || incomingRemote);
-        this.method    = String((config.trustMethodOverride ? this.header('x-http-method-override', '', false) : '') || incomingMethod);
-        this.url       = new URL(`${scheme}://${server}${incomingMessage.url}`);
-        this.userAgent = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
+        const scheme       = String((config.trustForwardedProto ? this.header('x-forwarded-proto',      '', false) : '') || incomingScheme);
+        const server       = String((config.trustForwardedHost  ? this.header('x-forwarded-host',       '', false) : '') || incomingServer);
+        this.remoteAddress = String((config.trustForwardedFor   ? this.header('x-forwarded-for',        '', false) : '') || incomingRemote);
+        this.method        = String((config.trustMethodOverride ? this.header('x-http-method-override', '', false) : '') || incomingMethod);
+        this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
+        this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
 
         if (!this.userAgent.browser.name && this.userAgent.ua) {
             const match = /^(?<name>[^/]+)(?:\/(?<version>(?<major>[^.]+)[^/ ]*))?/.exec(this.userAgent.ua);
@@ -194,8 +194,12 @@ export class WebRequest {
         }
     }
 
-    get remoteAgent(): string {
-        return this.userAgent.browser.name && this.userAgent.browser.version ? `${this.userAgent.browser.name}/${this.userAgent.browser.version}@${this.remote}` : `Unknown@${this.remote}`;
+    get remoteUserAgent(): string {
+        return this.userAgent.browser.name && this.userAgent.browser.version ? `${this.userAgent.browser.name}/${this.userAgent.browser.version}@${this.remoteAddress}` : `Unknown@${this.remoteAddress}`;
+    }
+
+    get headers(): Iterable<[string, string]> {
+        return Object.entries(this.incomingMessage.headers).map(([name, value]) => [name, Array.isArray(value) ? value.join(', ') : value!]);
     }
 
     header(name: keyof IncomingHttpHeaders, def?: string | string[], concatenate = true): string {
@@ -209,7 +213,7 @@ export class WebRequest {
             value = def;
         }
 
-        if (value instanceof Array) {
+        if (Array.isArray(value)) {
             return concatenate ? value.join(', ') : value[0];
         }
         else {

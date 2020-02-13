@@ -285,7 +285,7 @@ export class WebResponse {
         }
     }
 
-    customHeader(name: string, value: string | number | boolean | undefined): this {
+    setHeader(name: string, value: string | number | boolean | string[] | undefined): this {
         (this.headers as any)[name.toLowerCase()] = value;
 
         return this;

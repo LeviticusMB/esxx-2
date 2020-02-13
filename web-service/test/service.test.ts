@@ -89,7 +89,7 @@ export class WebServiceTest {
                         case 2: return [2];
                         case 3: return { value: 3 };
                         case 4: return new WebResponse(WebStatus.ACCEPTED, null);
-                        case 5: return new WebResponse(WebStatus.ACCEPTED, 'five', { etag: 'V'}).customHeader('Custom-Header', 'v');
+                        case 5: return new WebResponse(WebStatus.ACCEPTED, 'five', { etag: 'V'}).setHeader('Custom-Header', 'v');
                         default: return 'default';
                     }
                 }

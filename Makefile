@@ -8,10 +8,10 @@ build::	prepare
 distclean::
 	rm -rf node_modules
 
-build test clean distclean::
+build docs test clean distclean::
 	$(MAKE) -C headers $@
 	$(MAKE) -C uri $@
 	$(MAKE) -C uri-image-parser $@
 	$(MAKE) -C web-service $@
 
-.PHONY:		all prepare build test clean distclean
+.PHONY:		all prepare build docs test clean distclean

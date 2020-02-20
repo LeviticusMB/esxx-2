@@ -1,4 +1,4 @@
-import { ContentType, KVPairs, ContentDisposition, WWWAuthenticate } from '@divine/headers';
+import { ContentDisposition, ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
 import { AuthSchemeRequest, Finalizable, FINALIZE, Parser } from '@divine/uri';
 import { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'http';
 import { pipeline, Readable } from 'stream';
@@ -46,14 +46,15 @@ export class WebArguments {
     public readonly params: { [key: string]: string | object | undefined };
 
     constructor(params: KVPairs, public readonly request: WebRequest) {
+        const urlargs = Object.entries(params);
         const headers = Object.entries(request.incomingMessage.headers);
         const qparams = [...request.url.searchParams.entries()];
 
-        this.params = {
-            ...params,
-            ...Object.fromEntries(headers.map(([k, v]) => [`@${k}`, Array.isArray(v) ? v.join(', ') : v])),
-            ...Object.fromEntries(qparams.map(([k, v]) => [`?${k}`, v]))
-        };
+        this.params = Object.fromEntries([
+            ...urlargs.map(([k, v]) => ['$' + k, v]),
+            ...headers.map(([k, v]) => ['@' + k, Array.isArray(v) ? v.join(', ') : v]),
+            ...qparams.map(([k, v]) => ['?' + k, v])
+        ]);
     }
 
     async body<T extends object>(maxContentLength?: number): Promise<T> {
@@ -62,15 +63,19 @@ export class WebArguments {
         if (!Array.isArray(body)) {
             for (const [k, v] of Object.entries(body)) {
                 if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-                    this.params[k] = String(v);
+                    this.params['.' + k] = String(v);
                 }
                 else if (typeof v === 'object') {
-                    this.params[k] = v;
+                    this.params['.' + k] = v;
                 }
             }
         }
 
         return body;
+    }
+
+    has(param: string): boolean {
+        return this._param(param, null!) !== null;
     }
 
     boolean(param: string, def?: boolean): boolean {
@@ -108,7 +113,7 @@ export class WebArguments {
     }
 
     string(param: string, def?: string): string {
-        const value = this._param(param, def);
+        const value = this._param(param, def)?.toString();
 
         if (typeof value !== 'string') {
             throw this._makeException(param, 'is not a string');
@@ -125,6 +130,10 @@ export class WebArguments {
         }
 
         return value as T;
+    }
+
+    optional(param: string): string | undefined {
+        return this._param(param, null!)?.toString();
     }
 
     private _param(param: string, def?: string | object): string | object {
@@ -144,12 +153,13 @@ export class WebArguments {
 
     private _makeException(param: string, is: string): WebException {
         const subject =
-            param[0] === '?' ? `Query parameter '${param.substr(1)}'` :
-            param[0] === '@' ? `Request header '${param.substr(1)}`   :
-            param[0] === '$' ? `URL parameter '${param.substr(1)}'`   :
-            undefined;
+            param[0] === '?' ? `Query parameter '${param.substr(1)}'`  :
+            param[0] === '@' ? `Request header '${param.substr(1)}`    :
+            param[0] === '$' ? `URL parameter '${param.substr(1)}'`    :
+            param[0] === '.' ? `Entity parameter '${param.substr(1)}'` :
+            `Invalid parameter '${param}`;
 
-        if (subject) {
+        if (param[0] !== '.') {
             return new WebException(WebStatus.BAD_REQUEST, `${subject} ${is}`);
         }
         else {
@@ -292,7 +302,7 @@ export class WebResponse {
         }
     }
 
-    setHeader(name: string, value: string | number | boolean | string[] | undefined): this {
+    setHeader(name: keyof WebResponseHeaders | string, value: string | number | boolean | string[] | undefined): this {
         (this.headers as any)[name.toLowerCase()] = value;
 
         return this;

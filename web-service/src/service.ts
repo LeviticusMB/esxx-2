@@ -36,12 +36,12 @@ function regExpParams(match: RegExpExecArray, offset: number, count: number, pre
     const params: KVPairs = {};
 
     for (let i = 1; i <= count; ++i) {
-        params['$' + i] = match[offset + i];
+        params[i] = match[offset + i];
     }
 
     for (const param in match.groups) {
         if (param.startsWith(prefix)) {
-            params['$' + param.substr(prefix.length)] = match.groups[param];
+            params[param.substr(prefix.length)] = match.groups[param];
         }
     }
 

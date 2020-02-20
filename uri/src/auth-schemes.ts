@@ -14,7 +14,7 @@ export interface AuthSchemeRequest {
 }
 
 export class AuthSchemeException extends Error {
-    constructor(message: string, public challenge: WWWAuthenticate) {
+    constructor(message: string, public challenge?: WWWAuthenticate) {
         super(message);
     }
 }
@@ -77,8 +77,8 @@ export abstract class AuthScheme<C extends Credentials> {
     }
 
     abstract createAuthorization(challenge?: WWWAuthenticate, request?: AuthSchemeRequest, payload?: Uint8Array): Promise<Authorization | undefined>;
-    abstract verifyAuthorization(authorization?: Authorization, request?: AuthSchemeRequest, payload?: Uint8Array): Promise<AuthenticationInfo | undefined>;
-    abstract processAuthenticationInfo(_authentication?: AuthenticationInfo | ServerAuthorization, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<void>;
+    abstract verifyAuthorization<T extends Authorization | undefined>(authorization: T, request?: AuthSchemeRequest, payload?: Uint8Array): Promise<T>;
+    abstract verifyAuthenticationInfo<T extends AuthenticationInfo | ServerAuthorization | undefined>(_authentication: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T>;
     protected abstract isCompatibleCredentials(credentials: Credentials): boolean;
 
     protected async createChallenge(authorization?: Authorization): Promise<WWWAuthenticate> {
@@ -141,15 +141,15 @@ export class UnknownAuthScheme extends AuthScheme<Credentials> {
     }
 
     async createAuthorization(_challenge?: WWWAuthenticate, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<Authorization | undefined> {
-        return undefined;
+        throw new AuthSchemeException(`Not supported`);
     }
 
-    async verifyAuthorization(_authorization?: Authorization, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<AuthenticationInfo | undefined> {
-        throw new AuthSchemeException(`Not supported`, new WWWAuthenticate(this.scheme));
+    async verifyAuthorization<T extends Authorization | undefined>(_authorization: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
+        throw new AuthSchemeException(`Not supported`);
     }
 
-    async processAuthenticationInfo(_authentication?: AuthenticationInfo | ServerAuthorization, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<void> {
-        return;
+    async verifyAuthenticationInfo<T extends AuthenticationInfo | ServerAuthorization | undefined>(_authentication: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
+        throw new AuthSchemeException(`Not supported`);
     }
 
     isCompatibleCredentials(_credentials: Credentials): boolean {

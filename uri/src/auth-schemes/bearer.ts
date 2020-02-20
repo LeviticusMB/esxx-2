@@ -19,7 +19,7 @@ export class BearerAuthScheme extends AuthScheme<BearerCredentials> {
         return credentials ? new Authorization(`${this.scheme} ${credentials.identity}`, proxyHeader) : undefined;
     }
 
-    async verifyAuthorization(authorization?: Authorization | undefined, request?: AuthSchemeRequest | undefined, payload?: Uint8Array | undefined): Promise<AuthenticationInfo | undefined> {
+    async verifyAuthorization<T extends Authorization | undefined>(authorization: T, request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
         const identity = this.assertCompatibleAuthHeader(authorization)?.credentials;
 
         if (!identity) {
@@ -32,11 +32,11 @@ export class BearerAuthScheme extends AuthScheme<BearerCredentials> {
             throw new AuthSchemeException(`Token not valid`, (await this.createChallenge(authorization)).setParam('error', 'invalid_token'));
         }
 
-        return undefined;
+        return authorization;
     }
 
-    async processAuthenticationInfo(_authentication?: AuthenticationInfo | ServerAuthorization, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<void> {
-        return;
+    async verifyAuthenticationInfo<T extends AuthenticationInfo | ServerAuthorization | undefined>(authentication: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
+        return authentication;
     }
 
     protected isCompatibleCredentials(credentials: BearerCredentials): boolean {

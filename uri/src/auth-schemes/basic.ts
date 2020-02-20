@@ -30,7 +30,7 @@ export class BasicAuthScheme extends AuthScheme<BasicCredentials> {
         return credentials ? new Authorization(`${this.scheme} ${this.encodeCredentials(credentials)}`, proxyHeader) : undefined;
     }
 
-    async verifyAuthorization(authorization?: Authorization, request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<AuthenticationInfo | undefined> {
+    async verifyAuthorization<T extends Authorization | undefined>(authorization: T, request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
         const untrusted = this.decodeCredentials(this.assertCompatibleAuthHeader(authorization)?.credentials);
 
         if (!untrusted) {
@@ -47,11 +47,11 @@ export class BasicAuthScheme extends AuthScheme<BasicCredentials> {
             throw new AuthSchemeException(`Invalid password`, await this.createChallenge(authorization));
         }
 
-        return undefined;
+        return authorization;
     }
 
-    async processAuthenticationInfo(_authentication?: AuthenticationInfo | ServerAuthorization, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<void> {
-        return;
+    async verifyAuthenticationInfo<T extends AuthenticationInfo | ServerAuthorization | undefined>(authentication: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
+        return authentication;
     }
 
     protected isCompatibleCredentials(credentials: BasicCredentials): boolean {

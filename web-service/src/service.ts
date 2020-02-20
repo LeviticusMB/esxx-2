@@ -1,4 +1,5 @@
 import { KVPairs } from '@divine/headers';
+import { AuthSchemeException } from '@divine/uri';
 import { IncomingMessage, ServerResponse } from 'http';
 import { WebException, WebStatus } from './error';
 import { WebArguments, WebErrorHandler, WebFilterCtor, WebRequest, WebResource, WebResourceCtor, WebResponse, WebResponses } from './resource';
@@ -152,6 +153,11 @@ export class WebService<Context> {
                 catch (err) {
                     if (err instanceof WebException) {
                         webres = new WebResponse(err.status, { message: err.message }, err.headers);
+                    }
+                    else if (err instanceof AuthSchemeException) {
+                        webres = new WebResponse(WebStatus.UNAUTHORIZED, { message: err.message }, {
+                            'www-authenticate': err.challenge,
+                        });
                     }
                     else {
                         this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err}`);

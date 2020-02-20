@@ -147,7 +147,7 @@ export class WebService<Context> {
                 let webres: WebResponse;
 
                 try {
-                    this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent}`);
+                    this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent} #${webreq.sequence}`);
                     webres = await this.dispatchRequest(webreq);
                 }
                 catch (err) {
@@ -160,7 +160,7 @@ export class WebService<Context> {
                         });
                     }
                     else {
-                        this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err}`);
+                        this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err} #${webreq.sequence}`);
                         this.webServiceConfig.console.debug(err);
 
                         webres = new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { message: 'Unexpected WebService/WebResource error' });
@@ -180,16 +180,16 @@ export class WebService<Context> {
 
                     if (webreq.method !== 'HEAD') {
                         if (isReadableStream(webres.body)) {
-                            this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent}`);
+                            this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent} #${webreq.sequence}`);
                         }
 
                         await webres.writeBody(res);
                     }
 
-                    this.webServiceConfig.console.info(`Sent ${webres} to ${webreq.remoteUserAgent}`);
+                    this.webServiceConfig.console.info(`Sent ${webres} to ${webreq.remoteUserAgent} #${webreq.sequence}`);
                 }
                 catch (err) {
-                    this.webServiceConfig.console.warn(`${webres} could not be sent to ${webreq.remoteUserAgent}: ${err}`);
+                    this.webServiceConfig.console.warn(`${webres} could not be sent to ${webreq.remoteUserAgent}: ${err} #${webreq.sequence}`);
                 }
                 finally {
                     await webres.close();

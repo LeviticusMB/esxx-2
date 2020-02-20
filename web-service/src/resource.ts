@@ -178,10 +178,13 @@ export interface UserAgent {
 }
 
 export class WebRequest implements AuthSchemeRequest {
+    private static sequence = 0;
+
     public readonly method: string;
     public readonly url: URL;
     public readonly remoteAddress: string;
     public readonly userAgent: UserAgent;
+    public readonly sequence: number;
 
     private _finalizers: Array<() => Promise<void>> = [];
 
@@ -197,6 +200,7 @@ export class WebRequest implements AuthSchemeRequest {
         this.method        = String((config.trustMethodOverride ? this.header('x-http-method-override', '', false) : '') || incomingMethod);
         this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
         this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
+        this.sequence      = ++WebRequest.sequence;
 
         if (!this.userAgent.browser.name && this.userAgent.ua) {
             const match = /^(?<name>[^/]+)(?:\/(?<version>(?<major>[^.]+)[^/ ]*))?/.exec(this.userAgent.ua);

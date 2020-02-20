@@ -27,8 +27,9 @@ export class WebRequest implements AuthSchemeRequest {
     public readonly sequence: number;
 
     private _finalizers: Array<() => Promise<void>> = [];
+    private _maxContentLength: number;
 
-    constructor(public incomingMessage: IncomingMessage, config: WebServiceConfig) {
+    constructor(public incomingMessage: IncomingMessage, config: Required<WebServiceConfig>) {
         const incomingScheme = incomingMessage.socket instanceof TLSSocket ? 'https' : 'http';
         const incomingServer = incomingMessage.headers.host ?? `${incomingMessage.socket.localAddress}:${incomingMessage.socket.localPort}`;
         const incomingRemote = incomingMessage.socket.remoteAddress;
@@ -41,6 +42,8 @@ export class WebRequest implements AuthSchemeRequest {
         this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
         this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
         this.sequence      = ++WebRequest.sequence;
+
+        this._maxContentLength = config.maxContentLength;
 
         if (!this.userAgent.browser.name && this.userAgent.ua) {
             const match = /^(?<name>[^/]+)(?:\/(?<version>(?<major>[^.]+)[^/ ]*))?/.exec(this.userAgent.ua);
@@ -78,7 +81,7 @@ export class WebRequest implements AuthSchemeRequest {
         }
     }
 
-    async body<T extends object>(maxContentLength = 1_000_000): Promise<T> {
+    async body<T extends object>(contentType?: ContentType | string, maxContentLength = this._maxContentLength): Promise<T> {
         const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
 
         if (Number(this.header('content-length', '-1')) > maxContentLength) {
@@ -87,7 +90,7 @@ export class WebRequest implements AuthSchemeRequest {
 
         const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
 
-        return this.addFinalizer(await Parser.parse<T>(ContentType.create(this.header('content-type')), this.incomingMessage.pipe(limited)));
+        return this.addFinalizer(await Parser.parse<T>(ContentType.create(contentType, this.header('content-type')), this.incomingMessage.pipe(limited)));
     }
 
     addFinalizer<T extends object>(finalizable: T & Finalizable): T {

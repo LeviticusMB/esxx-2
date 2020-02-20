@@ -10,6 +10,7 @@ import { isReadableStream } from './utils';
 export interface WebServiceConfig {
     console?:              Console;
     errorMessageProperty?: string;
+    maxContentLength?:     number;
     trustForwardedFor?:    boolean;
     trustForwardedHost?:   boolean;
     trustForwardedProto?:  boolean;
@@ -83,6 +84,7 @@ export class WebService<Context> {
     constructor(public context: Context, config?: WebServiceConfig) {
         this.webServiceConfig = {
             console:              console,
+            maxContentLength:     1_000_000,
             errorMessageProperty: 'message',
             trustForwardedFor:    false,
             trustForwardedHost:   false,

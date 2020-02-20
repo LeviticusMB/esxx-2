@@ -1,4 +1,4 @@
-import { KVPairs } from '@divine/headers';
+import { KVPairs, ContentType } from '@divine/headers';
 import { WebException, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';
@@ -51,8 +51,8 @@ export class WebArguments {
         ]);
     }
 
-    async body<T extends object>(maxContentLength?: number): Promise<T> {
-        const body = await this.request.body<T>(maxContentLength);
+    async body<T extends object>(contentType?: ContentType | string, maxContentLength?: number): Promise<T> {
+        const body = await this.request.body<T>(contentType, maxContentLength);
 
         if (!Array.isArray(body)) {
             for (const [k, v] of Object.entries(body)) {

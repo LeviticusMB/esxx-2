@@ -15,10 +15,12 @@ function fakedReq(method: string, url: string, _payload?: object) {
         },
     } as IncomingMessage, {
         console,
-        trustForwardedFor:   false,
-        trustForwardedHost:  false,
-        trustForwardedProto: false,
-        trustMethodOverride: false,
+        errorMessageProperty: 'message',
+        maxContentLength:     1_000_000,
+        trustForwardedFor:    false,
+        trustForwardedHost:   false,
+        trustForwardedProto:  false,
+        trustMethodOverride:  false,
     });
 }
 

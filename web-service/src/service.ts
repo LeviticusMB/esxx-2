@@ -170,7 +170,7 @@ export class WebService<Context> {
                     await webreq.close();
                 }
 
-                if (/^(HEAD|GET)$/.test(webreq.method) && webres.headers.etag && webres.headers.etag === req.headers['if-none-match']) {
+                if (webres.status === WebStatus.OK && /^(HEAD|GET)$/.test(webreq.method) && webres.headers.etag && webres.headers.etag === req.headers['if-none-match']) {
                     await webres.close();
                     webres = new WebResponse(WebStatus.NOT_MODIFIED, null, webres.headers);
                 }

@@ -89,7 +89,7 @@ export class WebService<Context> {
             trustForwardedFor:    false,
             trustForwardedHost:   false,
             trustForwardedProto:  false,
-            trustMethodOverride:  true,
+            trustMethodOverride:  false,
             ...config
         };
     }

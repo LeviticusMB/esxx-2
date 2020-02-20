@@ -1,5 +1,6 @@
 import { ContentType } from '@divine/headers';
 import { AuthSchemeRequest, Finalizable, FINALIZE, Parser } from '@divine/uri';
+import cuid from 'cuid';
 import { IncomingHttpHeaders, IncomingMessage } from 'http';
 import { TLSSocket } from 'tls';
 import { UAParser } from 'ua-parser-js';
@@ -18,13 +19,11 @@ export interface UserAgent {
 }
 
 export class WebRequest implements AuthSchemeRequest {
-    private static sequence = 0;
-
     public readonly method: string;
     public readonly url: URL;
     public readonly remoteAddress: string;
     public readonly userAgent: UserAgent;
-    public readonly sequence: number;
+    public readonly id: string;
 
     private _finalizers: Array<() => Promise<void>> = [];
     private _maxContentLength: number;
@@ -41,7 +40,7 @@ export class WebRequest implements AuthSchemeRequest {
         this.method        = String((config.trustMethodOverride ? this.header('x-http-method-override', '', false) : '') || incomingMethod);
         this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
         this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
-        this.sequence      = ++WebRequest.sequence;
+        this.id            = cuid();
 
         this._maxContentLength = config.maxContentLength;
 

@@ -1,4 +1,4 @@
-import { KVPairs, ContentType } from '@divine/headers';
+import { ContentType, KVPairs } from '@divine/headers';
 import { WebException, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';

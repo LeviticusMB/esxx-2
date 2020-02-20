@@ -49,7 +49,7 @@ function regExpParams(match: RegExpExecArray, offset: number, count: number, pre
 }
 
 export class WebService<Context> {
-    public static makeAllowHeader<Context>(rsrc?: WebResource): string[] {
+    public static makeAllowHeader<Context>(rsrc?: WebResource): string {
         const methods: string[] = [];
 
         for (const method of getMethods(rsrc)) {
@@ -66,7 +66,7 @@ export class WebService<Context> {
             methods.push('OPTIONS');
         }
 
-        return methods.sort();
+        return methods.sort().join(', ');
     }
 
     public webServiceConfig: Required<WebServiceConfig>;

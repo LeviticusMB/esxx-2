@@ -64,7 +64,7 @@ export class WebServiceTest {
         const r3 = await ws.dispatchRequest(fakedReq('OPTIONS', '/other'));
         Expect(r3.status).toBe(WebStatus.OK);
         Expect(r3.body).toBe(null);
-        Expect(r3.headers.allow).toEqual(['GET', 'HEAD', 'OPTIONS']);
+        Expect(r3.headers.allow).toEqual('GET, HEAD, OPTIONS');
 
         await Expect(() => ws.dispatchRequest(fakedReq('POST', '/options'))).toThrowAsync();
     }

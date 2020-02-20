@@ -6,11 +6,12 @@ import { WebArguments, WebErrorHandler, WebFilterCtor, WebRequest, WebResource, 
 import { isReadableStream } from './utils';
 
 export interface WebServiceConfig {
-    console?:             Console;
-    trustForwardedFor?:   boolean;
-    trustForwardedHost?:  boolean;
-    trustForwardedProto?: boolean;
-    trustMethodOverride?: boolean;
+    console?:              Console;
+    errorMessageProperty?: string;
+    trustForwardedFor?:    boolean;
+    trustForwardedHost?:   boolean;
+    trustForwardedProto?:  boolean;
+    trustMethodOverride?:  boolean;
 }
 
 interface FilterDescriptor<Context> {
@@ -49,7 +50,7 @@ function regExpParams(match: RegExpExecArray, offset: number, count: number, pre
 }
 
 export class WebService<Context> {
-    public static makeAllowHeader<Context>(rsrc?: WebResource): string {
+    public static makeAllowHeader(rsrc?: WebResource): string {
         const methods: string[] = [];
 
         for (const method of getMethods(rsrc)) {
@@ -79,11 +80,12 @@ export class WebService<Context> {
 
     constructor(public context: Context, config?: WebServiceConfig) {
         this.webServiceConfig = {
-            console:             console,
-            trustForwardedFor:   false,
-            trustForwardedHost:  false,
-            trustForwardedProto: false,
-            trustMethodOverride: true,
+            console:              console,
+            errorMessageProperty: 'message',
+            trustForwardedFor:    false,
+            trustForwardedHost:   false,
+            trustForwardedProto:  false,
+            trustMethodOverride:  true,
             ...config
         };
     }
@@ -151,11 +153,13 @@ export class WebService<Context> {
                     webres = await this.dispatchRequest(webreq);
                 }
                 catch (err) {
+                    const messageProp = this.webServiceConfig.errorMessageProperty;
+
                     if (err instanceof WebException) {
-                        webres = new WebResponse(err.status, { message: err.message }, err.headers);
+                        webres = new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
                     }
                     else if (err instanceof AuthSchemeException) {
-                        webres = new WebResponse(WebStatus.UNAUTHORIZED, { message: err.message }, {
+                        webres = new WebResponse(WebStatus.UNAUTHORIZED, { [messageProp]: err.message }, {
                             'www-authenticate': err.challenge,
                         });
                     }
@@ -163,7 +167,7 @@ export class WebService<Context> {
                         this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err} #${webreq.sequence}`);
                         this.webServiceConfig.console.debug(err);
 
-                        webres = new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { message: 'Unexpected WebService/WebResource error' });
+                        webres = new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { [messageProp]: 'Unexpected WebService/WebResource error' });
                     }
                 }
                 finally {

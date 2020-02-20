@@ -1,4 +1,5 @@
-import { WebArguments, WebFilter, WebResource, WebResponse } from './resource';
+import { WebArguments, WebFilter, WebResource } from './resource';
+import { WebResponse } from './response';
 
 function asSet(array: string | string[] | undefined): Set<string> {
     return new Set(typeof array === 'string' ? array.split(/\s*,\s*/) : array ?? []);

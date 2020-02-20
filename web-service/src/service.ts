@@ -2,7 +2,9 @@ import { KVPairs } from '@divine/headers';
 import { AuthSchemeException } from '@divine/uri';
 import { IncomingMessage, ServerResponse } from 'http';
 import { WebException, WebStatus } from './error';
-import { WebArguments, WebErrorHandler, WebFilterCtor, WebRequest, WebResource, WebResourceCtor, WebResponse, WebResponses } from './resource';
+import { WebRequest } from './request';
+import { WebArguments, WebErrorHandler, WebFilterCtor, WebResource, WebResourceCtor } from './resource';
+import { WebResponse, WebResponses } from './response';
 import { isReadableStream } from './utils';
 
 export interface WebServiceConfig {

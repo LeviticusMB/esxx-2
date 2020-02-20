@@ -1,4 +1,4 @@
-import { WebResponseHeaders } from './resource';
+import { WebResponseHeaders } from './response';
 
 export class WebException extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {

@@ -110,6 +110,12 @@ export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): st
     }
 }
 
+export function guessContentType(pathname: string, knownContentType?: ContentType | string): ContentType | undefined {
+    const ct = knownContentType ?? lookup(pathname);
+
+    return ct ? new ContentType(ct) : undefined;
+}
+
 export class URI extends URL {
     static readonly VOID        = VOID;
     static readonly NULL        = VOID;
@@ -200,9 +206,7 @@ export class URI extends URL {
     }
 
     protected guessContentType(knownContentType?: ContentType | string): ContentType | undefined {
-        const ct = knownContentType ?? lookup(this.pathname);
-
-        return ct instanceof ContentType ? ct : ct ? new ContentType(ct) : undefined;
+        return guessContentType(this.pathname, knownContentType);
     }
 
     protected makeException(err: NodeJS.ErrnoException): URIException {

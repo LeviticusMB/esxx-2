@@ -7,7 +7,7 @@ build:		prepare
 	yarn run tsc
 
 docs:
-	yarn run typedoc --ignoreCompilerErrors --out docs --mode library --entryPoint '"src/index"'
+	yarn run typedoc --ignoreCompilerErrors --out docs --mode library --theme minimal --inputFiles src/index.ts
 
 test:		build
 	-yarn run nyc --reporter=lcov --reporter=html alsatian build/test/*.js

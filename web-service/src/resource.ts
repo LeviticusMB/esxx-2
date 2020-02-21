@@ -8,11 +8,11 @@ export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResp
 export interface WebFilterCtor<Context> {
     path: RegExp;
 
-    new(args: WebArguments, context: Context, resource: WebResource | undefined): WebFilter;
+    new(args: WebArguments, context: Context): WebFilter;
 }
 
 export interface WebFilter {
-    filter(next: () => Promise<WebResponse>, args: WebArguments, resource: WebResource | undefined): Promise<WebResponses>;
+    filter(next: () => Promise<WebResponse>, args: WebArguments, resource: () => Promise<WebResource>): Promise<WebResponses>;
 }
 
 export interface WebResourceCtor<Context> {

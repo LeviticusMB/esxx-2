@@ -14,10 +14,10 @@ export interface CORSFilterParams {
 export abstract class CORSFilter implements WebFilter {
     protected static excluded = new Set(['cache-control', 'content-language', 'content-type', 'expires', 'last-modified', 'pragma']);
 
-    async filter(next: () => Promise<WebResponse>, args: WebArguments, resource: WebResource) {
+    async filter(next: () => Promise<WebResponse>, args: WebArguments, resource: () => Promise<WebResource>) {
         const response = await next();
         const exposed  = Object.keys(response.headers); // Read before we add any extra
-        const params   = { args, resource, response };
+        const params   = { args, resource: await resource(), response };
         const origin   = args.optional('@origin');
 
         if (this.isOriginAllowed(origin, params)) {

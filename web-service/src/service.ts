@@ -150,33 +150,10 @@ export class WebService<Context> {
         return async (req: IncomingMessage, res: ServerResponse) => {
             try {
                 const webreq = new WebRequest(req, this.webServiceConfig);
-                let webres: WebResponse;
 
-                try {
-                    this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent} #${webreq.id}`);
-                    webres = await this.dispatchRequest(webreq);
-                }
-                catch (err) {
-                    const messageProp = this.webServiceConfig.errorMessageProperty;
+                this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent} #${webreq.id}`);
 
-                    if (err instanceof WebException) {
-                        webres = new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
-                    }
-                    else if (err instanceof AuthSchemeException) {
-                        webres = new WebResponse(WebStatus.UNAUTHORIZED, { [messageProp]: err.message }, {
-                            'www-authenticate': err.challenge,
-                        });
-                    }
-                    else {
-                        this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err} #${webreq.id}`);
-                        this.webServiceConfig.console.debug(err);
-
-                        webres = new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { [messageProp]: 'Unexpected WebService/WebResource error' });
-                    }
-                }
-                finally {
-                    await webreq.close();
-                }
+                let webres = await this.dispatchRequest(webreq);
 
                 if (webres.status === WebStatus.OK && /^(HEAD|GET)$/.test(webreq.method) && webres.headers.etag && webres.headers.etag === req.headers['if-none-match']) {
                     await webres.close();
@@ -213,27 +190,37 @@ export class WebService<Context> {
     }
 
     async dispatchRequest(webreq: WebRequest): Promise<WebResponse> {
-        // Compile merged pattern
-        if (!this._resourcePattern) {
-            this._filters.forEach((filter) => { filter.pattern = RegExp(`^${this._mountPoint}${filter.filter.path.source}`); });
-            this._resourcePattern = RegExp(`^${this._mountPoint}(?:${this._resources.filter((r) => !!r).map((r) => `(${r.pattern})`).join('|')})$`);
-        }
+        try {
+            // Compile merged pattern
+            if (!this._resourcePattern) {
+                this._filters.forEach((filter) => { filter.pattern = RegExp(`^${this._mountPoint}${filter.filter.path.source}`); });
+                this._resourcePattern = RegExp(`^${this._mountPoint}(?:${this._resources.filter((r) => !!r).map((r) => `(${r.pattern})`).join('|')})$`);
+            }
 
-        // Match incoming request
-        const match = this._resourcePattern.exec(webreq.url.pathname);
+            // Match incoming request
+            const match = this._resourcePattern.exec(webreq.url.pathname);
 
-        if (match) {
-            // Find resource that matched
-            for (const r in this._resources) {
-                if (match[r] !== undefined) {
-                    return this._handleResource(webreq, this._resources[r], Number(r), match);
+            if (match) {
+                // Find resource that matched
+                for (const r in this._resources) {
+                    if (match[r] !== undefined) {
+                        return this._handleResource(webreq, this._resources[r], Number(r), match);
+                    }
                 }
             }
-        }
 
-        return this._handleFilters(webreq, undefined, () => {
-            throw new WebException(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
-        });
+            const resourceNotFound = async () => {
+                throw new WebException(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
+            };
+
+            return this._handleFilters(webreq, resourceNotFound, resourceNotFound);
+        }
+        catch (err) {
+            return await this._handleException(err, webreq);
+        }
+        finally {
+            await webreq.close();
+        }
     }
 
     private async _handleError(err: Error, errorHandler?: WebErrorHandler<Context> | ((err: Error, context: Context) => void)) {
@@ -247,44 +234,80 @@ export class WebService<Context> {
         }
     }
 
-    private async _handleFilters(webreq: WebRequest, resource: WebResource | undefined, resourceHandler: () => Promise<WebResponses>): Promise<WebResponse> {
-        const matches = this._filters.map((desc) => ({ ctor: desc.filter, match: desc.pattern.exec(webreq.url.pathname)! })).filter((desc) => desc.match);
-        const nextflt = async (): Promise<WebResponse> => {
-            const active = matches.shift();
-            const params = active && new WebArguments(regExpParams(active.match, 0, active.match.length, ''), webreq);
-            const result = active
-                ? await new active.ctor(params!, this.context, resource).filter(nextflt, params!, resource)
-                : await resourceHandler();
+    private async _handleException(err: Error, webreq: WebRequest): Promise<WebResponse> {
+        const messageProp = this.webServiceConfig.errorMessageProperty;
 
-            return result instanceof WebResponse ? result : new WebResponse(!!result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
-        };
-
-        try {
-            return await nextflt();
+        if (err instanceof WebException) {
+            return new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
         }
-        catch (err) {
-            return this._handleError(err, this._errorHandler);
+        else if (err instanceof AuthSchemeException) {
+            return new WebResponse(WebStatus.UNAUTHORIZED, { [messageProp]: err.message }, {
+                'www-authenticate': err.challenge,
+            });
+        }
+        else {
+            const messageProp = this.webServiceConfig.errorMessageProperty;
+
+            this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err} #${webreq.id}`);
+            this.webServiceConfig.console.debug(err);
+
+            return new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { [messageProp]: 'Unexpected WebService/WebResource error' });
         }
     }
 
+    private async _handleFilters(webreq: WebRequest, resource: () => Promise<WebResource>, resourceHandler: () => Promise<WebResponses>): Promise<WebResponse> {
+        const matches = this._filters.map((desc) => ({ ctor: desc.filter, match: desc.pattern.exec(webreq.url.pathname)! })).filter((desc) => desc.match);
+        const nextflt = async (): Promise<WebResponse> => {
+            try {
+                const active = matches.shift();
+                const params = active && new WebArguments(regExpParams(active.match, 0, active.match.length, ''), webreq);
+                const result = active
+                    ? await new active.ctor(params!, this.context).filter(nextflt, params!, resource)
+                    : await resourceHandler();
+
+                return result instanceof WebResponse ? result : new WebResponse(!!result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
+            }
+            catch (err) {
+                try {
+                    return await this._handleError(err, this._errorHandler);
+                }
+                catch (err) {
+                    return this._handleException(err, webreq);
+                }
+            }
+        };
+
+        return nextflt();
+    }
+
     private async _handleResource(webreq: WebRequest, desc: ResourceDescriptor<Context>, offset: number, match: RegExpExecArray): Promise<WebResponse> {
-        const args = new WebArguments(regExpParams(match, offset, desc.groups, `_${offset}_`), webreq);
-        const rsrc = new desc.resource(args, this.context);
+        let args: WebArguments | undefined;
+        let rsrc: WebResource | undefined;
 
-        return this._handleFilters(webreq, rsrc, async () => {
-            await rsrc.init?.(args);
-
-            let method = ALLOWED_METHODS.test(webreq.method) ? (rsrc as any)[webreq.method] as typeof rsrc.default : undefined;
-
-            if (!method && webreq.method === 'HEAD') {
-                method = rsrc.GET;
+        const createResource = async () => {
+            if (!rsrc) {
+                args = new WebArguments(regExpParams(match, offset, desc.groups, `_${offset}_`), webreq);
+                rsrc = new desc.resource(args, this.context);
+                await rsrc.init?.(args);
             }
 
-            method = method || rsrc.default;
+            return rsrc;
+        };
 
+        return this._handleFilters(webreq, createResource, async () => {
             try {
+                rsrc = await createResource();
+
+                let method = ALLOWED_METHODS.test(webreq.method) ? (rsrc as any)[webreq.method] as typeof rsrc.default : undefined;
+
+                if (!method && webreq.method === 'HEAD') {
+                    method = rsrc.GET;
+                }
+
+                method = method || rsrc.default;
+
                 if (method) {
-                    return await method.call(rsrc, args);
+                    return await method.call(rsrc, args!);
                 }
                 else if (webreq.method === 'OPTIONS') {
                     return new WebResponse(WebStatus.OK, null, {
@@ -298,10 +321,10 @@ export class WebService<Context> {
                 }
             }
             catch (err) {
-                return this._handleError(err, (err) => rsrc.catch?.(err));
+                return this._handleError(err, (err) => rsrc?.catch?.(err));
             }
             finally {
-                await rsrc.close?.();
+                await rsrc?.close?.();
             }
         });
     }

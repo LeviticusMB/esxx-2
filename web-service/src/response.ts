@@ -85,6 +85,10 @@ export class WebResponse {
             response.body = null;
         }
 
+        if (config.returnRequestID && response.headers[config.returnRequestID] === undefined) {
+            response.headers[config.returnRequestID] = webreq.id;
+        }
+
         return response;
     }
 

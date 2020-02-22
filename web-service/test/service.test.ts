@@ -17,10 +17,12 @@ function fakedReq(method: string, url: string, _payload?: object) {
         console,
         errorMessageProperty: 'message',
         maxContentLength:     1_000_000,
+        trustRequestID:       null,
         trustForwardedFor:    false,
         trustForwardedHost:   false,
         trustForwardedProto:  false,
         trustMethodOverride:  false,
+        returnRequestID:      null,
     });
 }
 

@@ -1,6 +1,7 @@
 import { KVPairs } from '@divine/headers';
 import { AuthSchemeException } from '@divine/uri';
 import { IncomingMessage, ServerResponse } from 'http';
+import { pipeline } from 'stream';
 import { WebException, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebArguments, WebErrorHandler, WebFilterCtor, WebResource, WebResourceCtor } from './resource';
@@ -11,10 +12,12 @@ export interface WebServiceConfig {
     console?:              Console;
     errorMessageProperty?: string;
     maxContentLength?:     number;
+    returnRequestID?:      string | null;
     trustForwardedFor?:    boolean;
     trustForwardedHost?:   boolean;
     trustForwardedProto?:  boolean;
     trustMethodOverride?:  boolean;
+    trustRequestID?:       string | null;
 }
 
 interface FilterDescriptor<Context> {
@@ -86,10 +89,12 @@ export class WebService<Context> {
             console:              console,
             maxContentLength:     1_000_000,
             errorMessageProperty: 'message',
+            returnRequestID:      null,
             trustForwardedFor:    false,
             trustForwardedHost:   false,
             trustForwardedProto:  false,
             trustMethodOverride:  false,
+            trustRequestID:       null,
             ...config
         };
     }

@@ -18,6 +18,8 @@ export interface UserAgent {
     cpu:     { architecture?: '68k' | 'amd64' | 'arm' | 'arm64' | 'avr' | 'ia32' | 'ia64' | 'irix' | 'irix64' | 'mips' | 'mips64' | 'pa-risc' | 'ppc' | 'sparc' | 'spark64' };
 }
 
+const REQUEST_ID = /^[0-9A-Za-z+=/-]{1,200}$/;
+
 export class WebRequest implements AuthSchemeRequest {
     public readonly method: string;
     public readonly url: URL;
@@ -33,6 +35,7 @@ export class WebRequest implements AuthSchemeRequest {
         const incomingServer = incomingMessage.headers.host ?? `${incomingMessage.socket.localAddress}:${incomingMessage.socket.localPort}`;
         const incomingRemote = incomingMessage.socket.remoteAddress;
         const incomingMethod = incomingMessage.method;
+        const incomingReqID  = config.trustRequestID && incomingMessage.headers[config.trustRequestID.toLowerCase()]?.toString();
 
         const scheme       = String((config.trustForwardedProto ? this.header('x-forwarded-proto',      '', false) : '') || incomingScheme);
         const server       = String((config.trustForwardedHost  ? this.header('x-forwarded-host',       '', false) : '') || incomingServer);
@@ -40,7 +43,7 @@ export class WebRequest implements AuthSchemeRequest {
         this.method        = String((config.trustMethodOverride ? this.header('x-http-method-override', '', false) : '') || incomingMethod);
         this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
         this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
-        this.id            = cuid();
+        this.id            = incomingReqID && REQUEST_ID.test(incomingReqID) ? incomingReqID : cuid();
 
         this._maxContentLength = config.maxContentLength;
 

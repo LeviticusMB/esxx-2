@@ -153,23 +153,28 @@ export class WebService<Context> {
 
                 this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent} #${webreq.id}`);
 
-                let webres = await this.dispatchRequest(webreq);
-
-                if (webres.status === WebStatus.OK && /^(HEAD|GET)$/.test(webreq.method) && webres.headers.etag && webres.headers.etag === req.headers['if-none-match']) {
-                    await webres.close();
-                    webres = new WebResponse(WebStatus.NOT_MODIFIED, null, webres.headers);
-                }
+                const webres = await this.dispatchRequest(webreq);
 
                 try {
-                    webres.writeHead(res);
+                    const rawres = await webres.serialize(webreq, this.webServiceConfig);
 
-                    if (webreq.method !== 'HEAD') {
-                        if (isReadableStream(webres.body)) {
-                            this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
-                        }
+                    res.writeHead(rawres.status, rawres.headers);
 
-                        await webres.writeBody(res);
+                    if (isReadableStream(rawres.body)) {
+                        this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
                     }
+
+                    await new Promise((resolve, reject) => {
+                        if (rawres.body instanceof Buffer) {
+                            res.write(rawres.body, (err) => err ? reject(err) : resolve());
+                        }
+                        else if (rawres.body) {
+                            pipeline(rawres.body, res, (err) => err ? reject(err) : resolve());
+                        }
+                        else {
+                            resolve();
+                        }
+                    });
 
                     this.webServiceConfig.console.info(`Sent ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
                 }

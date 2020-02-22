@@ -1,10 +1,17 @@
 import { ContentDisposition, ContentType, WWWAuthenticate } from '@divine/headers';
 import { Parser } from '@divine/uri';
-import { ServerResponse } from 'http';
-import { pipeline, Readable } from 'stream';
+import { Readable } from 'stream';
 import { URL } from 'url';
 import { WebException, WebStatus } from './error';
+import { WebRequest } from './request';
+import { WebServiceConfig } from './service';
 import { isReadableStream } from './utils';
+
+export interface RawResponse {
+    status:  number;
+    headers: { [name: string]: string | string[] };
+    body:    Buffer | NodeJS.ReadableStream | null;
+}
 
 export class WebResponse {
     public body: Buffer | NodeJS.ReadableStream | null;
@@ -52,22 +59,33 @@ export class WebResponse {
         }
     }
 
-    writeHead(to: ServerResponse) {
-        to.writeHead(this.status, Object.fromEntries(Object.entries(this.headers).filter(([_key, value]) => value !== undefined)));
-    }
+    async serialize(webreq: WebRequest, config: Required<WebServiceConfig>): Promise<RawResponse> {
+        const response: RawResponse = {
+            status:    this.status,
+            headers:   {},
+            body:      this.body,
+        };
 
-    writeBody(to: NodeJS.WritableStream): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this.body instanceof Buffer) {
-                to.write(this.body, (err) => err ? reject(err) : resolve());
+        for (const [key, value] of Object.entries(this.headers)) {
+            if (Array.isArray(value)) {
+                response.headers[key] = value.map((v) => String(v));
             }
-            else if (this.body) {
-                pipeline(this.body, to, (err) => err ? reject(err) : resolve());
+            else if (value !== undefined) {
+                response.headers[key] = String(value);
             }
-            else {
-                resolve();
-            }
-        });
+        }
+
+        if (response.status === WebStatus.OK && /^(HEAD|GET)$/.test(webreq.method) &&
+            response.headers.etag && response.headers.etag === webreq.header('if-none-match', '')) {
+            response.status = WebStatus.NOT_MODIFIED;
+            response.body   = null;
+        }
+
+        if (webreq.method === 'HEAD') {
+            response.body = null;
+        }
+
+        return response;
     }
 
     toString(): string {

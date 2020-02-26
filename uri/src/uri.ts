@@ -42,7 +42,7 @@ export interface Selector {
 }
 
 interface SelectorBase {
-    selector: Selector;
+    selector?: Selector;
 }
 
 export interface AuthSelector extends SelectorBase {
@@ -50,12 +50,25 @@ export interface AuthSelector extends SelectorBase {
     preemptive?: boolean;
 }
 
+function isAuthSelector(selector: any): selector is AuthSelector {
+    return ['function', 'object'].includes(typeof selector.credentials) &&
+        (selector.preemptive === undefined || typeof selector.preemptive === 'boolean');
+}
+
 export interface HeadersSelector extends SelectorBase {
     headers: KVPairs;
 }
 
+function isHeadersSelector(selector: any): selector is HeadersSelector {
+    return typeof selector.headers === 'object';
+}
+
 export interface ParamsSelector extends SelectorBase {
     params: KVPairs;
+}
+
+function isParamsSelector(selector: any): selector is ParamsSelector {
+    return typeof selector.params === 'object';
 }
 
 export interface SessionSelector extends SelectorBase {
@@ -171,6 +184,25 @@ export class URI extends URL {
 
     $(strings: TemplateStringsArray, ...values: unknown[]): URI {
         return new URI(uriComponent(strings, ...values), this);
+    }
+
+    addSelector(selector: AuthSelector | HeadersSelector | ParamsSelector): this {
+        const selectors = (this.selectors = this.selectors ?? {});
+
+        if (isAuthSelector(selector)) {
+            (selectors.auth = selectors.auth ?? []).push(selector);
+        }
+        else if (isHeadersSelector(selector)) {
+            (selectors.header = selectors.header ?? []).push(selector);
+        }
+        else if (isParamsSelector(selector)) {
+            (selectors.param = selectors.param ?? []).push(selector);
+        }
+        else {
+            throw new TypeError('Invalid selector');
+        }
+
+        return this;
     }
 
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -300,7 +332,7 @@ function *enumerateSelectors<T extends SelectorBase>(sels: T[] | undefined, url:
 }
 
 function selectorScore(sel: SelectorBase, key: keyof Selector, value?: string): number {
-    const expected = sel.selector[key];
+    const expected = sel.selector?.[key];
 
     if (expected === undefined || value === undefined) {
         return 0;

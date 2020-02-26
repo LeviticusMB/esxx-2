@@ -97,7 +97,7 @@ export class HTTPURI extends URI {
                 else if (challenge) {
                     session.authScheme = AuthScheme.create(challenge).setCredentialsProvider(auth.credentials);
                 }
-                else if (auth.selector.authScheme) {
+                else if (auth.selector?.authScheme) {
                     session.authScheme = AuthScheme.create(auth.selector.authScheme).setCredentialsProvider(auth.credentials);
                 }
             }
@@ -111,6 +111,10 @@ export class HTTPURI extends URI {
         let body: Buffer | AsyncIterable<Buffer> | undefined;
 
         headers = { 'accept-encoding': 'gzip, deflate, br', ...headers };
+
+        for (const sel of this.filterSelectors(this.selectors?.header)) {
+            headers = { ...headers, ...sel.headers };
+        }
 
         if (data !== null && data !== undefined) {
             const [contentType, serialized] = Parser.serialize(sendCT, data);

@@ -40,7 +40,7 @@ export abstract class Parser {
                 isDOMNode(data)        ? ContentType.xml :
                 ContentType.text);
 
-            // Pass Buffer and AsyncIterable<Buffer> streams right through; parse everything else
+            // Pass Buffer and AsyncIterable<Buffer> streams right through, ignoring `contentType`; parse everything else
             return [contentType, data instanceof Buffer || isAsyncIterable<Buffer>(data) ? data : Parser.create(contentType).serialize(data)];
         }
         catch (err) {
@@ -80,8 +80,8 @@ export class BufferParser extends Parser {
         return Buffer.concat(chunks);
     }
 
-    serialize(data: unknown): Buffer {
-        this.assertSerializebleData(data instanceof Buffer, data);
+    serialize(data: unknown): Buffer | AsyncIterable<Buffer> {
+        this.assertSerializebleData(data instanceof Buffer || isAsyncIterable<Buffer>(data), data);
 
         return data;
     }

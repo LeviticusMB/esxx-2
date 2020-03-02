@@ -1,5 +1,8 @@
+import { ContentType } from '@divine/headers';
+import { BufferParser, EventStreamEvent, Parser } from '@divine/uri';
+import { WebException, WebStatus } from './error';
 import { WebArguments, WebFilter, WebResource } from './resource';
-import { WebResponse } from './response';
+import { WebResponse, WebResponseHeaders } from './response';
 
 function asSet(array: string | string[] | undefined): Set<string> {
     return new Set(typeof array === 'string' ? array.split(/\s*,\s*/) : array ?? []);
@@ -90,5 +93,53 @@ export abstract class CORSFilter implements WebFilter {
 
     protected getMaxAge(params: CORSFilterParams): number {
         return 600;
+    }
+}
+
+export const EVENT_ID    = Symbol('EVENT_ID');
+export const EVENT_TYPE  = Symbol('EVENT_TYPE');
+export const EVENT_RETRY = Symbol('EVENT_RETRY');
+
+export interface EventAttributes {
+    [EVENT_ID]?:    string;
+    [EVENT_TYPE]?:  string;
+    [EVENT_RETRY]?: number;
+}
+
+export class EventStreamResponse<T> extends WebResponse {
+    private static async *eventStream<T>(source: AsyncIterable<T & EventAttributes>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent> {
+        const serialize = async (event: object): Promise<string> => {
+            const [, serialized] = Parser.serialize(dataType, event);
+
+            return (serialized instanceof Buffer ? serialized : await new BufferParser(ContentType.bytes).parse(serialized)).toString();
+        };
+
+        try {
+            for await (const event of source) {
+                yield { id: event[EVENT_ID], event: event[EVENT_TYPE], retry: event[EVENT_RETRY], data: await serialize(event) };
+            }
+        }
+        catch (err) {
+            try {
+                if (err instanceof WebException) {
+                    yield { event: 'error', data: await serialize({ status: err.status, message: err.message }) };
+                }
+                else {
+                    yield { event: 'error', data: await serialize({ status: WebStatus.INTERNAL_SERVER_ERROR, message: `Unexpected EventStream error` }) };
+                }
+            }
+            catch (err2) {
+                yield { event: 'error', data: err2.message }; // Inform client of error serialization errors ... as text/plain
+            }
+        }
+    }
+
+    constructor(source: AsyncIterable<T & EventAttributes>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
+        super(WebStatus.OK, EventStreamResponse.eventStream(source, dataType), {
+            'content-type':      'text/event-stream',
+            'cache-control':     'no-cache',
+            'transfer-encoding': 'identity',
+            ...headers
+        });
     }
 }

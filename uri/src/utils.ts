@@ -1,4 +1,4 @@
-import { pipeline, Readable } from 'stream';
+import { EventEmitter, pipeline, Readable } from 'stream';
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type ValueEncoder = (this: void, value: string) => string;
@@ -40,11 +40,21 @@ export function esxxEncoder(template: string, params: Params, encoder: ValueEnco
     });
 }
 
-export async function *toAsyncIterable(data: string | Buffer) {
-    yield data instanceof Buffer ? data : Buffer.from(data);
+export async function *toAsyncIterable(data: string | Buffer | AsyncIterable<Buffer | string>): AsyncIterable<Buffer> {
+    if (data instanceof Buffer) {
+        yield data;
+    }
+    else if (isAsyncIterable(data)) {
+        for await (const chunk of data) {
+            yield chunk instanceof Buffer ? chunk : Buffer.from(chunk);
+        }
+    }
+    else {
+        yield Buffer.from(data);
+    }
 }
 
-export function toReadableStream(data: string | Buffer | AsyncIterable<Buffer>): Readable {
+export function toReadableStream(data: string | Buffer | AsyncIterable<Buffer | string>): Readable {
     if (typeof data === 'string' || data instanceof Buffer) {
         return Readable.from(toAsyncIterable(data));
     }
@@ -61,6 +71,11 @@ export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStrea
 
 export function isAsyncIterable<T = unknown>(object: any): object is AsyncIterable<T> {
     return typeof object[Symbol.asyncIterator] === 'function';
+}
+
+export function isReadableStream(obj: any): obj is NodeJS.ReadableStream;
+export function isReadableStream(obj: NodeJS.ReadableStream): obj is NodeJS.ReadableStream {
+    return obj instanceof EventEmitter && typeof obj.readable === 'boolean' && typeof obj.read === 'function';
 }
 
 export function isDOMNode(obj: unknown): obj is Node {

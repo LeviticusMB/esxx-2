@@ -4,6 +4,11 @@ import { AddressInfo } from 'net';
 import { WebService } from './service';
 import { escapeRegExp } from './utils';
 
+export interface StartOptions {
+    stopSignals?: boolean | NodeJS.Signals[];
+    waitForStop?: boolean;
+}
+
 export class WebServer {
     public readonly server: Server;
 
@@ -52,10 +57,29 @@ export class WebServer {
         return this;
     }
 
-    async start(): Promise<this> {
+    async start(startOptions?: StartOptions): Promise<this> {
+        const options: Required<StartOptions> = {
+            stopSignals: true,
+            waitForStop: false,
+
+            ...startOptions
+        };
+
+        const signals: NodeJS.Signals[] =
+            options.stopSignals === false ? [] :
+            options.stopSignals === true  ? [ 'SIGHUP', 'SIGINT', 'SIGTERM', 'SIGBREAK' ] :
+            options.stopSignals;
+
+        const handler = (signal: NodeJS.Signals) => {
+            signals.forEach((s) => process.off(s, handler));
+            this.stop().catch((err) => console.error(err));
+        };
+
+        signals.forEach((s) => process.once(s, handler));
+
         await once(this.server.listen(this.port, this.host), 'listening');
 
-        return this;
+        return options.waitForStop ? this.wait() : this;
     }
 
     async stop(): Promise<this> {
@@ -63,11 +87,13 @@ export class WebServer {
             this.server.close((err) => err ? reject(err) : resolve(this));
         });
 
-        return this.wait();
+        return this;
     }
 
     async wait(): Promise<this> {
-        await once(this.server, 'close');
+        if (this.server.address() !== null) {
+            await once(this.server, 'close');
+        }
 
         return this;
     }

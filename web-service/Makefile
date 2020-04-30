@@ -1,3 +1,6 @@
+NAME		:= $(shell node -p 'require(`./package.json`).name')
+VERSION		:= $(shell node -p 'require(`./package.json`).version')
+
 all:		build
 
 prepare:
@@ -19,8 +22,12 @@ clean:
 distclean:	clean
 	rm -rf node_modules
 
+tag:
+	@[[ -z "$$(git status --porcelain)" ]] || (git status; false)
+	git tag -s web-service-v$(VERSION) -m "$(NAME) v$(VERSION)"
+
 publish:	distclean build test
-	@[[ -z "$$(git status --porcelain)" && "$$(git describe)" =~ ^v[0-9]+\.[0-9]+\.[0-9]$$ ]] || (git describe; git status; false)
+	@[[ -z "$$(git status --porcelain)" && "$$(git describe)" == web-service-v$(VERSION) ]] || (git describe; git status; false)
 	yarn publish --non-interactive --access public
 
-.PHONY:		all prepare build docs test clean distclean publish
+.PHONY:		all prepare build docs test clean distclean tag publish

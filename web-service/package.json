@@ -1,13 +1,14 @@
 {
   "name": "@divine/web-service",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "The Divine HTTP WebService Library",
+  "author": "Martin Blom <martin@blom.org>",
+  "license": "Apache-2.0",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
-  "author": "Martin Blom",
-  "license": "Apache-2.0",
   "files": [
     "build/src",
+    "build/package*",
     "src"
   ],
   "dependencies": {
@@ -16,8 +17,8 @@
     "ua-parser-js": "^0.7.21"
   },
   "peerDependencies": {
-    "@divine/headers": "^1.1.0",
-    "@divine/uri": "^1.0.0"
+    "@divine/headers": "^1.3.0",
+    "@divine/uri": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^12.12.18",

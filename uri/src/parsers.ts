@@ -1,7 +1,5 @@
 import { ContentType } from '@divine/headers';
-import TOML from '@iarna/toml';
 import iconv from 'iconv-lite';
-import { DOMParser, XMLSerializer } from 'xmldom';
 import { Finalizable, NULL, URIException, VOID } from './uri';
 import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable } from './utils';
 
@@ -109,64 +107,7 @@ export class StringParser extends Parser {
     }
 }
 
-export class JSONParser extends Parser {
-    async parse(stream: AsyncIterable<Buffer>): Promise<boolean | number | null | string | object> {
-        return JSON.parse(await new StringParser(this.contentType).parse(stream));
-    }
-
-    serialize(data: unknown): Buffer {
-        try {
-            data = JSON.stringify(data);
-        }
-        catch (ex) {
-            this.assertSerializebleData(false, data, ex);
-        }
-
-        return new StringParser(this.contentType).serialize(data);
-    }
-}
-
-export class TOMLParser extends Parser {
-    async parse(stream: AsyncIterable<Buffer>): Promise<TOML.JsonMap> {
-        return TOML.parse(await new StringParser(this.contentType).parse(stream));
-    }
-
-    serialize(data: unknown): Buffer {
-        this.assertSerializebleData(data !== null && data !== undefined && !(data instanceof Date), data);
-
-        try {
-            if (typeof data === 'object' && !Array.isArray(data)) {
-                data = TOML.stringify(data as TOML.JsonMap);
-            }
-            else {
-                data = TOML.stringify.value(data as TOML.AnyJson);
-            }
-        }
-        catch (ex) {
-            this.assertSerializebleData(false, data, ex);
-        }
-
-        return new StringParser(this.contentType).serialize(data);
-    }
-}
-
-export class XMLParser extends Parser {
-    async parse(stream: AsyncIterable<Buffer>): Promise<Document> {
-        return new DOMParser().parseFromString(await new StringParser(this.contentType).parse(stream));
-    }
-
-    serialize(data: unknown): Buffer {
-        this.assertSerializebleData(isDOMNode(data), data);
-
-        return new StringParser(this.contentType).serialize(new XMLSerializer().serializeToString(data as Node));
-    }
-}
-
 Parser
-    .register('application/json',         JSONParser)
     .register('application/octet-stream', BufferParser)
-    .register('application/toml',         TOMLParser)
-    .register('application/xml',          XMLParser)
     .register('text/plain',               StringParser)
-    .register('text/xml',                 XMLParser)
 ;

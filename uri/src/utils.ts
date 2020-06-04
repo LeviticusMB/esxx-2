@@ -3,8 +3,10 @@ import { EventEmitter, pipeline, Readable } from 'stream';
 export type Constructor<T> = new (...args: any[]) => T;
 export type ValueEncoder = (this: void, value: string) => string;
 
+export type BasicTypes = boolean | number | string | object | null;
+
 export interface Params {
-    [key: string]: object | string | number | boolean | null | undefined;
+    [key: string]: BasicTypes | undefined;
 }
 
 export function kvWrapper(wrapped: any): Params {
@@ -92,4 +94,9 @@ export function b64Decode(b64: string): string {
 
 export function b64Encode(str: string): string {
     return Buffer.from(str).toString('base64');
+}
+
+export function setProp<T extends object, K extends keyof T>(object: T, prop: K, value: T[K]): T {
+    object[prop] = value;
+    return object;
 }

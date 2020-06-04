@@ -11,6 +11,7 @@ export * from './parsers/html';
 export * from './parsers/json';
 export * from './parsers/toml';
 export * from './parsers/xml';
+export * from './parsers/yaml';
 export * from './protocols/cache';
 export * from './protocols/file';
 export * from './protocols/http';

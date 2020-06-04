@@ -3,7 +3,7 @@ import iconv from 'iconv-lite';
 import { Finalizable, NULL, URIException, VOID } from './uri';
 import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable } from './utils';
 
-export function toObject(result: unknown) {
+export function toObject<T extends object>(result: unknown): T {
     return result === undefined       ? Object(VOID) :
            result === null            ? Object(NULL) :
            typeof result !== 'object' ? Object(result) :

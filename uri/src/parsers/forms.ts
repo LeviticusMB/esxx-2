@@ -62,7 +62,7 @@ function squashMultiPartData(data: MultiPartData | MultiPartData[]): any {
         return data.map((entry) => squashMultiPartData(entry));
     }
     else if (data?.[FIELDS]) {
-        return data[FIELDS].map((field) => {
+        return data[FIELDS]!.map((field) => {
             return { ...field, body: squashMultiPartData(field.body /* any! */) };
         });
     }
@@ -155,7 +155,7 @@ export class MultiPartParser extends Parser {
             }
         };
 
-        for (const field of result[FIELDS]) {
+        for (const field of result[FIELDS]!) {
             if (field.name !== undefined) {
                 result[field.name] = result[field.name] ?? field.body;
             }

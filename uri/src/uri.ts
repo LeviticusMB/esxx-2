@@ -21,8 +21,8 @@ export interface Finalizable {
     [FINALIZE]?: () => Promise<void>;
 }
 
-export interface WithFields<T extends object> {
-    [FIELDS]: T[];
+export interface WithFields<T extends utils.BasicTypes> {
+    [FIELDS]?: T[];
 }
 
 export interface Metadata {
@@ -132,6 +132,8 @@ export function guessContentType(pathname: string, knownContentType?: ContentTyp
 export class URI extends URL {
     static readonly VOID        = VOID;
     static readonly NULL        = VOID;
+    static readonly FIELDS      = FIELDS;
+    static readonly FINALIZE    = FINALIZE;
     static readonly HEADERS     = HEADERS;
     static readonly STATUS      = STATUS;
     static readonly STATUS_TEXT = STATUS_TEXT;

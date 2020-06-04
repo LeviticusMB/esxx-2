@@ -1,6 +1,6 @@
 {
   "name": "@divine/uri",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The Divine URI class for accessing and manipulating local and remote resources",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
@@ -22,7 +22,8 @@
     "request": "^2.88.0",
     "tslib": "^1.10.0",
     "xdg-portable": "^7.2.1",
-    "xmldom": "^0.1.27"
+    "xmldom": "^0.1.27",
+    "yaml": "^1.10.0"
   },
   "devDependencies": {
     "@types/dicer": "^0.2.0",

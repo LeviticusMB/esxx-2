@@ -5,7 +5,7 @@ import { IncomingHttpHeaders, IncomingMessage } from 'http';
 import { TLSSocket } from 'tls';
 import { UAParser } from 'ua-parser-js';
 import { URL } from 'url';
-import { WebException, WebStatus } from './error';
+import { WebError, WebStatus } from './error';
 import { WebServiceConfig } from './service';
 import { SizeLimitedReadableStream } from './utils';
 
@@ -69,7 +69,7 @@ export class WebRequest implements AuthSchemeRequest {
 
         if (value === undefined || value instanceof Array && value[0] === undefined) {
             if (def === undefined) {
-                throw new WebException(WebStatus.BAD_REQUEST, `Missing request header '${name}'`);
+                throw new WebError(WebStatus.BAD_REQUEST, `Missing request header '${name}'`);
             }
 
             value = def;
@@ -87,10 +87,10 @@ export class WebRequest implements AuthSchemeRequest {
         const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
 
         if (Number(this.header('content-length', '-1')) > maxContentLength) {
-            throw new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
+            throw new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
         }
 
-        const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebException(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
+        const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
 
         return this.addFinalizer(await Parser.parse<T>(ContentType.create(contentType, this.header('content-type')), this.incomingMessage.pipe(limited)));
     }

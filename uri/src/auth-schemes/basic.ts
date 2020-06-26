@@ -1,5 +1,5 @@
 import { AuthenticationInfo, Authorization, ServerAuthorization, WWWAuthenticate } from '@divine/headers';
-import { AuthScheme, AuthSchemeException, AuthSchemeRequest, Credentials } from '../auth-schemes';
+import { AuthScheme, AuthSchemeError, AuthSchemeRequest, Credentials } from '../auth-schemes';
 import { b64Decode, b64Encode } from '../utils';
 
 export class BasicCredentials extends Credentials {
@@ -34,17 +34,17 @@ export class BasicAuthScheme extends AuthScheme<BasicCredentials> {
         const untrusted = this.decodeCredentials(this.assertCompatibleAuthHeader(authorization)?.credentials);
 
         if (!untrusted) {
-            throw new AuthSchemeException(`No credentials provided`, await this.createChallenge(authorization));
+            throw new AuthSchemeError(`No credentials provided`, await this.createChallenge(authorization));
         }
 
         const trusted = await this.getCredentials({ mode: 'verify', authScheme: this, identity: untrusted.identity, authorization, request});
 
         if (!trusted) {
-            throw new AuthSchemeException(`User ${untrusted.identity} not found`, await this.createChallenge(authorization));
+            throw new AuthSchemeError(`User ${untrusted.identity} not found`, await this.createChallenge(authorization));
         }
 
         if (!this.safeCompare(this.encodeCredentials(untrusted), this.encodeCredentials(trusted))) {
-            throw new AuthSchemeException(`Invalid password`, await this.createChallenge(authorization));
+            throw new AuthSchemeError(`Invalid password`, await this.createChallenge(authorization));
         }
 
         return authorization;

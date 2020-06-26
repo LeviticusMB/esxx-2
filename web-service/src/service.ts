@@ -1,8 +1,8 @@
 import { KVPairs } from '@divine/headers';
-import { AuthSchemeException } from '@divine/uri';
+import { AuthSchemeError } from '@divine/uri';
 import { IncomingMessage, ServerResponse } from 'http';
 import { pipeline } from 'stream';
-import { WebException, WebStatus } from './error';
+import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebArguments, WebErrorHandler, WebFilterCtor, WebResource, WebResourceCtor } from './resource';
 import { WebResponse, WebResponses } from './response';
@@ -220,7 +220,7 @@ export class WebService<Context> {
             }
 
             const resourceNotFound = async () => {
-                throw new WebException(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
+                throw new WebError(WebStatus.NOT_FOUND, `No resource matches the path ${webreq.url.pathname}`);
             };
 
             return this._handleFilters(webreq, resourceNotFound, resourceNotFound);
@@ -247,10 +247,10 @@ export class WebService<Context> {
     private async _handleException(err: Error, webreq: WebRequest): Promise<WebResponse> {
         const messageProp = this.webServiceConfig.errorMessageProperty;
 
-        if (err instanceof WebException) {
+        if (err instanceof WebError) {
             return new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
         }
-        else if (err instanceof AuthSchemeException) {
+        else if (err instanceof AuthSchemeError) {
             return new WebResponse(WebStatus.UNAUTHORIZED, { [messageProp]: err.message }, {
                 'www-authenticate': err.challenge,
             });
@@ -325,7 +325,7 @@ export class WebService<Context> {
                     });
                 }
                 else {
-                    throw new WebException(WebStatus.METHOD_NOT_ALLOWED, `This resource does not handle ${webreq.method} requests`, {
+                    throw new WebError(WebStatus.METHOD_NOT_ALLOWED, `This resource does not handle ${webreq.method} requests`, {
                         allow: WebService.makeAllowHeader(rsrc)
                     });
                 }

@@ -2,7 +2,7 @@ import { ContentDisposition, ContentType, WWWAuthenticate } from '@divine/header
 import { Parser } from '@divine/uri';
 import { Readable } from 'stream';
 import { URL } from 'url';
-import { WebException, WebStatus } from './error';
+import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebServiceConfig } from './service';
 import { isReadableStream } from './utils';
@@ -38,7 +38,7 @@ export class WebResponse {
                 this.body = serializied instanceof Buffer ? serializied : Readable.from(serializied);
             }
             catch (err) {
-                throw new WebException(WebStatus.INTERNAL_SERVER_ERROR, err.message);
+                throw new WebError(WebStatus.INTERNAL_SERVER_ERROR, err.message);
             }
         }
 

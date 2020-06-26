@@ -7,7 +7,7 @@
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
   "peerDependencies": {
-    "@divine/uri": "^0.0.1"
+    "@divine/uri": "^0.0.2"
   },
   "dependencies": {
     "canvas": "^2.2.0"

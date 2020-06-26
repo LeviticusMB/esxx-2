@@ -1,5 +1,5 @@
 // tslint:disable-next-line: no-implicit-dependencies
-import { Expect, TestCase, Test } from 'alsatian';
+import { Expect, Test, TestCase } from 'alsatian';
 import { randomBytes } from 'crypto';
 import { Encoder } from '../src';
 

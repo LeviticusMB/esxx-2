@@ -1,4 +1,4 @@
-import { BufferParser, Parser, URIException } from '@divine/uri';
+import { BufferParser, Parser, ParserError } from '@divine/uri';
 import Canvas from 'canvas';
 
 export class ImageParser extends Parser {
@@ -15,7 +15,7 @@ export class ImageParser extends Parser {
             return canvas;
         }
         else {
-            throw new URIException('Failed to get a CanvasRenderingContext2D from Canvas', undefined, canvas);
+            throw new ParserError('Failed to get a CanvasRenderingContext2D from Canvas', undefined, canvas);
         }
     }
 

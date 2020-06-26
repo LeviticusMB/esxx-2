@@ -1,6 +1,6 @@
 import { ContentType } from '@divine/headers';
 import { BufferParser, EventStreamEvent, Parser } from '@divine/uri';
-import { WebException, WebStatus } from './error';
+import { WebError, WebStatus } from './error';
 import { WebArguments, WebFilter, WebResource } from './resource';
 import { WebResponse, WebResponseHeaders } from './response';
 
@@ -53,7 +53,7 @@ export abstract class CORSFilter implements WebFilter {
      * Check if the given `origin` is allowed to make a CORS request.
      *
      * The CORS specification recommends a server to return [[WebStatus.FORBIDDEN]] if a CORS request is denied. You can
-     * do that by throwing a [[WebException]] instead of returning `false`, like this:
+     * do that by throwing a [[WebError]] instead of returning `false`, like this:
      *
      * ```ts
      * protected isOriginAllowed(origin: string | undefined, params: CORSFilterParams): boolean {
@@ -61,7 +61,7 @@ export abstract class CORSFilter implements WebFilter {
      *         return true;
      *     }
      *     else {
-     *         throw new WebException(WebStatus.FORBIDDEN, `CORS request from origin ${origin} denied`);
+     *         throw new WebError(WebStatus.FORBIDDEN, `CORS request from origin ${origin} denied`);
      *     }
      * }
      * ```
@@ -121,7 +121,7 @@ export class EventStreamResponse<T> extends WebResponse {
         }
         catch (err) {
             try {
-                if (err instanceof WebException) {
+                if (err instanceof WebError) {
                     yield { event: 'error', data: await serialize({ status: err.status, message: err.message }) };
                 }
                 else {

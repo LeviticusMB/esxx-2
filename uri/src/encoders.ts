@@ -1,7 +1,10 @@
 import { Transform } from 'stream';
 import { createBrotliCompress, createBrotliDecompress, createDeflate, createGunzip, createGzip, createInflate } from 'zlib';
-import { URIException } from './uri';
+import { IOError } from './uri';
 import { isAsyncIterable, toAsyncIterable, toReadableStream } from './utils';
+
+export class EncoderError extends IOError {
+}
 
 export abstract class Encoder {
     static register(type: string, encoder: typeof Encoder): typeof Encoder {
@@ -21,7 +24,7 @@ export abstract class Encoder {
             return stream;
         }
         catch (err) {
-            throw new URIException(`'${types}' encoder failed: ${err.message}`, err);
+            throw new EncoderError(`'${types}' encoder failed: ${err.message}`, err);
         }
     }
 
@@ -37,7 +40,7 @@ export abstract class Encoder {
             return stream;
         }
         catch (err) {
-            throw new URIException(`'${types}' encoder failed: ${err.message}`, err);
+            throw new EncoderError(`'${types}' encoder failed: ${err.message}`, err);
         }
     }
 

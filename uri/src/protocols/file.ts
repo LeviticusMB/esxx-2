@@ -3,7 +3,7 @@ import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
 import { basename, join, normalize } from 'path';
 import { Parser } from '../parsers';
-import { DirectoryEntry, encodeFilePath, Metadata, URI, URIException, VOID } from '../uri';
+import { DirectoryEntry, encodeFilePath, Metadata, URI, VOID } from '../uri';
 import { copyStream, toReadableStream } from '../utils';
 
 export class FileURI extends URI {
@@ -17,10 +17,10 @@ export class FileURI extends URI {
         super(uri);
 
         if ((this.hostname !== '' && this.hostname !== 'localhost') || this.port !== '' || this.search !== '' || this.hash !== '') {
-            throw new URIException(`URI ${this}: Host/port/query/fragment parts not allowed`);
+            throw new TypeError(`URI ${this}: Host/port/query/fragment parts not allowed`);
         }
         else if (/%2F/i.test(this.pathname) /* No encoded slashes */) {
-            throw new URIException(`URI ${this}: Path invalid`);
+            throw new TypeError(`URI ${this}: Path invalid`);
         }
 
         this._path = normalize(decodeURIComponent(this.pathname));
@@ -42,7 +42,7 @@ export class FileURI extends URI {
             return entry as T;
         }
         catch (err) {
-            throw this.makeException(err);
+            throw this.makeIOError(err);
         }
     }
 
@@ -54,7 +54,7 @@ export class FileURI extends URI {
             return await Promise.all(children.sort().map((child) => FileURI.create(join(this._path, child), this).info<T>()));
         }
         catch (err) {
-            throw this.makeException(err);
+            throw this.makeIOError(err);
         }
     }
 
@@ -65,13 +65,13 @@ export class FileURI extends URI {
             return await Parser.parse<T>(ContentType.create(recvCT, lookup(this._path) || undefined), stream);
         }
         catch (err) {
-            throw this.makeException(err);
+            throw this.makeIOError(err);
         }
     }
 
     async save<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType): Promise<T & Metadata> {
         if (recvCT !== undefined) {
-            throw new URIException(`URI ${this}: save: recvCT argument is not supported`);
+            throw new TypeError(`URI ${this}: save: recvCT argument is not supported`);
         }
 
         try {
@@ -79,13 +79,13 @@ export class FileURI extends URI {
             return Object(VOID);
         }
         catch (err) {
-            throw this.makeException(err);
+            throw this.makeIOError(err);
         }
     }
 
     async append<T extends object>(data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
         if (recvCT !== undefined) {
-            throw new URIException(`URI ${this}: append: recvCT argument is not supported`);
+            throw new TypeError(`URI ${this}: append: recvCT argument is not supported`);
         }
 
         try {
@@ -93,7 +93,7 @@ export class FileURI extends URI {
             return Object(VOID);
         }
         catch (err) {
-            throw this.makeException(err);
+            throw this.makeIOError(err);
         }
     }
 
@@ -102,7 +102,7 @@ export class FileURI extends URI {
 
     async remove<T extends object>(recvCT?: ContentType | string): Promise<T & Metadata> {
         if (recvCT !== undefined) {
-            throw new URIException(`URI ${this}: remove: recvCT argument is not supported`);
+            throw new TypeError(`URI ${this}: remove: recvCT argument is not supported`);
         }
 
         try {
@@ -120,7 +120,7 @@ export class FileURI extends URI {
                 return Object(false);
             }
             else {
-                throw this.makeException(err);
+                throw this.makeIOError(err);
             }
         }
     }

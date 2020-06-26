@@ -1,5 +1,5 @@
 import { AuthenticationInfo, Authorization, ServerAuthorization, WWWAuthenticate } from '@divine/headers';
-import { AuthScheme, AuthSchemeException, AuthSchemeRequest, Credentials } from '../auth-schemes';
+import { AuthScheme, AuthSchemeError, AuthSchemeRequest, Credentials } from '../auth-schemes';
 
 export class BearerCredentials extends Credentials {
     constructor(token: string) {
@@ -23,13 +23,13 @@ export class BearerAuthScheme extends AuthScheme<BearerCredentials> {
         const identity = this.assertCompatibleAuthHeader(authorization)?.credentials;
 
         if (!identity) {
-            throw new AuthSchemeException(`No credentials provided`, await this.createChallenge(authorization));
+            throw new AuthSchemeError(`No credentials provided`, await this.createChallenge(authorization));
         }
 
         const trusted = await this.getCredentials({ mode: 'verify', authScheme: this, identity, authorization, request});
 
         if (!trusted || !this.safeCompare(identity, trusted.identity)) {
-            throw new AuthSchemeException(`Token not valid`, (await this.createChallenge(authorization)).setParam('error', 'invalid_token'));
+            throw new AuthSchemeError(`Token not valid`, (await this.createChallenge(authorization)).setParam('error', 'invalid_token'));
         }
 
         return authorization;

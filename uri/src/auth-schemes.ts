@@ -13,7 +13,7 @@ export interface AuthSchemeRequest {
     headers: Iterable<[string, string | undefined]>;
 }
 
-export class AuthSchemeException extends Error {
+export class AuthSchemeError extends Error {
     constructor(message: string, public challenge?: WWWAuthenticate) {
         super(message);
     }
@@ -141,15 +141,15 @@ export class UnknownAuthScheme extends AuthScheme<Credentials> {
     }
 
     async createAuthorization(_challenge?: WWWAuthenticate, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<Authorization | undefined> {
-        throw new AuthSchemeException(`Not supported`);
+        throw new AuthSchemeError(`Not supported`);
     }
 
     async verifyAuthorization<T extends Authorization | undefined>(_authorization: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
-        throw new AuthSchemeException(`Not supported`);
+        throw new AuthSchemeError(`Not supported`);
     }
 
     async verifyAuthenticationInfo<T extends AuthenticationInfo | ServerAuthorization | undefined>(_authentication: T, _request?: AuthSchemeRequest, _payload?: Uint8Array): Promise<T> {
-        throw new AuthSchemeException(`Not supported`);
+        throw new AuthSchemeError(`Not supported`);
     }
 
     isCompatibleCredentials(_credentials: Credentials): boolean {

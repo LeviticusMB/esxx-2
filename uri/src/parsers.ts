@@ -1,6 +1,6 @@
 import { ContentType } from '@divine/headers';
 import iconv from 'iconv-lite';
-import { Finalizable, NULL, URIException, VOID } from './uri';
+import { Finalizable, IOError, NULL, VOID } from './uri';
 import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable } from './utils';
 
 export function toObject<T extends object>(result: unknown): T {
@@ -8,6 +8,9 @@ export function toObject<T extends object>(result: unknown): T {
            result === null            ? Object(NULL) :
            typeof result !== 'object' ? Object(result) :
            result;
+}
+
+export class ParserError extends IOError {
 }
 
 export abstract class Parser {
@@ -24,7 +27,7 @@ export abstract class Parser {
             return toObject(result);
         }
         catch (err) {
-            throw new URIException(`${contentType} parser failed: ${err.message}`, err);
+            throw new ParserError(`${contentType} parser failed: ${err.message}`, err);
         }
     }
 
@@ -42,7 +45,7 @@ export abstract class Parser {
             return [contentType, data instanceof Buffer || isReadableStream(data) ? toAsyncIterable(data) : Parser.create(contentType).serialize(data)];
         }
         catch (err) {
-            throw new URIException(`${contentType} serializer failed: ${err.message}`, err);
+            throw new ParserError(`${contentType} serializer failed: ${err.message}`, err);
         }
     }
 
@@ -62,7 +65,7 @@ export abstract class Parser {
         if (!condition) {
             const type = data instanceof Object ? Object.getPrototypeOf(data).constructor.name : data === null ? 'null' : typeof data;
 
-            throw new URIException(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.type}`, cause, toObject(data));
+            throw new ParserError(`${this.constructor.name} cannot serialize ${type} as ${this.contentType.type}`, cause, toObject(data));
         }
     }
 }

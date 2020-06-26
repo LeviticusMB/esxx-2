@@ -1,5 +1,5 @@
 import { ContentType, KVPairs } from '@divine/headers';
-import { WebException, WebStatus } from './error';
+import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';
 
@@ -82,7 +82,7 @@ export class WebArguments {
             return false;
         }
         else {
-            throw this._makeException(param, 'is not a valid boolean');
+            throw this._makeWebError(param, 'is not a valid boolean');
         }
     }
 
@@ -90,7 +90,7 @@ export class WebArguments {
         const value = new Date(this.string(param, def?.toISOString()));
 
         if (isNaN(value.getTime())) {
-            throw this._makeException(param, 'is not a valid date');
+            throw this._makeWebError(param, 'is not a valid date');
         }
 
         return value;
@@ -100,7 +100,7 @@ export class WebArguments {
         const value = Number(this.string(param, def?.toString()));
 
         if (isNaN(value)) {
-            throw this._makeException(param, 'is not a valid number');
+            throw this._makeWebError(param, 'is not a valid number');
         }
 
         return value;
@@ -110,7 +110,7 @@ export class WebArguments {
         const value = this._param(param, def)?.toString();
 
         if (typeof value !== 'string') {
-            throw this._makeException(param, 'is not a string');
+            throw this._makeWebError(param, 'is not a string');
         }
 
         return value;
@@ -120,7 +120,7 @@ export class WebArguments {
         const value = this._param(param, def);
 
         if (typeof value !== 'object') {
-            throw this._makeException(param, 'is not an object');
+            throw this._makeWebError(param, 'is not an object');
         }
 
         return value as T;
@@ -135,7 +135,7 @@ export class WebArguments {
 
         if (value === undefined) {
             if (def === undefined) {
-                throw this._makeException(param, 'is missing');
+                throw this._makeWebError(param, 'is missing');
             }
 
             return def;
@@ -145,7 +145,7 @@ export class WebArguments {
         }
     }
 
-    private _makeException(param: string, is: string): WebException {
+    private _makeWebError(param: string, is: string): WebError {
         const subject =
             param[0] === '?' ? `Query parameter '${param.substr(1)}'`  :
             param[0] === '@' ? `Request header '${param.substr(1)}`    :
@@ -154,10 +154,10 @@ export class WebArguments {
             `Invalid parameter '${param}`;
 
         if (param[0] !== '.') {
-            return new WebException(WebStatus.BAD_REQUEST, `${subject} ${is}`);
+            return new WebError(WebStatus.BAD_REQUEST, `${subject} ${is}`);
         }
         else {
-            return new WebException(WebStatus.UNPROCESSABLE_ENTITY, `Request entity parameter ${param} ${is}`);
+            return new WebError(WebStatus.UNPROCESSABLE_ENTITY, `Request entity parameter ${param} ${is}`);
         }
     }
 }

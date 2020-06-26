@@ -84,7 +84,7 @@ export interface DirectoryEntry {
     updated?: Date;
 }
 
-export class URIException extends URIError {
+export class IOError extends URIError {
     constructor(message: string, public cause?: Error, public data?: object & Metadata) {
         super(cause ? `${message}: ${cause.toString()}` : message);
     }
@@ -119,7 +119,7 @@ export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): st
         return filepath.split('/').map((part) => encodeURIComponent(part)).join('/');
     }
     else {
-        throw new URIException(`Invalid filepath type: ${type}`);
+        throw new TypeError(`Invalid filepath type: ${type}`);
     }
 }
 
@@ -208,43 +208,43 @@ export class URI extends URL {
     }
 
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support info()`);
+        throw new TypeError(`URI ${this} does not support info()`);
     }
 
     async list<T extends DirectoryEntry>(): Promise<T[] & Metadata> {
-        throw new URIException(`URI ${this} does not support list()`);
+        throw new TypeError(`URI ${this} does not support list()`);
     }
 
     async load<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support load()`);
+        throw new TypeError(`URI ${this} does not support load()`);
     }
 
     async save<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support save()`);
+        throw new TypeError(`URI ${this} does not support save()`);
     }
 
     async append<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support append()`);
+        throw new TypeError(`URI ${this} does not support append()`);
     }
 
     async modify<T extends object>(_data: unknown, _sendCT?: ContentType | string, _recvCT?: ContentType | string): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support modify()`);
+        throw new TypeError(`URI ${this} does not support modify()`);
     }
 
     async remove<T extends object>(_recvCT?: ContentType | string): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support remove()`);
+        throw new TypeError(`URI ${this} does not support remove()`);
     }
 
     async query<T extends object>(..._args: unknown[]): Promise<T & Metadata> {
-        throw new URIException(`URI ${this} does not support query()`);
+        throw new TypeError(`URI ${this} does not support query()`);
     }
 
     protected guessContentType(knownContentType?: ContentType | string): ContentType | undefined {
         return guessContentType(this.pathname, knownContentType);
     }
 
-    protected makeException(err: NodeJS.ErrnoException): URIException {
-        return err instanceof URIException ? err : new URIException(`URI ${this} operation failed`, err, metadata(err));
+    protected makeIOError(err: NodeJS.ErrnoException): IOError {
+        return err instanceof IOError ? err : new IOError(`URI ${this} operation failed`, err, metadata(err));
     }
 
     protected getBestSelector<T extends SelectorBase>(sels: T[] | undefined, challenge?: WWWAuthenticate): T | null {
@@ -311,7 +311,7 @@ function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.
         }
     }
     catch (err) {
-        throw new URIException(`Failed to construct URI`, err, metadata(err));
+        throw new IOError(`Failed to construct URI`, err, metadata(err));
     }
 }
 

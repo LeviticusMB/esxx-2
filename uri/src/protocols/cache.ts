@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import xdg from 'xdg-portable';
 import pkg from '../../package.json';
-import { DirectoryEntry, Metadata, URI, URIException } from '../uri';
+import { DirectoryEntry, Metadata, URI } from '../uri';
 import { FileURI } from './file.js';
 
 const cacheDir = resolve(xdg.cache(), pkg.name, 'CacheURI', 'v1');
@@ -51,13 +51,13 @@ export class CacheURI extends URI {
         super(uri);
 
         if (this.username !== '' || this.password !== '' || this.hostname !== '' || this.port !== '' || this.search !== '' || this.hash !== '') {
-            throw new URIException(`URI ${this}: Username/password/host/port/query/fragment parts not allowed`);
+            throw new TypeError(`URI ${this}: Username/password/host/port/query/fragment parts not allowed`);
         }
 
         const parts = /^(.*),([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/.exec(this.pathname);
 
         if (!parts) {
-            throw new URIException(`URI ${this}: Malformed cache URI`);
+            throw new TypeError(`URI ${this}: Malformed cache URI`);
         }
 
         this._type = new ContentType(parts[1]);

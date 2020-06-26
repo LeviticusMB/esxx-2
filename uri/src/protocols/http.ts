@@ -5,7 +5,7 @@ import { PassThrough, Readable } from 'stream';
 import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Encoder } from '../encoders';
 import { Parser } from '../parsers';
-import { DirectoryEntry, HEADERS, Metadata, STATUS, STATUS_TEXT, URI, URIException, VOID } from '../uri';
+import { DirectoryEntry, HEADERS, IOError, Metadata, STATUS, STATUS_TEXT, URI, VOID } from '../uri';
 
 export class HTTPURI extends URI {
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -48,16 +48,16 @@ export class HTTPURI extends URI {
 
     async query<T extends object>(method: string, headers?: KVPairs | null, data?: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T> {
         if (typeof method !== 'string') {
-            throw new URIException(`URI ${this}: query: 'method' argument missing/invalid`);
+            throw new TypeError(`URI ${this}: query: 'method' argument missing/invalid`);
         }
         else if (headers !== undefined && !(headers instanceof Object)) {
-            throw new URIException(`URI ${this}: query: 'headers' argument missing/invalid`);
+            throw new TypeError(`URI ${this}: query: 'headers' argument missing/invalid`);
         }
         else if (sendCT !== undefined && !(sendCT instanceof ContentType) && typeof sendCT !== 'string') {
-            throw new URIException(`URI ${this}: query: 'sendCT' argument invalid`);
+            throw new TypeError(`URI ${this}: query: 'sendCT' argument invalid`);
         }
         else if (recvCT !== undefined && !(recvCT instanceof ContentType) && typeof recvCT !== 'string') {
-            throw new URIException(`URI ${this}: query: 'recvCT' argument invalid`);
+            throw new TypeError(`URI ${this}: query: 'recvCT' argument invalid`);
         }
 
         return this.requireValidStatus(await this._query(method, headers || {}, data, this.guessContentType(sendCT), recvCT));
@@ -67,7 +67,7 @@ export class HTTPURI extends URI {
         const status = result[STATUS];
 
         if (status && (status < 200 || status >= 300)) {
-            throw new URIException(`URI ${this} request failed: ${result[STATUS_TEXT]} [${status}]`, undefined, result);
+            throw new IOError(`URI ${this} request failed: ${result[STATUS_TEXT]} [${status}]`, undefined, result);
         }
         else {
             return result;
@@ -148,10 +148,10 @@ export class HTTPURI extends URI {
                     resolve(result);
                 }
                 catch (err) {
-                    reject(this.makeException(err));
+                    reject(this.makeIOError(err));
                 }
             })
-            .on('error', (err) => reject(this.makeException(err)))
+            .on('error', (err) => reject(this.makeIOError(err)))
             .pipe(new PassThrough());
         });
     }

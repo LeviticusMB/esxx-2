@@ -1,6 +1,6 @@
 import { WebResponseHeaders } from './response';
 
-export class WebException extends Error {
+export class WebError extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {
         super(message);
     }

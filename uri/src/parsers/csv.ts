@@ -2,8 +2,7 @@
 import iconv from 'iconv-lite';
 import * as Papa from 'papaparse';
 import { Readable } from 'stream';
-import { Parser } from '../parsers';
-import { URIException } from '../uri';
+import { Parser, ParserError } from '../parsers';
 
 // See https://tools.ietf.org/html/rfc4180
 
@@ -28,7 +27,7 @@ export class CSVParser extends Parser {
                 },
 
                 error: (error) => {
-                    reject(new URIException(error.message, undefined, error));
+                    reject(new ParserError(error.message, undefined, error));
                 },
 
                 complete: (result) => {

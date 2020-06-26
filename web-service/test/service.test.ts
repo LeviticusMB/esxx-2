@@ -70,7 +70,7 @@ export class WebServiceTest {
         Expect(r3.body).toBe(null);
         Expect(r3.headers.allow).toEqual('GET, HEAD, OPTIONS');
 
-        await Expect(() => ws.dispatchRequest(fakedReq('POST', '/options'))).toThrowAsync();
+        Expect((await ws.dispatchRequest(fakedReq('POST', '/options'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
     }
 
     @Test() async responses() {
@@ -126,9 +126,9 @@ export class WebServiceTest {
 
         Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/6'))).body!.toString()).toBe('default');
 
-        await Expect(() => ws.dispatchRequest(fakedReq('POST', '/GET/1'))).toThrowAsync();
-        await Expect(() => ws.dispatchRequest(fakedReq('GET', '/GET/'))).toThrowAsync();
-        await Expect(() => ws.dispatchRequest(fakedReq('GET', '/GET/A'))).toThrowAsync();
-        await Expect(() => ws.dispatchRequest(fakedReq('GET', '/GET/10'))).toThrowAsync();
+        Expect((await ws.dispatchRequest(fakedReq('POST', '/GET/1'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
+        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/)'))).status).toBe(WebStatus.NOT_FOUND);
+        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/A'))).status).toBe(WebStatus.NOT_FOUND);
+        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/10'))).status).toBe(WebStatus.NOT_FOUND);
     }
 }

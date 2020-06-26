@@ -10,7 +10,7 @@
     "@divine/uri": "^0.0.2"
   },
   "dependencies": {
-    "canvas": "^2.2.0"
+    "canvas": "^2.6.1"
   },
   "devDependencies": {
     "@types/node": "^12.12.18"

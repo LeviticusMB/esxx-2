@@ -64,7 +64,7 @@ function isHeadersSelector(selector: any): selector is HeadersSelector {
 }
 
 export interface ParamsSelector extends SelectorBase {
-    params: KVPairs;
+    params: { [key: string]: unknown };
 }
 
 function isParamsSelector(selector: any): selector is ParamsSelector {
@@ -188,19 +188,26 @@ export class URI extends URL {
         return new URI(uriComponent(strings, ...values), this);
     }
 
-    addSelector(selector: AuthSelector | HeadersSelector | ParamsSelector): this {
+    addSelector<T extends AuthSelector | HeadersSelector | ParamsSelector>(selector: T): this {
         const selectors = (this.selectors = this.selectors ?? {});
+        let valid = false;
 
         if (isAuthSelector(selector)) {
             (selectors.auth = selectors.auth ?? []).push(selector);
+            valid = true;
         }
-        else if (isHeadersSelector(selector)) {
+
+        if (isHeadersSelector(selector)) {
             (selectors.header = selectors.header ?? []).push(selector);
+            valid = true;
         }
-        else if (isParamsSelector(selector)) {
+
+        if (isParamsSelector(selector)) {
             (selectors.param = selectors.param ?? []).push(selector);
+            valid = true;
         }
-        else {
+
+        if (!valid) {
             throw new TypeError('Invalid selector');
         }
 

@@ -1,11 +1,28 @@
 import { Authorization, ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
+import { Agent, IncomingMessage, request as requestHTTP } from 'http';
+import { request as requestHTTPS } from 'https';
 import path from 'path';
-import request from 'request';
-import { PassThrough, Readable } from 'stream';
+import { Readable } from 'stream';
+import { SecureContextOptions } from 'tls';
+import pkg from '../../package.json';
 import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Encoder } from '../encoders';
 import { Parser } from '../parsers';
-import { DirectoryEntry, HEADERS, IOError, Metadata, STATUS, STATUS_TEXT, URI, VOID } from '../uri';
+import { DirectoryEntry, HEADERS, IOError, Metadata, ParamsSelector, STATUS, STATUS_TEXT, URI, VOID } from '../uri';
+import { copyStream } from '../utils';
+
+export interface HTTPParamsSelector extends ParamsSelector {
+    params: {
+        agent?:        Agent;
+        maxRedirects?: number;
+        timeout?:      number;
+
+        tls?: SecureContextOptions | {
+            rejectUnauthorized?: boolean;
+            servername?:         string;
+        }
+    };
+}
 
 export class HTTPURI extends URI {
     async info<T extends DirectoryEntry>(): Promise<T & Metadata> {
@@ -60,7 +77,7 @@ export class HTTPURI extends URI {
             throw new TypeError(`URI ${this}: query: 'recvCT' argument invalid`);
         }
 
-        return this.requireValidStatus(await this._query(method, headers || {}, data, this.guessContentType(sendCT), recvCT));
+        return this.requireValidStatus(await this._query(method, headers ?? {}, data, this.guessContentType(sendCT), recvCT));
     }
 
     protected requireValidStatus<T extends object & Metadata>(result: T): T {
@@ -110,11 +127,12 @@ export class HTTPURI extends URI {
     private async _query<T>(method: string, headers: KVPairs, data: unknown, sendCT?: ContentType | string, recvCT?: ContentType | string): Promise<T & Metadata> {
         let body: Buffer | AsyncIterable<Buffer> | undefined;
 
-        headers = { 'accept-encoding': 'gzip, deflate, br', ...headers };
-
-        for (const sel of this.filterSelectors(this.selectors?.header)) {
-            headers = { ...headers, ...sel.headers };
-        }
+        headers = {
+            'accept-encoding': 'gzip, deflate, br',
+            'user-agent':      `Divine-URI/${pkg.version}`,
+            ...this.getBestSelector(this.selectors?.header)?.headers,
+            ...headers
+        };
 
         if (data !== null && data !== undefined) {
             const [contentType, serialized] = Parser.serialize(sendCT, data);
@@ -127,33 +145,78 @@ export class HTTPURI extends URI {
             headers.authorization = (await this._getAuthorization({ method, url: this, headers: Object.entries(headers)}, body))?.toString();
         }
 
-        return new Promise(async (resolve, reject) => {
-            const iterable = request({
-                method,
-                uri:      this.toString(),
-                headers,
-                body:     body ? body instanceof Buffer ? body : Readable.from(body) : null,
-                encoding: null,
-            })
-            .on('response', async (response) => {
-                try {
-                    const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
-                        await Parser.parse(ContentType.create(recvCT, response.headers['content-type']),
-                                           Encoder.decode(response.headers['content-encoding'] ?? [], iterable));
+        // Bug workaround?
+        headers = Object.fromEntries(Object.entries(headers).filter(([, value]) => value !== undefined));
 
-                    result[HEADERS]     = convertHeaders(response);
-                    result[STATUS]      = response.statusCode;
-                    result[STATUS_TEXT] = response.statusMessage;
+        const params  = this.getBestSelector<HTTPParamsSelector>(this.selectors?.param)?.params ?? {};
+        const options = { agent: params.agent, timeout: params.timeout };
+        const request = async (method: string, url: string) => {
+            const request =
+                url.startsWith('http:')  ?  requestHTTP(url, { method, headers, ...options }) :
+                url.startsWith('https:') ? requestHTTPS(url, { method, headers, ...options, ...params.tls }) :
+                undefined;
 
-                    resolve(result);
-                }
-                catch (err) {
-                    reject(this.makeIOError(err));
-                }
-            })
-            .on('error', (err) => reject(this.makeIOError(err)))
-            .pipe(new PassThrough());
-        });
+            if (!request) {
+                throw new TypeError(`URI ${this}: Unexpected protocol: ${this.protocol}`);
+            }
+
+            const result = new Promise<T & Metadata>(async (resolve, reject) => {
+                request.on('response', async (response) => {
+                    try {
+                        const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
+                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']),
+                                            Encoder.decode(response.headers['content-encoding'] ?? [], response));
+
+                        result[HEADERS]     = convertHeaders(response);
+                        result[STATUS]      = response.statusCode;
+                        result[STATUS_TEXT] = response.statusMessage;
+
+                        resolve(result);
+                    }
+                    catch (err) {
+                        reject(this.makeIOError(err));
+                    }
+                })
+                .on('error', (err) => reject(this.makeIOError(err)));
+            });
+
+            if (body) {
+                await copyStream(Readable.from(body), request);
+            }
+            else {
+                request.end();
+            }
+
+            return result;
+        };
+
+        let url = this.toString();
+        let res = await request(method, url);
+
+        // Redirect handling; See <https://fetch.spec.whatwg.org/#http-redirect-fetch>
+        for (let redirectsLeft = params.maxRedirects ?? 20; redirectsLeft > 0; --redirectsLeft) {
+            const s = res[STATUS] ?? 0;
+
+            if ((s === 301 || s === 302) && method === 'POST' || s === 303 && method !== 'GET' && method !== 'HEAD') {
+                method = 'GET';
+                body   = undefined;
+
+                delete headers['content-type'];
+                delete headers['content-length'];
+                delete headers['content-encoding'];
+                delete headers['content-language'];
+            }
+
+            if ([301, 302, 303, 307, 308].includes(s)) {
+                url = new URL(res[HEADERS]?.location ?? '', url).toString();
+                res = await request(method, url);
+            }
+            else {
+                break;
+            }
+        }
+
+        return res;
     }
 }
 
@@ -161,7 +224,7 @@ function extractMetadata(m: Metadata) {
     return { [STATUS]: m[STATUS], [STATUS_TEXT]: m[STATUS_TEXT], [HEADERS]: m[HEADERS] };
 }
 
-function convertHeaders(response: request.Response): KVPairs {
+function convertHeaders(response: IncomingMessage): KVPairs {
     const result: KVPairs = {};
 
     for (const [name, value] of Object.entries({ ...response.headers, ...response.trailers })) {

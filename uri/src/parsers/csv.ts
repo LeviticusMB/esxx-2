@@ -78,7 +78,7 @@ export class CSVParser extends Parser {
                     }
                 }
 
-                row = fields.map((key) => (row as any)[key]);
+                row = fields.map((key) => (row as never)[key]);
             }
 
             yield convertRow(row as Iterable<unknown>);

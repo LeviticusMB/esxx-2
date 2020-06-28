@@ -112,6 +112,7 @@ export class MultiPartParser extends Parser {
                 const stream = part.on('header', (_headers: DicerHeaders) => {
                     partFailed = false;
 
+                    // eslint-disable-next-line no-async-promise-executor
                     values.push(new Promise(async (resolve, reject) => {
                         try {
                             const headers: KVPairs = Object.fromEntries(Object.entries(_headers).map(([k, v]) => [k, v?.join(', ')]));

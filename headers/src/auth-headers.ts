@@ -32,14 +32,14 @@ export abstract class AuthHeader {
         }
 
         const parsed = AUTH_HEADER.exec(unparsed);
-        const groups = parsed?.groups!;
+        const groups = parsed?.groups;
         const scheme = groups?.scheme?.toLowerCase();
 
-        if (!scheme) {
+        if (!scheme || !groups /* make TS/ESLint happy */) {
             throw new TypeError(`Failed to parse AuthHeader '${unparsed}': Invalid format`);
         }
 
-        this.scheme      = scheme!;
+        this.scheme      = scheme;
         this.credentials = groups.token68;
 
         if (groups.params) {

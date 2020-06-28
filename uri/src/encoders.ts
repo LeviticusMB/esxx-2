@@ -192,7 +192,7 @@ export class Base64Encoder extends Encoder {
     }
 
     async *decode(stream: AsyncIterable<Buffer>) {
-        let extra: string = '';
+        let extra = '';
 
         for await (const chunk of stream) {
             const base64 = extra + chunk.toString('binary').replace(/[^0-9A-Za-z+/_-]/g, '');

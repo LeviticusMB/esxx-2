@@ -275,7 +275,7 @@ export class WebService<Context> {
                     ? await new active.ctor(params!, this.context).filter(nextflt, params!, resource)
                     : await resourceHandler();
 
-                return result instanceof WebResponse ? result : new WebResponse(!!result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
+                return result instanceof WebResponse ? result : new WebResponse(result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
             }
             catch (err) {
                 try {

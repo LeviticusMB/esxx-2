@@ -32,7 +32,6 @@ async function pruneCacheDir(): Promise<void> {
 
 function v4uuid() {
     const buf = randomBytes(16);
-    // tslint:disable-next-line: no-bitwise
     buf[6] = (buf[6] & 0x0f) | 0x40; buf[8] = (buf[8] & 0x3f) | 0x80;
 
     return [...buf].map((b, i) => ([4, 6, 8, 10].includes(i) ? '-' : '') + (b + 0x100).toString(16).substr(1)).join('');

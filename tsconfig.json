@@ -21,9 +21,5 @@
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
         "noUnusedLocals": true,
-
-        "plugins": [
-            { "name": "tslint-language-service"}
-        ]
     }
 }

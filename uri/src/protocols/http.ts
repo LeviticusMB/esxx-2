@@ -97,8 +97,8 @@ export class HTTPURI extends URI {
         if (!session?.authScheme) {
             const { auth, challenge } = (challenges?.length ? challenges : [undefined as WWWAuthenticate | undefined])
                 .map((challenge) => ({ auth: this.getBestSelector(this.selectors?.auth, challenge), challenge }))
-                .filter((entry) => !!entry.auth)
-                [0] ?? { auth: null, challenge: null };
+                .filter((entry) => !!entry.auth)[0]
+                ?? { auth: null, challenge: null };
 
             if (auth && (challenge || auth.preemptive)) {
                 this.selectors = this.selectors ?? {};
@@ -160,7 +160,7 @@ export class HTTPURI extends URI {
                 throw new TypeError(`URI ${this}: Unexpected protocol: ${this.protocol}`);
             }
 
-            const result = new Promise<T & Metadata>(async (resolve, reject) => {
+            const result = new Promise<T & Metadata>((resolve, reject) => {
                 request.on('response', async (response) => {
                     try {
                         const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :

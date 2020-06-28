@@ -68,13 +68,13 @@ export class ContentHeader {
     toString(): string {
         let params = '';
 
-        for (let [name, value] of Object.entries(this.params)) {
+        for (const [name, value] of Object.entries(this.params)) {
             const safe = value!.replace(/[^\u0020-\u007e\u00a1-\u00ff]/g, '_');
 
             if (safe !== value) {
-                value = `utf-8''${encodeURI(value!)}`;
+                const unsafe = `utf-8''${encodeURI(value!)}`;
 
-                params += `;${name}*="${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+                params += `;${name}*="${unsafe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
             }
 
             params += `;${name}="${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;

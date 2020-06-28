@@ -99,13 +99,11 @@ export abstract class AuthScheme<C extends Credentials> {
 
         if (typeof untrusted === 'string' && typeof trusted === 'string') {
             for (let i = 0; i < untrusted.length; ++i) {
-                // tslint:disable-next-line: no-bitwise
                 sum += untrusted.charCodeAt(i) ^ trusted.charCodeAt(i);
             }
         }
         else if (Array.isArray(untrusted) && Array.isArray(trusted)) {
             for (let i = 0; i < untrusted.length; ++i) {
-                // tslint:disable-next-line: no-bitwise
                 sum += untrusted[i] ^ trusted[i];
             }
         }

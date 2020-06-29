@@ -6,6 +6,15 @@
   "types": "build/index.d.ts",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+        "**/*.test.ts"
+    ],
+    "collectCoverage": true,
+    "passWithNoTests": true
+  },
   "peerDependencies": {
     "@divine/uri": "^0.0.2"
   },

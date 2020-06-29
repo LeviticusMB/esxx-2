@@ -12,9 +12,8 @@ build:		prepare
 docs:
 	yarn run typedoc --ignoreCompilerErrors --out docs --mode library --theme minimal --inputFiles src/index.ts
 
-test:		build
-	-yarn run nyc --reporter=lcov --reporter=html alsatian build/test/*.js
-	yarn run nyc report
+test:		prepare
+	yarn jest
 
 clean:
 	rm -rf build docs .nyc_output coverage node_modules/.cache/nyc

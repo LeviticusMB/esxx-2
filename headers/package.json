@@ -11,6 +11,14 @@
     "build/package*",
     "src"
   ],
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "testMatch": [
+        "**/*.test.ts"
+    ],
+    "collectCoverage": true
+  },
   "dependencies": {
     "tslib": "^2.0.0"
   },

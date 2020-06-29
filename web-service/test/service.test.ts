@@ -1,10 +1,8 @@
-// tslint:disable-next-line: no-implicit-dependencies
-import { Expect, Test } from 'alsatian';
 import { IncomingMessage } from 'http';
 import { WebArguments, WebRequest, WebResponse, WebService, WebStatus } from '../src';
+import { KVPairs } from '@divine/uri';
 
 function fakedReq(method: string, url: string, _payload?: object) {
-    // tslint:disable-next-line: no-object-literal-type-assertion
     return new WebRequest({
         method, url,
         headers: {
@@ -26,109 +24,166 @@ function fakedReq(method: string, url: string, _payload?: object) {
     });
 }
 
-export class WebServiceTest {
-    @Test() async dispatch() {
-        const ws = new WebService('context')
-            .addResource(class {
-                static path = /default/;
+describe('the WebService dispatcher', () => {
+    const ws = new WebService('context')
+    .addResource(class {
+        static path = /default/;
 
-                constructor(args: WebArguments, context: string) {
-                    Expect(args.request.url.href).toBe('http://localhost/default?foo');
-                    Expect(context).toBe('context');
-                }
+        constructor(args: WebArguments, context: string) {
+            // eslint-disable-next-line jest/no-standalone-expect
+            expect(args.request.url.href).toBe('http://localhost/default?foo');
+            // eslint-disable-next-line jest/no-standalone-expect
+            expect(context).toBe('context');
+        }
 
-                async default(args: WebArguments) {
-                    return `default ${args.request.method}`;
-                }
-            })
-            .addResource(class {
-                static path = /options/;
+        async default(args: WebArguments) {
+            return `default ${args.request.method}`;
+        }
+    })
+    .addResource(class {
+        static path = /options/;
 
-                async OPTIONS(args: WebArguments) {
-                    Expect(args.request.method).toBe('OPTIONS');
-                    return `options ${args.request.method}`;
-                }
-            })
-            .addResource(class {
-                static path = /other/;
+        async OPTIONS(args: WebArguments) {
+            // eslint-disable-next-line jest/no-standalone-expect
+            expect(args.request.method).toBe('OPTIONS');
+            return `options ${args.request.method}`;
+        }
+    })
+    .addResource(class {
+        static path = /other/;
 
-                async GET() {
-                    return null;
-                }
-            });
+        async GET() {
+            return null;
+        }
+    });
+
+    it('dispatches custom HTTP verbs to the default handler', async () => {
+        expect.assertions(4);
 
         const r1 = await ws.dispatchRequest(fakedReq('X-SPECIAL', '/default?foo'));
-        Expect(r1.status).toBe(WebStatus.OK);
-        Expect(r1.body!.toString()).toBe('default X-SPECIAL');
+        expect(r1.status).toBe(WebStatus.OK);
+        expect(r1.body!.toString()).toBe('default X-SPECIAL');
+    });
+
+    it('dispatches OPTIONS to the options handler', async () => {
+        expect.assertions(3);
 
         const r2 = await ws.dispatchRequest(fakedReq('OPTIONS', '/options'));
-        Expect(r2.status).toBe(WebStatus.OK);
-        Expect(r2.body!.toString()).toBe('options OPTIONS');
+        expect(r2.status).toBe(WebStatus.OK);
+        expect(r2.body!.toString()).toBe('options OPTIONS');
+    });
+
+    it('handles OPTIONS automatically if there is no options handler', async () => {
+        expect.assertions(3);
 
         const r3 = await ws.dispatchRequest(fakedReq('OPTIONS', '/other'));
-        Expect(r3.status).toBe(WebStatus.OK);
-        Expect(r3.body).toBe(null);
-        Expect(r3.headers.allow).toEqual('GET, HEAD, OPTIONS');
+        expect(r3.status).toBe(WebStatus.OK);
+        expect(r3.body).toBeNull();
+        expect(r3.headers.allow).toBe('GET, HEAD, OPTIONS');
+    });
 
-        Expect((await ws.dispatchRequest(fakedReq('POST', '/options'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
-    }
+    it('rejects with 405 if handler is missing', async () => {
+        expect.assertions(1);
 
-    @Test() async responses() {
-        const ws = new WebService('context')
-            .addResource(class {
-                static path = /GET\/(?<id>\d)/;
-                private digit: number;
+        expect((await ws.dispatchRequest(fakedReq('POST', '/options'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
+    });
+});
 
-                constructor(args: WebArguments) {
-                    Expect(args.string('$1') === args.string('$id')).toBe(true);
-                    this.digit = args.number('$1');
+describe(`a WebService's resources`, () => {
+    const ws = new WebService('context')
+        .addResource(class {
+            static path = /GET\/(?<id>\d)/;
+            private digit: number;
+
+            constructor(args: WebArguments) {
+                // eslint-disable-next-line jest/no-standalone-expect
+                expect(args.string('$1') === args.string('$id')).toBe(true);
+                this.digit = args.number('$1');
+            }
+
+            async GET(args: WebArguments) {
+                // eslint-disable-next-line jest/no-standalone-expect
+                expect(args.string('$1') === args.string('$id')).toBe(true);
+
+                switch (this.digit) {
+                    case 0: return null;
+                    case 1: return '1';
+                    case 2: return [2];
+                    case 3: return { value: 3 };
+                    case 4: return new WebResponse(WebStatus.ACCEPTED, null);
+                    case 5: return new WebResponse(WebStatus.ACCEPTED, 'five', { etag: 'V'}).setHeader('Custom-Header', 'v');
+                    default: return 'default';
                 }
+            }
+        });
 
-                async GET(args: WebArguments) {
-                    Expect(args.string('$1') === args.string('$id')).toBe(true);
+    it('returns 204 for null repsonses (GET)', async () => {
+        expect.assertions(4);
 
-                    switch (this.digit) {
-                        case 0: return null;
-                        case 1: return '1';
-                        case 2: return [2];
-                        case 3: return { value: 3 };
-                        case 4: return new WebResponse(WebStatus.ACCEPTED, null);
-                        case 5: return new WebResponse(WebStatus.ACCEPTED, 'five', { etag: 'V'}).setHeader('Custom-Header', 'v');
-                        default: return 'default';
-                    }
-                }
-            });
+        const r = await ws.dispatchRequest(fakedReq('GET', '/GET/0'));
+        expect(r.status).toBe(WebStatus.NO_CONTENT);
+        expect(r.body).toBeNull();
+    });
 
-        const r0a = await ws.dispatchRequest(fakedReq('GET', '/GET/0'));
-        Expect(r0a.status).toBe(WebStatus.NO_CONTENT);
-        Expect(r0a.body).toBe(null);
+    it('returns 204 for null repsonses (HEAD)', async () => {
+        expect.assertions(4);
 
-        const r0b = await ws.dispatchRequest(fakedReq('HEAD', '/GET/0'));
-        Expect(r0b.status).toBe(WebStatus.NO_CONTENT);
-        Expect(r0b.body).toBe(null);
+        const r = await ws.dispatchRequest(fakedReq('HEAD', '/GET/0'));
+        expect(r.status).toBe(WebStatus.NO_CONTENT);
+        expect(r.body).toBeNull();
+    });
 
-        const r1 = await ws.dispatchRequest(fakedReq('GET', '/GET/1'));
-        Expect(r1.status).toBe(WebStatus.OK);
-        Expect(r1.body!.toString()).toBe('1');
+    it('returns strings as text/plain', async () => {
+        expect.assertions(5);
 
-        Expect(JSON.parse((await ws.dispatchRequest(fakedReq('GET', '/GET/2'))).body!.toString())).toEqual([2]);
-        Expect(JSON.parse((await ws.dispatchRequest(fakedReq('GET', '/GET/3'))).body!.toString())).toEqual({ value: 3 });
+        const r = await ws.dispatchRequest(fakedReq('GET', '/GET/1'));
+        expect(r.status).toBe(WebStatus.OK);
+        expect(r.body!.toString()).toBe('1');
+        expect(r.headers['content-type']?.toString()).toBe('text/plain');
+    });
+
+    it('returns arrays as application/json', async () => {
+        expect.assertions(5);
+
+        const r = await ws.dispatchRequest(fakedReq('GET', '/GET/2'));
+        expect(r.status).toBe(WebStatus.OK);
+        expect(r.body!.toString()).toBe(JSON.stringify([2]));
+        expect(r.headers['content-type']?.toString()).toBe('application/json');
+    });
+
+    it('returns objects as application/json', async () => {
+        expect.assertions(5);
+
+        const r = await ws.dispatchRequest(fakedReq('GET', '/GET/3'));
+        expect(r.status).toBe(WebStatus.OK);
+        expect(r.body!.toString()).toBe(JSON.stringify({ value: 3 }));
+        expect(r.headers['content-type']?.toString()).toBe('application/json');
+    })
+
+    it('can return 202 with no body', async () => {
+        expect.assertions(4);
 
         const r4 = await ws.dispatchRequest(fakedReq('GET', '/GET/4'));
-        Expect(r4.status).toBe(WebStatus.ACCEPTED);
-        Expect(r4.body).toBe(null);
+        expect(r4.status).toBe(WebStatus.ACCEPTED);
+        expect(r4.body).toBeNull();
+    });
 
-        const r5 = await ws.dispatchRequest(fakedReq('GET', '/GET/5'));
-        Expect(r5.status).toBe(WebStatus.ACCEPTED);
-        Expect(r5.body!.toString()).toBe('five');
-        Expect(r5.headers.etag).toBe('V');
-        Expect((r5 as any).headers['custom-header']).toBe('v');
+    it('can return 202 with body and standard and custom headers', async () => {
+        expect.assertions(6);
 
-        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/6'))).body!.toString()).toBe('default');
+        const r = await ws.dispatchRequest(fakedReq('GET', '/GET/5'));
+        expect(r.status).toBe(WebStatus.ACCEPTED);
+        expect(r.body!.toString()).toBe('five');
+        expect(r.headers.etag).toBe('V');
+        expect((r.headers as KVPairs)['custom-header']).toBe('v');
+    });
 
-        Expect((await ws.dispatchRequest(fakedReq('POST', '/GET/1'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
-        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/)'))).status).toBe(WebStatus.NOT_FOUND);
-        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/A'))).status).toBe(WebStatus.NOT_FOUND);
-        Expect((await ws.dispatchRequest(fakedReq('GET', '/GET/10'))).status).toBe(WebStatus.NOT_FOUND);
-    }
-}
+    it('returns 404 or 405 if no resource matches', async () => {
+        expect.assertions(5);
+
+        expect((await ws.dispatchRequest(fakedReq('POST', '/GET/1'))).status).toBe(WebStatus.METHOD_NOT_ALLOWED);
+        expect((await ws.dispatchRequest(fakedReq('GET', '/GET/)'))).status).toBe(WebStatus.NOT_FOUND);
+        expect((await ws.dispatchRequest(fakedReq('GET', '/GET/A'))).status).toBe(WebStatus.NOT_FOUND);
+        expect((await ws.dispatchRequest(fakedReq('GET', '/GET/10'))).status).toBe(WebStatus.NOT_FOUND);
+    });
+});

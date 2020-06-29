@@ -1,27 +1,30 @@
-import { Expect, Test } from 'alsatian';
 import { AuthHeader, Authorization, WWWAuthenticate } from '../src';
 
-export class AuthSchemeTest {
-    @Test() basic() {
+describe('the AuthScheme class', () => {
+    it('parses Basic credentials', () => {
+        expect.assertions(4);
+
         const auth = new Authorization('Basic Zm9vOmJhcjpubw==');
 
-        Expect(auth instanceof AuthHeader).toBeTruthy();
-        Expect(auth.headerName).toBe('authorization');
-        Expect(auth.scheme).toBe('basic');
-        Expect(auth.credentials).toBe('Zm9vOmJhcjpubw==');
-    }
+        expect(auth instanceof AuthHeader).toBe(true);
+        expect(auth.headerName).toBe('authorization');
+        expect(auth.scheme).toBe('basic');
+        expect(auth.credentials).toBe('Zm9vOmJhcjpubw==');
+    })
 
-    @Test() params() {
+    it('parses imagined Params credentials', () => {
+        expect.assertions(8);
+
         const auths = WWWAuthenticate.create('Params a=A,b="B",  c   =  " C " ,d=",D" e="\\"E\\\\\\"\\\\" ,');
         const auth = auths[0];
 
-        Expect(auths.length).toBe(1);
-        Expect(auth instanceof AuthHeader).toBeTruthy();
-        Expect(auth.scheme).toBe('params');
-        Expect(auth.param('a')).toBe('A');
-        Expect(auth.param('b')).toBe('B');
-        Expect(auth.param('c')).toBe(' C ');
-        Expect(auth.param('d')).toBe(',D');
-        Expect(auth.param('e')).toBe('"E\\"\\');
-    }
-}
+        expect(auths).toHaveLength(1);
+        expect(auth instanceof AuthHeader).toBe(true);
+        expect(auth.scheme).toBe('params');
+        expect(auth.param('a')).toBe('A');
+        expect(auth.param('b')).toBe('B');
+        expect(auth.param('c')).toBe(' C ');
+        expect(auth.param('d')).toBe(',D');
+        expect(auth.param('e')).toBe('"E\\"\\');
+    })
+});

@@ -5,7 +5,7 @@ import { resolve } from 'path';
 import xdg from 'xdg-portable';
 import pkg from '../../package.json';
 import { DirectoryEntry, Metadata, URI } from '../uri';
-import { FileURI } from './file.js';
+import { FileURI } from './file';
 
 const cacheDir = resolve(xdg.cache(), pkg.name, 'CacheURI', 'v1');
 const cacheAge = 3600_000 /* 1 hour */;

@@ -11,6 +11,14 @@
     "build/package*",
     "src"
   ],
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+        "**/*.test.ts"
+    ],
+    "collectCoverage": true
+  },
   "dependencies": {
     "cuid": "^2.1.8",
     "tslib": "^2.0.0",

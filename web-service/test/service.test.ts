@@ -1,28 +1,6 @@
-import { IncomingMessage } from 'http';
-import { WebArguments, WebRequest, WebResponse, WebService, WebStatus } from '../src';
 import { KVPairs } from '@divine/uri';
-
-function fakedReq(method: string, url: string, _payload?: object) {
-    return new WebRequest({
-        method, url,
-        headers: {
-            host: 'localhost',
-        },
-        socket: {
-            remoteAddress: 'remote:9999',
-        },
-    } as IncomingMessage, {
-        console,
-        errorMessageProperty: 'message',
-        maxContentLength:     1_000_000,
-        trustRequestID:       null,
-        trustForwardedFor:    false,
-        trustForwardedHost:   false,
-        trustForwardedProto:  false,
-        trustMethodOverride:  false,
-        returnRequestID:      null,
-    });
-}
+import { WebArguments, WebResponse, WebService, WebStatus } from '../src';
+import { fakedReq } from './test-utils';
 
 describe('the WebService dispatcher', () => {
     const ws = new WebService('context')

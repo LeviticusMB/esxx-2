@@ -57,7 +57,9 @@ export class WebRequest implements AuthSchemeRequest {
     }
 
     get remoteUserAgent(): string {
-        return this.userAgent.browser.name && this.userAgent.browser.version ? `${this.userAgent.browser.name}/${this.userAgent.browser.version}@${this.remoteAddress}` : `Unknown@${this.remoteAddress}`;
+        return this.userAgent.browser.name && this.userAgent.browser.version ?
+            `${this.userAgent.browser.name}/${this.userAgent.browser.version}@${this.remoteAddress}` :
+            `Unknown@${this.remoteAddress}`;
     }
 
     get headers(): Iterable<[string, string]> {

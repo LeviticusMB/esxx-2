@@ -21,10 +21,10 @@ export abstract class CORSFilter implements WebFilter {
         const response = await next();
         const exposed  = Object.keys(response.headers); // Read before we add any extra
         const params   = { args, resource: await resource(), response };
-        const origin   = args.optional('@origin');
+        const origin   = args.string('@origin', undefined);
 
         if (this.isOriginAllowed(origin, params)) {
-            const method = args.optional('@access-control-request-method');
+            const method = args.string('@access-control-request-method', undefined);
 
             if (method !== undefined && args.request.method === 'OPTIONS') { // Preflight
                 const methods = asSet(response.headers.allow).add(method);

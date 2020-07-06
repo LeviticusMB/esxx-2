@@ -27,6 +27,7 @@ export class WebRequest implements AuthSchemeRequest {
     public readonly userAgent: UserAgent;
     public readonly id: string;
 
+    private _body?: Promise<any>;
     private _finalizers: Array<() => Promise<void>> = [];
     private _maxContentLength: number;
 
@@ -71,7 +72,7 @@ export class WebRequest implements AuthSchemeRequest {
 
         if (value === undefined || value instanceof Array && value[0] === undefined) {
             if (def === undefined) {
-                throw new WebError(WebStatus.BAD_REQUEST, `Missing request header '${name}'`);
+                throw new WebError(WebStatus.BAD_REQUEST, `Request header '${name}' is missing`); // See also WebArguments
             }
 
             value = def;
@@ -86,15 +87,21 @@ export class WebRequest implements AuthSchemeRequest {
     }
 
     async body<T extends object>(contentType?: ContentType | string, maxContentLength = this._maxContentLength): Promise<T> {
-        const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
+        if (!this._body) {
+            const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
 
-        if (Number(this.header('content-length', '-1')) > maxContentLength) {
-            throw new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
+            if (Number(this.header('content-length', '-1')) > maxContentLength) {
+                throw new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
+            }
+
+            const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
+            const body = this._body = Parser.parse<T>(ContentType.create(contentType, this.header('content-type')), this.incomingMessage.pipe(limited));
+
+            return this.addFinalizer(await body);
         }
-
-        const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
-
-        return this.addFinalizer(await Parser.parse<T>(ContentType.create(contentType, this.header('content-type')), this.incomingMessage.pipe(limited)));
+        else {
+            return this._body;
+        }
     }
 
     addFinalizer<T extends object>(finalizable: T & Finalizable): T {

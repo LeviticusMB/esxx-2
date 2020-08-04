@@ -107,7 +107,7 @@ export interface EventAttributes {
 }
 
 export class EventStreamResponse<T> extends WebResponse {
-    private static async *eventStream<T>(source: AsyncIterable<T & EventAttributes>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent> {
+    private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent | undefined> {
         const serialize = async (event: object): Promise<string> => {
             const [, serialized] = Parser.serialize(dataType, event);
 
@@ -116,7 +116,12 @@ export class EventStreamResponse<T> extends WebResponse {
 
         try {
             for await (const event of source) {
-                yield { id: event[EVENT_ID], event: event[EVENT_TYPE], retry: event[EVENT_RETRY], data: await serialize(event) };
+                if (event === undefined || event === null) {
+                    yield undefined; // Emit keep-alive comment line (see EventStreamParser.serialize())
+                }
+                else {
+                    yield { id: event[EVENT_ID], event: event[EVENT_TYPE], retry: event[EVENT_RETRY], data: await serialize(event) };
+                }
             }
         }
         catch (err) {
@@ -134,7 +139,7 @@ export class EventStreamResponse<T> extends WebResponse {
         }
     }
 
-    constructor(source: AsyncIterable<T & EventAttributes>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
+    constructor(source: AsyncIterable<T | EventAttributes>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
         super(WebStatus.OK, EventStreamResponse.eventStream(source, dataType), {
             'content-type':      'text/event-stream',
             'cache-control':     'no-cache',

@@ -1,13 +1,21 @@
 import { ContentType } from '@divine/headers';
 import iconv from 'iconv-lite';
 import { Finalizable, IOError, NULL, VOID } from './uri';
-import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable } from './utils';
+import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable, BasicTypes } from './utils';
 
 export function toObject<T extends object>(result: unknown): T {
     return result === undefined       ? Object(VOID) :
            result === null            ? Object(NULL) :
            typeof result !== 'object' ? Object(result) :
            result;
+}
+
+export function toPrimitive(value: any): BasicTypes | symbol | undefined {
+    if (value !== null && value !== undefined) {
+        value = value.valueOf();
+    }
+
+    return value === NULL ? null : value === VOID ? undefined : value;
 }
 
 export class ParserError extends IOError {
@@ -34,11 +42,13 @@ export abstract class Parser {
     static serialize(contentType: ContentType | string | undefined,
                      data: unknown): [ContentType, Buffer | AsyncIterable<Buffer>] {
         try {
+            data = toPrimitive(data); // Unpack values wrapped by toObject()
+
             contentType = ContentType.create(contentType,
-                data instanceof Buffer ? ContentType.bytes :
-                isReadableStream(data) ? ContentType.bytes :
-                isJSON(data)           ? ContentType.json :
-                isDOMNode(data)        ? ContentType.xml :
+                data instanceof Buffer        ? ContentType.bytes :
+                isReadableStream(data)        ? ContentType.bytes :
+                isJSON(data) || data === null ? ContentType.json :
+                isDOMNode(data)               ? ContentType.xml :
                 ContentType.text);
 
             // Pass Buffer and ReadableStream right through, ignoring `contentType`; serialize everything else

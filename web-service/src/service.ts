@@ -166,6 +166,7 @@ export class WebService<Context> {
                     res.writeHead(rawres.status, rawres.headers);
 
                     if (isReadableStream(rawres.body)) {
+                        res.flushHeaders();
                         this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
                     }
 

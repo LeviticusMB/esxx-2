@@ -95,7 +95,7 @@ export class WebRequest implements AuthSchemeRequest {
             }
 
             const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
-            const body = this._body = Parser.parse<T>(ContentType.create(contentType, this.header('content-type')), this.incomingMessage.pipe(limited));
+            const body = this._body = Parser.parse<T>(this.incomingMessage.pipe(limited), ContentType.create(contentType, this.header('content-type')));
 
             return this.addFinalizer(await body);
         }

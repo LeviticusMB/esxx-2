@@ -109,7 +109,7 @@ export interface EventAttributes {
 export class EventStreamResponse<T> extends WebResponse {
     private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent | undefined> {
         const serialize = async (event: object): Promise<string> => {
-            const [, serialized] = Parser.serialize(dataType, event);
+            const [serialized] = Parser.serialize(event, dataType);
 
             return (serialized instanceof Buffer ? serialized : await new BufferParser(ContentType.bytes).parse(serialized)).toString();
         };

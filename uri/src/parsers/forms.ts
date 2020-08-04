@@ -122,10 +122,10 @@ export class MultiPartParser extends Parser {
                             const parsed           = disposition?.type === 'form-data' && disposition?.filename === undefined ||
                                                      disposition?.type !== 'form-data' && (type.baseType === 'multipart' || type.type === 'text/plain');
                             let body: object;
-                            const data: AsyncIterable<Buffer> = Encoder.decode(headers['content-transfer-encoding'] ?? [], stream);
+                            const data: AsyncIterable<Buffer> = Encoder.decode(stream, headers['content-transfer-encoding'] ?? []);
 
                             if (parsed) {
-                                body = (await Parser.parse(type, data)).valueOf();
+                                body = (await Parser.parse(data, type)).valueOf();
                             }
                             else {
                                 body = await saveToCache(type, data);

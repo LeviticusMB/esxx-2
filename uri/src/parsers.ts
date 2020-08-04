@@ -27,7 +27,7 @@ export abstract class Parser {
         return Parser;
     }
 
-    static async parse<T extends object>(contentType: ContentType | string, stream: Buffer | AsyncIterable<Buffer> | string): Promise<T & Finalizable> {
+    static async parse<T extends object>(stream: Buffer | AsyncIterable<Buffer> | string, contentType: ContentType | string): Promise<T & Finalizable> {
         try {
             const result = await Parser.create(ContentType.create(contentType)).parse(toAsyncIterable(stream));
 
@@ -39,8 +39,7 @@ export abstract class Parser {
         }
     }
 
-    static serialize(contentType: ContentType | string | undefined,
-                     data: unknown): [ContentType, Buffer | AsyncIterable<Buffer>] {
+    static serialize(data: unknown, contentType?: ContentType | string): [Buffer | AsyncIterable<Buffer>, ContentType] {
         try {
             data = toPrimitive(data); // Unpack values wrapped by toObject()
 
@@ -52,7 +51,7 @@ export abstract class Parser {
                 ContentType.text);
 
             // Pass Buffer and ReadableStream right through, ignoring `contentType`; serialize everything else
-            return [contentType, data instanceof Buffer || isReadableStream(data) ? toAsyncIterable(data) : Parser.create(contentType).serialize(data)];
+            return [data instanceof Buffer || isReadableStream(data) ? toAsyncIterable(data) : Parser.create(contentType).serialize(data), contentType];
         }
         catch (err) {
             throw new ParserError(`${contentType} serializer failed: ${err.message}`, err);

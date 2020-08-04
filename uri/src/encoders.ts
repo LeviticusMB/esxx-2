@@ -12,7 +12,7 @@ export abstract class Encoder {
         return Encoder;
     }
 
-    static encode(types: string | string[], stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+    static encode(stream: Buffer | AsyncIterable<Buffer> | string, types: string | string[]): AsyncIterable<Buffer> {
         stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
         types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
 
@@ -28,7 +28,7 @@ export abstract class Encoder {
         }
     }
 
-    static decode(types: string | string[], stream: Buffer | AsyncIterable<Buffer> | string): AsyncIterable<Buffer> {
+    static decode(stream: Buffer | AsyncIterable<Buffer> | string, types: string | string[]): AsyncIterable<Buffer> {
         stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
         types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
 

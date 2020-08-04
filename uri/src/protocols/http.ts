@@ -135,7 +135,7 @@ export class HTTPURI extends URI {
         };
 
         if (data !== null && data !== undefined) {
-            const [contentType, serialized] = Parser.serialize(sendCT, data);
+            const [serialized, contentType] = Parser.serialize(data, sendCT);
 
             headers = { 'content-type': contentType.toString(), ...headers };
             body = serialized;
@@ -164,8 +164,8 @@ export class HTTPURI extends URI {
                 request.on('response', async (response) => {
                     try {
                         const result: T & Metadata = method === 'HEAD' || response.statusCode === 204 /* No Content */ ? Object(VOID) :
-                            await Parser.parse(ContentType.create(recvCT, response.headers['content-type']),
-                                            Encoder.decode(response.headers['content-encoding'] ?? [], response));
+                            await Parser.parse(Encoder.decode(response, response.headers['content-encoding'] ?? []),
+                                               ContentType.create(recvCT, response.headers['content-type']));
 
                         result[HEADERS]     = convertHeaders(response);
                         result[STATUS]      = response.statusCode;

@@ -62,7 +62,7 @@ export class FileURI extends URI {
         try {
             const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
 
-            return await Parser.parse<T>(ContentType.create(recvCT, lookup(this._path) || undefined), stream);
+            return await Parser.parse<T>(stream, ContentType.create(recvCT, lookup(this._path) || undefined));
         }
         catch (err) {
             throw this.makeIOError(err);
@@ -126,7 +126,7 @@ export class FileURI extends URI {
     }
 
     private async _write(data: unknown, sendCT: ContentType | string | undefined, append: boolean): Promise<void> {
-        const [/* contentType */, serialized] = Parser.serialize(this.guessContentType(sendCT), data);
+        const [serialized] = Parser.serialize(data, this.guessContentType(sendCT));
 
         await copyStream(toReadableStream(serialized), createWriteStream(this._path, { flags: append ? 'a' : 'w', encoding: undefined }));
     }

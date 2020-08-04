@@ -40,7 +40,7 @@ describe('the Encoder class', () => {
         expect.assertions(1);
 
         const data = randomBytes(Math.round(Math.random() * 8192));
-        const result = await join(Encoder.decode(encoding, Encoder.encode(encoding, randomChunkSize(data))));
+        const result = await join(Encoder.decode(Encoder.encode(randomChunkSize(data), encoding), encoding));
 
         expect(result).toStrictEqual(data);
     });
@@ -49,7 +49,7 @@ describe('the Encoder class', () => {
         expect.assertions(1);
 
         const data = Buffer.from(randomBytes(Math.round(Math.random() * 8192)).toString('base64').replace(/\//g, '\r\n').replace(/\+/g, ' '));
-        const result = await join(Encoder.decode(encoding, Encoder.encode(encoding, randomChunkSize(data))));
+        const result = await join(Encoder.decode(Encoder.encode(randomChunkSize(data), encoding), encoding));
 
         expect(result).toStrictEqual(data);
     });
@@ -57,18 +57,18 @@ describe('the Encoder class', () => {
     it('encodes quoted-printable whitespace', async () => {
         expect.assertions(4);
 
-        expect(await join(Encoder.encode('quoted-printable', ''))).toStrictEqual(Buffer.from(''));
-        expect(await join(Encoder.encode('quoted-printable', '\n'))).toStrictEqual(Buffer.from('=0A'));
-        expect(await join(Encoder.encode('quoted-printable', '\r'))).toStrictEqual(Buffer.from('=0D'));
-        expect(await join(Encoder.encode('quoted-printable', '\r\n'))).toStrictEqual(Buffer.from('\r\n'));
+        expect(await join(Encoder.encode('',     'quoted-printable'))).toStrictEqual(Buffer.from(''));
+        expect(await join(Encoder.encode('\n',   'quoted-printable'))).toStrictEqual(Buffer.from('=0A'));
+        expect(await join(Encoder.encode('\r',   'quoted-printable'))).toStrictEqual(Buffer.from('=0D'));
+        expect(await join(Encoder.encode('\r\n', 'quoted-printable'))).toStrictEqual(Buffer.from('\r\n'));
     })
 
     it('decodes quoted-printable whitespace', async () => {
         expect.assertions(4);
 
-        expect(await join(Encoder.decode('quoted-printable', ''))).toStrictEqual(Buffer.from(''));
-        expect(await join(Encoder.decode('quoted-printable', '=0A'))).toStrictEqual(Buffer.from('\n'));
-        expect(await join(Encoder.decode('quoted-printable', '=0D'))).toStrictEqual(Buffer.from('\r'));
-        expect(await join(Encoder.decode('quoted-printable', '\r\n'))).toStrictEqual(Buffer.from('\r\n'));
+        expect(await join(Encoder.decode('',     'quoted-printable'))).toStrictEqual(Buffer.from(''));
+        expect(await join(Encoder.decode('=0A',  'quoted-printable'))).toStrictEqual(Buffer.from('\n'));
+        expect(await join(Encoder.decode('=0D',  'quoted-printable'))).toStrictEqual(Buffer.from('\r'));
+        expect(await join(Encoder.decode('\r\n', 'quoted-printable'))).toStrictEqual(Buffer.from('\r\n'));
     });
 });

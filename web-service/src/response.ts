@@ -32,7 +32,7 @@ export class WebResponse {
         }
         else {
             try {
-                const [ct, serializied ] = Parser.serialize(this.headers['content-type'], body);
+                const [serializied, ct] = Parser.serialize(body, this.headers['content-type']);
 
                 defaultCT(ct);
                 this.body = serializied instanceof Buffer ? serializied : Readable.from(serializied);

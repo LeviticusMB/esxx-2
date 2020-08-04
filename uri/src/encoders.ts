@@ -24,7 +24,7 @@ export abstract class Encoder {
             return stream;
         }
         catch (err) {
-            throw new EncoderError(`'${types}' encoder failed: ${err.message}`, err);
+            throw new EncoderError(`'${types}' encoder failed`, err);
         }
     }
 
@@ -40,7 +40,7 @@ export abstract class Encoder {
             return stream;
         }
         catch (err) {
-            throw new EncoderError(`'${types}' encoder failed: ${err.message}`, err);
+            throw new EncoderError(`'${types}' encoder failed`, err);
         }
     }
 

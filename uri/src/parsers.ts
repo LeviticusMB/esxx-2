@@ -35,7 +35,7 @@ export abstract class Parser {
             return toObject(result);
         }
         catch (err) {
-            throw new ParserError(`${contentType} parser failed: ${err.message}`, err);
+            throw new ParserError(`${contentType} parser failed`, err);
         }
     }
 
@@ -54,7 +54,7 @@ export abstract class Parser {
             return [data instanceof Buffer || isReadableStream(data) ? toAsyncIterable(data) : Parser.create(contentType).serialize(data), contentType];
         }
         catch (err) {
-            throw new ParserError(`${contentType} serializer failed: ${err.message}`, err);
+            throw new ParserError(`${contentType} serializer failed`, err);
         }
     }
 

@@ -7,6 +7,8 @@ export class JSONParser extends Parser {
     }
 
     serialize(data: unknown): Buffer {
+        this.assertSerializebleData(data !== undefined, data);
+
         try {
             data = JSON.stringify(data);
         }

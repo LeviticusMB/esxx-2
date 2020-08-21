@@ -141,7 +141,7 @@ export class WebService<Context> {
         const source  = resource.path.source;
         const match   = RegExp('|' + source).exec('')!;
         const groups  = match.length - 1;
-        const pattern = source.replace(/(^|[^\\])(\\\\)*\(\?<([a-zA-Z0-9]+)>/g, `$1$2(?<_${offset}_$3>`);
+        const pattern = source.replace(/(^|[^\\])(\\\\)*\(\?<([a-zA-Z0-9_]+)>/g, `$1$2(?<_${offset}_$3>`);
 
         this._validatePath('WebResource', source);
 

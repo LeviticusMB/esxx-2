@@ -70,18 +70,18 @@ describe('the WebService dispatcher', () => {
 describe(`a WebService's resources`, () => {
     const ws = new WebService('context')
         .addResource(class {
-            static path = /GET\/(?<id>\d)/;
+            static path = /GET\/(?<obj_id>\d)/;
             private digit: number;
 
             constructor(args: WebArguments) {
                 // eslint-disable-next-line jest/no-standalone-expect
-                expect(args.string('$1') === args.string('$id')).toBe(true);
+                expect(args.string('$1') === args.string('$obj_id')).toBe(true);
                 this.digit = args.number('$1');
             }
 
             async GET(args: WebArguments) {
                 // eslint-disable-next-line jest/no-standalone-expect
-                expect(args.string('$1') === args.string('$id')).toBe(true);
+                expect(args.string('$1') === args.string('$obj_id')).toBe(true);
 
                 switch (this.digit) {
                     case 0: return null;

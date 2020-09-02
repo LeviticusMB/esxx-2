@@ -106,7 +106,7 @@ export interface EventAttributes {
     [EVENT_RETRY]?: number;
 }
 
-export class EventStreamResponse<T> extends WebResponse {
+export class EventStreamResponse<T extends object> extends WebResponse {
     private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent | undefined> {
         const serialize = async (event: object): Promise<string> => {
             const [serialized] = Parser.serialize(event, dataType);
@@ -139,7 +139,7 @@ export class EventStreamResponse<T> extends WebResponse {
         }
     }
 
-    constructor(source: AsyncIterable<T | EventAttributes>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
+    constructor(protected source: AsyncIterable<T & EventAttributes | undefined | null>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
         super(WebStatus.OK, EventStreamResponse.eventStream(source, dataType), {
             'content-type':      'text/event-stream',
             'cache-control':     'no-cache',

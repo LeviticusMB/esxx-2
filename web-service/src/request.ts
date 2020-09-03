@@ -7,7 +7,7 @@ import { UAParser } from 'ua-parser-js';
 import { URL } from 'url';
 import { WebError, WebStatus } from './error';
 import { WebServiceConfig } from './service';
-import { SizeLimitedReadableStream } from './utils';
+import { SizeLimitedReadableStream, decorateConsole } from './utils';
 
 export interface UserAgent {
     ua?:     string;
@@ -26,6 +26,7 @@ export class WebRequest implements AuthSchemeRequest {
     public readonly remoteAddress: string;
     public readonly userAgent: UserAgent;
     public readonly id: string;
+    public readonly log: Console;
 
     private _body?: Promise<any>;
     private _finalizers: Array<() => Promise<void>> = [];
@@ -45,6 +46,7 @@ export class WebRequest implements AuthSchemeRequest {
         this.url           = new URL(`${scheme}://${server}${incomingMessage.url}`);
         this.userAgent     = new UAParser(incomingMessage.headers['user-agent']).getResult() as any;
         this.id            = incomingReqID && REQUEST_ID.test(incomingReqID) ? incomingReqID : cuid();
+        this.log           = config.logRequestID ? decorateConsole(config.console, `#${this.id}`) : config.console;
 
         this._maxContentLength = config.maxContentLength;
 

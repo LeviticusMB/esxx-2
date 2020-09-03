@@ -11,6 +11,7 @@ import { isReadableStream } from './utils';
 export interface WebServiceConfig {
     console?:              Console;
     errorMessageProperty?: string;
+    logRequestID?:         boolean;
     maxContentLength?:     number;
     returnRequestID?:      string | null;
     trustForwardedFor?:    boolean;
@@ -89,6 +90,7 @@ export class WebService<Context> {
             console:              console,
             maxContentLength:     1_000_000,
             errorMessageProperty: 'message',
+            logRequestID:         true,
             returnRequestID:      null,
             trustForwardedFor:    false,
             trustForwardedHost:   false,
@@ -156,7 +158,7 @@ export class WebService<Context> {
             try {
                 const webreq = new WebRequest(req, this.webServiceConfig);
 
-                this.webServiceConfig.console.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent} #${webreq.id}`);
+                webreq.log.info(`Rec'd ${webreq} from ${webreq.remoteUserAgent}`);
 
                 const webres = await this.dispatchRequest(webreq);
 
@@ -167,7 +169,7 @@ export class WebService<Context> {
 
                     if (isReadableStream(rawres.body)) {
                         res.flushHeaders();
-                        this.webServiceConfig.console.info(`Send ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
+                        webreq.log.info(`Send ${webres} to ${webreq.remoteUserAgent}`);
                     }
 
                     await new Promise((resolve, reject) => {
@@ -182,10 +184,10 @@ export class WebService<Context> {
                         }
                     });
 
-                    this.webServiceConfig.console.info(`Sent ${webres} to ${webreq.remoteUserAgent} #${webreq.id}`);
+                    webreq.log.info(`Sent ${webres} to ${webreq.remoteUserAgent}`);
                 }
                 catch (err) {
-                    this.webServiceConfig.console.warn(`${webres} could not be sent to ${webreq.remoteUserAgent}: ${err} #${webreq.id}`);
+                    webreq.log.warn(`${webres} could not be sent to ${webreq.remoteUserAgent}: ${err}`);
                 }
                 finally {
                     await webres.close();
@@ -259,8 +261,8 @@ export class WebService<Context> {
         else {
             const messageProp = this.webServiceConfig.errorMessageProperty;
 
-            this.webServiceConfig.console.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err} #${webreq.id}`);
-            this.webServiceConfig.console.debug(err);
+            webreq.log.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err}`);
+            webreq.log.debug(err);
 
             return new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { [messageProp]: 'Unexpected WebService/WebResource error' });
         }

@@ -52,6 +52,10 @@ export class WebArguments {
         ]);
     }
 
+    get log(): Console {
+        return this.request.log;
+    }
+
     async body<T extends object>(contentType?: ContentType | string, maxContentLength?: number): Promise<T> {
         const body = await this.request.body<T>(contentType, maxContentLength);
 

@@ -1,4 +1,5 @@
-import { EventEmitter, pipeline, Readable } from 'stream';
+import { EventEmitter } from 'events';
+import { pipeline, Readable } from 'stream';
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type ValueEncoder = (this: void, value: string) => string;

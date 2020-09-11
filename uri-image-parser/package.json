@@ -16,12 +16,12 @@
     "passWithNoTests": true
   },
   "peerDependencies": {
-    "@divine/uri": "^0.0.2"
+    "@divine/uri": "^0.0.4"
   },
   "dependencies": {
     "canvas": "^2.6.1"
   },
   "devDependencies": {
-    "@types/node": "^12.12.18"
+    "@types/node": "^12"
   }
 }

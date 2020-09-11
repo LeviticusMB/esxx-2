@@ -16,7 +16,7 @@ test:		prepare
 	yarn jest
 
 clean:
-	rm -rf build docs .nyc_output coverage node_modules/.cache/nyc
+	rm -rf build docs coverage
 
 distclean:	clean
 	rm -rf node_modules

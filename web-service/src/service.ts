@@ -138,6 +138,14 @@ export class WebService<Context> {
         return this;
     }
 
+    addFilters(filters: Iterable<WebFilterCtor<Context>>): this {
+        for (const filter of filters) {
+            this.addFilter(filter);
+        }
+
+        return this;
+    }
+
     addResource(resource: WebResourceCtor<Context>): this {
         const offset  = this._resources.length ? this._resources.length + this._resources[this._resources.length - 1].groups : 1;
         const source  = resource.path.source;
@@ -149,6 +157,14 @@ export class WebService<Context> {
 
         this._resources[offset] = { resource, groups, pattern };
         this._resourcePattern = undefined;
+
+        return this;
+    }
+
+    addResources(resources: Iterable<WebResourceCtor<Context>>): this {
+        for (const resource of resources) {
+            this.addResource(resource);
+        }
 
         return this;
     }

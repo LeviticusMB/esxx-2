@@ -1,59 +1,67 @@
-import { WebArguments } from './resource';
-import { WebService } from './service';
-import { escapeRegExp } from './utils';
+import { EventStreamResponse } from './helpers';
+import { WebArguments, WebResourceCtor } from './resource';
+import { escapeRegExp, isAsyncIterable } from './utils';
 
-type RPCMethods<M> = Record<keyof M, [object, object]>;
+type RPCParamsType = object;
+type RPCResultType = object | AsyncIterable<object>;
+type RPCMethods<M> = Record<keyof M, [RPCParamsType, RPCResultType]>;
 
-export type RPCMethodParams<M extends RPCMethods<M>, K extends keyof M> = M[K] extends [infer A, infer B] ? A : never;
-export type RPCMethodResult<M extends RPCMethods<M>, K extends keyof M> = M[K] extends [infer A, infer B] ? B : never;
+export type RPCParams<M extends RPCMethods<M>, K extends keyof M> = M[K] extends [infer A, infer B] ? A : never;
+export type RPCResult<M extends RPCMethods<M>, K extends keyof M> = M[K] extends [infer A, infer B] ? B : never;
 
-export type RPCServiceAPI<M extends RPCMethods<M>> = {
-    [K in keyof M]: (request: RPCMethodParams<M, K>, args: WebArguments) => Promise<RPCMethodResult<M, K>>;
+export type RPCClient<M extends RPCMethods<M>> = {
+    [K in keyof M]: (params: RPCParams<M, K>) => Promise<RPCResult<M, K>>;
 }
 
-export type RPCClientAPI<M extends RPCMethods<M>> = {
-    [K in keyof M]: (request: RPCMethodParams<M, K>) => Promise<RPCMethodResult<M, K>>;
+export type RPCService<M extends RPCMethods<M>> = {
+    [K in keyof M]: (params: RPCParams<M, K>, args: WebArguments) => Promise<RPCResult<M, K>>;
 }
+
+export const RPC_DEFAULT_KEEPALIVE = 10_000;
+export const RPC_DISABLE_KEEPALIVE = null;
 
 export interface RPCEndpointOptions {
-    path?: string;
+    path?:      string;
+    keepalive?: number | null;
 }
 
-export type RPCEndpointConfig<M extends RPCMethods<M>> = Record<keyof M, RPCEndpointOptions | null>;
+export type RPCEndpoints<M extends RPCMethods<M>> = Record<keyof M, RPCEndpointOptions | null>;
 
-export type RPCClientProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, params: object) => Promise<object>
-export type RPCSeviceProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, args: WebArguments, fn: (params: object) => Promise<object>) => Promise<object>
+export type RPCClientProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, params: RPCParamsType) => Promise<RPCResultType>
+export type RPCSeviceProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, args: WebArguments, fn: (params: RPCParamsType) => Promise<RPCResultType>) => Promise<RPCResultType>
 
-function endpoints<M extends RPCMethods<M>>(endpoints: RPCEndpointConfig<M>): Array<[keyof M, Required<RPCEndpointOptions>]> {
+function endpoints<M extends RPCMethods<M>>(endpoints: RPCEndpoints<M>): Array<[keyof M, Required<RPCEndpointOptions>]> {
     return Object.entries(endpoints)
         .map(([method, options]) => [method as keyof M, {
-            path: method,
+            path:      method,
+            keepalive: RPC_DEFAULT_KEEPALIVE,
             ...(options as RPCEndpointOptions | null ?? {})
         }]);
 }
 
-export function createRPCClient<M extends RPCMethods<M>>(config: RPCEndpointConfig<M>, clientProxy: RPCClientProxy<M>): RPCClientAPI<M> {
-    return new class RPCClientAPI {
+export function createRPCClient<M extends RPCMethods<M>>(config: RPCEndpoints<M>, clientProxy: RPCClientProxy<M>): RPCClient<M> {
+    return new class RPCClient {
         constructor() {
             const self = this as any;
 
             for (const [method, options] of endpoints(config)) {
-                self[method] = (params: object) => clientProxy(method, options, params);
+                self[method] = (params: RPCParamsType) => clientProxy(method, options, params);
             }
         }
-    } as RPCClientAPI<M>;
+    } as RPCClient<M>;
 }
 
-export function addRPCResources<M extends RPCMethods<M>, C>(ws: WebService<C>, config: RPCEndpointConfig<M>, impl: RPCServiceAPI<M>, serviceProxy: RPCSeviceProxy<M>): typeof ws {
-    for (const [method, options] of endpoints(config)) {
-        ws.addResource(class {
+export function createRPCService<M extends RPCMethods<M>>(config: RPCEndpoints<M>, impl: RPCService<M>, serviceProxy: RPCSeviceProxy<M>): Array<WebResourceCtor<unknown>> {
+    return endpoints(config).map(([method, options]) =>
+        class RPCResource {
             static path = RegExp(escapeRegExp(options.path));
 
             async POST(args: WebArguments): Promise<object> {
-                return serviceProxy(method, options, args, (params) => impl[method](params as any, args) as Promise<object>);
-            }
-        });
-    }
+                const result = await serviceProxy(method, options, args, (params) => impl[method](params as any, args) as Promise<object>);
 
-    return ws;
+                return isAsyncIterable<object>(result) ? new EventStreamResponse(result, undefined, undefined, options.keepalive ?? undefined) : result;
+            }
+        }
+    );
 }
+

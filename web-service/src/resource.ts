@@ -2,7 +2,6 @@ import { ContentType, KVPairs } from '@divine/headers';
 import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';
-import { BasicTypes } from '@divine/uri/build/src/utils';
 
 export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResponse | Promise<WebResponse>;
 
@@ -180,7 +179,7 @@ export class WebArguments {
         }
     }
 
-    private _param(param: string, required: boolean): BasicTypes | undefined {
+    private _param(param: string, required: boolean): boolean | number | string | object | null | undefined {
         const value = this.params[param];
 
         if (value === undefined && required) {

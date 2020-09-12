@@ -21,6 +21,10 @@ export function decorateConsole(console: Console, tag: string): Console {
     });
 }
 
+export function isAsyncIterable<T = unknown>(object: any): object is AsyncIterable<T> {
+    return typeof object[Symbol.asyncIterator] === 'function';
+}
+
 export function isReadableStream(obj: any): obj is NodeJS.ReadableStream;
 export function isReadableStream(obj: NodeJS.ReadableStream): obj is NodeJS.ReadableStream {
     return obj instanceof EventEmitter && typeof obj.readable === 'boolean' && typeof obj.read === 'function';
@@ -56,4 +60,45 @@ export class SizeLimitedReadableStream extends Transform {
     _flush(callback: TransformCallback): void {
         callback();
     }
+}
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface ExtAsyncIterable<T, TReturn, TNext> extends AsyncIterator<T, TReturn, TNext> {
+    [Symbol.asyncIterator](): AsyncIterator<T, TReturn, TNext>;
+}
+
+export function unblocked<T, TReturn, TNext>(it: AsyncGenerator<T, TReturn, TNext>, timeout: number): AsyncGenerator<T | undefined, TReturn, TNext>;
+export function unblocked<T, TReturn, TNext>(it: AsyncIterator<T, TReturn, TNext> | AsyncIterable<T>, timeout: number): ExtAsyncIterable<T | undefined, TReturn, TNext>;
+export function unblocked<T, TReturn, TNext>(it: AsyncIterator<T, TReturn, TNext> | AsyncIterable<T>, timeout: number): ExtAsyncIterable<T | undefined, TReturn, TNext> {
+    let next: Promise<IteratorResult<T, TReturn>> | undefined = undefined;
+
+    const g = isAsyncIterable<T>(it) ? it[Symbol.asyncIterator]() as AsyncIterator<T, TReturn, TNext>: it;
+
+    const ag: ExtAsyncIterable<T | undefined, TReturn, TNext> = {
+        next: async (...args) => {
+            if (!next) {
+                next = g.next(...args);
+            }
+
+            const nextOrVoid = await Promise.race([next, sleep(timeout)]);
+
+            if (nextOrVoid) {
+                next = undefined;
+                return nextOrVoid;
+            }
+            else {
+                return { done: false as const, value: undefined };
+            }
+        },
+
+        return: g.return ? (u) => g.return!(u) : undefined,
+        throw:  g.throw  ? (e) => g.throw!(e)  : undefined,
+
+        [Symbol.asyncIterator]: () => ag,
+    };
+
+    return ag;
 }

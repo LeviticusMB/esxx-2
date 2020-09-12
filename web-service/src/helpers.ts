@@ -3,6 +3,7 @@ import { BufferParser, EventStreamEvent, Parser } from '@divine/uri';
 import { WebError, WebStatus } from './error';
 import { WebArguments, WebFilter, WebResource } from './resource';
 import { WebResponse, WebResponseHeaders } from './response';
+import { unblocked } from './utils';
 
 function asSet(array: string | string[] | undefined): Set<string> {
     return new Set(typeof array === 'string' ? array.split(/\s*,\s*/) : array ?? []);
@@ -107,7 +108,7 @@ export interface EventAttributes {
 }
 
 export class EventStreamResponse<T extends object> extends WebResponse {
-    private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string): AsyncGenerator<EventStreamEvent | undefined> {
+    private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string, keepaliveTimeout?: number): AsyncGenerator<EventStreamEvent | undefined> {
         const serialize = async (event: object): Promise<string> => {
             const [serialized] = Parser.serialize(event, dataType);
 
@@ -115,6 +116,8 @@ export class EventStreamResponse<T extends object> extends WebResponse {
         };
 
         try {
+            source = keepaliveTimeout === undefined ? source : unblocked(source, keepaliveTimeout);
+
             for await (const event of source) {
                 if (event === undefined || event === null) {
                     yield undefined; // Emit keep-alive comment line (see EventStreamParser.serialize())
@@ -130,17 +133,19 @@ export class EventStreamResponse<T extends object> extends WebResponse {
                     yield { event: 'error', data: await serialize({ status: err.status, message: err.message }) };
                 }
                 else {
+                    console.error(`Unexpected EventStream error`, err);
                     yield { event: 'error', data: await serialize({ status: WebStatus.INTERNAL_SERVER_ERROR, message: `Unexpected EventStream error` }) };
                 }
             }
             catch (err2) {
+                console.error(`Unexpected EventStream serialization error`, err);
                 yield { event: 'error', data: err2.message }; // Inform client of error serialization errors ... as text/plain
             }
         }
     }
 
-    constructor(protected source: AsyncIterable<T & EventAttributes | undefined | null>, dataType?: ContentType | string, headers?: WebResponseHeaders) {
-        super(WebStatus.OK, EventStreamResponse.eventStream(source, dataType), {
+    constructor(protected source: AsyncIterable<T & EventAttributes | undefined | null>, dataType?: ContentType | string, headers?: WebResponseHeaders, keepaliveTimeout?: number) {
+        super(WebStatus.OK, EventStreamResponse.eventStream(source, dataType, keepaliveTimeout), {
             'content-type':      'text/event-stream',
             'cache-control':     'no-cache',
             'transfer-encoding': 'identity',

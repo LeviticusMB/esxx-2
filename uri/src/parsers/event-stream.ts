@@ -22,10 +22,10 @@ export class EventStreamParser extends Parser {
         let event: EventStreamEvent = { data: '' };
 
         for await (const chunk of stream) {
-            const lines = (extra + chunk.toString('binary')).split(/\r\n|\r|\n/);
+            const lines = (extra + chunk.toString('binary')).split(/\n/);
             extra = lines.pop() ?? '';
 
-            for (const line of lines) {
+            for (const line of lines.map((line) => Buffer.from(line, 'binary').toString('utf8'))) {
                 if (line === '') {
                     if (event.data !== '') {
                         event.data = event.data.endsWith('\n') ? event.data.substr(0, event.data.length - 1) : event.data;
@@ -72,7 +72,8 @@ export class EventStreamParser extends Parser {
                     (event.event !== undefined ? `event: ${event.event}\n` : '') +
                     (event.id    !== undefined ? `id: ${event.id}\n`       : '') +
                     (event.retry !== undefined ? `retry: ${event.retry}\n` : '') +
-                    event.data.split(/\n/).map((line) => `data: ${line}`).join('\n') + '\n\n'
+                    event.data.split(/\n/).map((line) => `data: ${line}`).join('\n') + '\n\n',
+                    'utf8'
                 );
             }
         }

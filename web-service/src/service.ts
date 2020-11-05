@@ -266,6 +266,8 @@ export class WebService<Context> {
     private async _handleException(err: Error, webreq: WebRequest): Promise<WebResponse> {
         const messageProp = this.webServiceConfig.errorMessageProperty;
 
+        webreq.log.error(`Failed: ${err}`);
+
         if (err instanceof WebError) {
             return new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
         }
@@ -275,11 +277,7 @@ export class WebService<Context> {
             });
         }
         else {
-            const messageProp = this.webServiceConfig.errorMessageProperty;
-
-            webreq.log.error(`Fail: ${webreq} from ${webreq.remoteUserAgent}: ${err}`);
             webreq.log.debug(err);
-
             return new WebResponse(WebStatus.INTERNAL_SERVER_ERROR, { [messageProp]: 'Unexpected WebService/WebResource error' });
         }
     }

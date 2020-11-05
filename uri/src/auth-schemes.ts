@@ -17,6 +17,10 @@ export class AuthSchemeError extends Error {
     constructor(message: string, public challenge?: WWWAuthenticate) {
         super(message);
     }
+
+    toString(): string {
+        return `${this.constructor.name}: ${this.message}`;
+    }
 }
 
 export interface CredentialsProviderOptions<C extends Credentials> {

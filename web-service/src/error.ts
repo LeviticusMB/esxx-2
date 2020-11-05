@@ -4,6 +4,10 @@ export class WebError extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {
         super(message);
     }
+
+    toString(): string {
+        return `[${this.constructor.name}: ${this.status} ${WebStatus[this.status] || this.status} ${this.message}]`;
+    }
 }
 
 export enum WebStatus {

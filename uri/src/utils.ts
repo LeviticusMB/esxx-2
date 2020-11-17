@@ -101,3 +101,13 @@ export function setProp<T extends object, K extends keyof T>(object: T, prop: K,
     object[prop] = value;
     return object;
 }
+
+/*! fromentries. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+export function fromEntries<T = any>(entries: Iterable<readonly [PropertyKey, T]>): { [k: string]: T };
+export function fromEntries(entries: Iterable<readonly any[]>): any;
+export function fromEntries(entries: Iterable<readonly any[]>): any {
+    return [...entries].reduce((obj, [key, val]) => {
+      obj[key] = val
+      return obj
+    }, {} as any)
+}

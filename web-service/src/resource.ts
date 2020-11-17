@@ -2,6 +2,7 @@ import { ContentType, KVPairs } from '@divine/headers';
 import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';
+import { fromEntries } from './utils';
 
 export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResponse | Promise<WebResponse>;
 
@@ -44,7 +45,7 @@ export class WebArguments {
         const headers = Object.entries(request.incomingMessage.headers);
         const qparams = [...request.url.searchParams.entries()];
 
-        this.params = Object.fromEntries([
+        this.params = fromEntries([
             ...urlargs.map(([k, v]) => ['$' + k, v]),
             ...headers.map(([k, v]) => ['@' + k, Array.isArray(v) ? v.join(', ') : v]),
             ...qparams.map(([k, v]) => ['?' + k, v])

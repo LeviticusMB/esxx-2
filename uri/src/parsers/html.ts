@@ -23,7 +23,7 @@ export class HTMLParser extends Parser {
     }
 }
 
-export class XMLTreeAdapter implements AST.TreeAdapter {
+class XMLTreeAdapter implements AST.TreeAdapter {
     private root: Document;
     private created  = false;
     private template = Symbol('<template> content');

@@ -102,3 +102,13 @@ export function unblocked<T, TReturn, TNext>(it: AsyncIterator<T, TReturn, TNext
 
     return ag;
 }
+
+/*! fromentries. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+export function fromEntries<T = any>(entries: Iterable<readonly [PropertyKey, T]>): { [k: string]: T };
+export function fromEntries(entries: Iterable<readonly any[]>): any;
+export function fromEntries(entries: Iterable<readonly any[]>): any {
+    return [...entries].reduce((obj, [key, val]) => {
+      obj[key] = val
+      return obj
+    }, {} as any)
+}

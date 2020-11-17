@@ -16,7 +16,7 @@
     "passWithNoTests": true
   },
   "peerDependencies": {
-    "@divine/uri": "^0.0.4"
+    "@divine/uri": "^0.1.1"
   },
   "dependencies": {
     "canvas": "^2.6.1"

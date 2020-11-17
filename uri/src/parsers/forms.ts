@@ -7,7 +7,7 @@ import { Encoder } from '../encoders';
 import { Parser, StringParser } from '../parsers';
 import { CacheURI } from '../protocols/cache';
 import { FIELDS, Finalizable, FINALIZE, URI, WithFields } from '../uri';
-import { copyStream } from '../utils';
+import { copyStream, fromEntries } from '../utils';
 
 export interface FormData extends WithFields<FormField> {
     [key: string]: string | undefined;
@@ -115,7 +115,7 @@ export class MultiPartParser extends Parser {
                     // eslint-disable-next-line no-async-promise-executor
                     values.push(new Promise(async (resolve, reject) => {
                         try {
-                            const headers: KVPairs = Object.fromEntries(Object.entries(_headers).map(([k, v]) => [k, v?.join(', ')]));
+                            const headers: KVPairs = fromEntries(Object.entries(_headers).map(([k, v]) => [k, v?.join(', ')]));
                             const type             = ContentType.create(headers['content-type'], MultiPartParser.defaultContentType);
                             const disposition      = headers['content-disposition'] && new ContentDisposition(headers['content-disposition']) || undefined;
                             const name             = disposition?.param('name');

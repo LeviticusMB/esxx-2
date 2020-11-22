@@ -1,4 +1,4 @@
-import { WebResponseHeaders } from './response';
+import { WebResponse, WebResponseHeaders } from './response';
 
 export class WebError extends Error {
     constructor(public status: WebStatus, message: string, public headers: WebResponseHeaders = {}) {
@@ -7,6 +7,10 @@ export class WebError extends Error {
 
     toString(): string {
         return `[${this.constructor.name}: ${this.status} ${WebStatus[this.status] || this.status} ${this.message}]`;
+    }
+
+    toWebResponse(errorMessageProperty: string): WebResponse {
+        return new WebResponse(this.status, { [errorMessageProperty]: this.message }, this.headers);
     }
 }
 

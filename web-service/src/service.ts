@@ -269,7 +269,7 @@ export class WebService<Context> {
         webreq.log.error(`Failed: ${err}`);
 
         if (err instanceof WebError) {
-            return new WebResponse(err.status, { [messageProp]: err.message }, err.headers);
+            return err.toWebResponse(messageProp);
         }
         else if (err instanceof AuthSchemeError) {
             return new WebResponse(WebStatus.UNAUTHORIZED, { [messageProp]: err.message }, {

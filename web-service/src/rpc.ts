@@ -27,6 +27,10 @@ export interface RPCEndpointOptions {
 
 export type RPCEndpoints<M extends RPCMethods<M>> = Record<keyof M, RPCEndpointOptions | null>;
 
+export interface RPCServiceCtor<Context, M extends RPCMethods<M>> {
+    new(context: Context, args: WebArguments): RPCService<M>;
+}
+
 export type RPCClientProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, params: RPCParamsType) => Promise<RPCResultType>
 export type RPCSeviceProxy<M extends RPCMethods<M>> = (method: keyof M, options: Required<RPCEndpointOptions>, args: WebArguments, fn: (params: RPCParamsType) => Promise<RPCResultType>) => Promise<RPCResultType>
 
@@ -51,13 +55,18 @@ export function createRPCClient<M extends RPCMethods<M>>(config: RPCEndpoints<M>
     } as RPCClient<M>;
 }
 
-export function createRPCService<M extends RPCMethods<M>>(config: RPCEndpoints<M>, impl: RPCService<M>, serviceProxy: RPCSeviceProxy<M>): Array<WebResourceCtor<unknown>> {
+export function createRPCService<M extends RPCMethods<M>, Context>(config: RPCEndpoints<M>, impl: RPCServiceCtor<Context, M>, serviceProxy: RPCSeviceProxy<M>): Array<WebResourceCtor<Context>>;
+export function createRPCService<M extends RPCMethods<M>>(config: RPCEndpoints<M>, impl: RPCService<M>, serviceProxy: RPCSeviceProxy<M>): Array<WebResourceCtor<unknown>>;
+export function createRPCService<M extends RPCMethods<M>, Context = unknown>(config: RPCEndpoints<M>, impl: RPCServiceCtor<Context, M> | RPCService<M>, serviceProxy: RPCSeviceProxy<M>): Array<WebResourceCtor<Context>> {
     return endpoints(config).map(([method, options]) =>
         class RPCResource {
             static path = RegExp(escapeRegExp(options.path));
 
+            constructor(private ctx: Context) {}
+
             async POST(args: WebArguments): Promise<object> {
-                const result = await serviceProxy(method, options, args, (params) => impl[method](params as any, args) as Promise<object>);
+                const object = typeof impl === 'function' ? new impl(this.ctx, args) : impl;
+                const result = await serviceProxy(method, options, args, (params) => object[method](params as any, args) as Promise<object>);
 
                 return isAsyncIterable<object>(result) ? new EventStreamResponse(result, undefined, undefined, options.keepalive ?? undefined) : result;
             }

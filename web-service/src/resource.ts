@@ -4,7 +4,7 @@ import { WebRequest } from './request';
 import { WebResponse, WebResponses } from './response';
 import { fromEntries } from './utils';
 
-export type WebErrorHandler<Context> = (err: Error, context: Context) => WebResponse | Promise<WebResponse>;
+export type WebErrorHandler<Context> = (err: Error, context: Context) => Promise<WebResponse>;
 
 export interface WebFilterCtor<Context> {
     path: RegExp;

@@ -9,7 +9,7 @@ export type WebErrorHandler<Context> = (err: Error, context: Context) => Promise
 export interface WebFilterCtor<Context> {
     path: RegExp;
 
-    new(args: WebArguments, context: Context): WebFilter;
+    new(context: Context, args: WebArguments): WebFilter;
 }
 
 export interface WebFilter {
@@ -19,7 +19,7 @@ export interface WebFilter {
 export interface WebResourceCtor<Context> {
     path: RegExp;
 
-    new(args: WebArguments, context: Context): WebResource;
+    new(context: Context, args: WebArguments): WebResource;
 }
 
 export interface WebResource {

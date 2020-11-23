@@ -289,7 +289,7 @@ export class WebService<Context> {
                 const active = matches.shift();
                 const params = active && new WebArguments(regExpParams(active.match, 0, active.match.length, ''), webreq);
                 const result = active
-                    ? await new active.ctor(params!, this.context).filter(nextflt, params!, resource)
+                    ? await new active.ctor(this.context, params!).filter(nextflt, params!, resource)
                     : await resourceHandler();
 
                 return result instanceof WebResponse ? result : new WebResponse(result ? WebStatus.OK : WebStatus.NO_CONTENT, result);
@@ -314,7 +314,7 @@ export class WebService<Context> {
         const createResource = async () => {
             if (!rsrc) {
                 args = new WebArguments(regExpParams(match, offset, desc.groups, `_${offset}_`), webreq);
-                rsrc = new desc.resource(args, this.context);
+                rsrc = new desc.resource(this.context, args);
                 await rsrc.init?.(args);
             }
 

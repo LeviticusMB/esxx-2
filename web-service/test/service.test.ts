@@ -7,7 +7,7 @@ describe('the WebService dispatcher', () => {
     .addResource(class {
         static path = /default/;
 
-        constructor(args: WebArguments, context: string) {
+        constructor(context: string, args: WebArguments) {
             // eslint-disable-next-line jest/no-standalone-expect
             expect(args.request.url.href).toBe('http://localhost/default?foo');
             // eslint-disable-next-line jest/no-standalone-expect
@@ -73,7 +73,7 @@ describe(`a WebService's resources`, () => {
             static path = /GET\/(?<obj_id>\d)/;
             private digit: number;
 
-            constructor(args: WebArguments) {
+            constructor(_context: string, args: WebArguments) {
                 // eslint-disable-next-line jest/no-standalone-expect
                 expect(args.string('$1') === args.string('$obj_id')).toBe(true);
                 this.digit = args.number('$1');

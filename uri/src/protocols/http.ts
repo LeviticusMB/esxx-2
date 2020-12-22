@@ -9,7 +9,7 @@ import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Encoder } from '../encoders';
 import { Parser } from '../parsers';
 import { DirectoryEntry, HEADERS, IOError, Metadata, ParamsSelector, STATUS, STATUS_TEXT, URI, VOID } from '../uri';
-import { copyStream, fromEntries } from '../utils';
+import { copyStream } from '../utils';
 
 export interface HTTPParamsSelector extends ParamsSelector {
     params: {
@@ -146,7 +146,7 @@ export class HTTPURI extends URI {
         }
 
         // Bug workaround?
-        headers = fromEntries(Object.entries(headers).filter(([, value]) => value !== undefined));
+        headers = Object.fromEntries(Object.entries(headers).filter(([, value]) => value !== undefined));
 
         const params  = this.getBestSelector<HTTPParamsSelector>(this.selectors?.param)?.params ?? {};
         const options = { agent: params.agent, timeout: params.timeout };

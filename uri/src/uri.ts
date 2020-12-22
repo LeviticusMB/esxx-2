@@ -4,7 +4,6 @@ import path from 'path';
 import url, { Url, URL } from 'url';
 import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
 import * as utils from './utils';
-import { fromEntries } from './utils';
 
 const urlObject  = (url as any).Url;
 
@@ -284,7 +283,7 @@ function metadata(err: NodeJS.ErrnoException): Metadata {
     return {
         [STATUS]:      typeof err.errno === 'number' ? -err.errno : -1,
         [STATUS_TEXT]: err.code ?? err.constructor?.name,
-        [HEADERS]:     fromEntries(Object.entries(err).filter(([name]) => !/^(errno|code|message|stack)$/.test(name))),
+        [HEADERS]:     Object.fromEntries(Object.entries(err).filter(([name]) => !/^(errno|code|message|stack)$/.test(name))),
     };
 }
 

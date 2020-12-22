@@ -2,10 +2,15 @@
   "name": "@divine/uri-image-parser",
   "version": "1.0.0",
   "description": "Adds support for images to @divine/uri",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "files": [
+    "build/src",
+    "build/package*",
+    "src"
+  ],
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
@@ -19,7 +24,8 @@
     "@divine/uri": "^0.1.1"
   },
   "dependencies": {
-    "canvas": "^2.6.1"
+    "canvas": "^2.6.1",
+    "tslib": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^12"

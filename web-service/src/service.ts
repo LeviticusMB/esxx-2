@@ -188,7 +188,7 @@ export class WebService<Context> {
                         webreq.log.info(`Send ${webres} to ${webreq.remoteUserAgent}`);
                     }
 
-                    await new Promise((resolve, reject) => {
+                    await new Promise<void>((resolve, reject) => {
                         if (rawres.body instanceof Buffer) {
                             res.write(rawres.body, (err) => err ? reject(err) : resolve());
                         }

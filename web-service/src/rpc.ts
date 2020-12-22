@@ -1,6 +1,6 @@
 import { EventStreamResponse } from './helpers';
 import { WebArguments, WebResourceCtor } from './resource';
-import { escapeRegExp, isAsyncIterable } from './utils';
+import { escapeRegExp, isAsyncIterable } from './private/utils';
 
 type RPCParamsType = object;
 type RPCResultType = object | AsyncIterable<object>;

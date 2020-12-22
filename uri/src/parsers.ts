@@ -1,7 +1,7 @@
 import { ContentType } from '@divine/headers';
 import iconv from 'iconv-lite';
 import { Finalizable, IOError, NULL, VOID } from './uri';
-import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable, BasicTypes } from './utils';
+import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable, BasicTypes } from './private/utils';
 
 export function toObject<T extends object>(result: unknown): T {
     return result === undefined       ? Object(VOID) :

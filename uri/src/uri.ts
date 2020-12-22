@@ -3,7 +3,7 @@ import { lookup } from 'mime-types';
 import path from 'path';
 import url, { Url, URL } from 'url';
 import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
-import * as utils from './utils';
+import * as utils from './private/utils';
 
 const urlObject  = (url as any).Url;
 

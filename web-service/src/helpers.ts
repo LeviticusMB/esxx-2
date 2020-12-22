@@ -3,7 +3,7 @@ import { BufferParser, EventStreamEvent, Parser } from '@divine/uri';
 import { WebError, WebStatus } from './error';
 import { WebArguments, WebFilter, WebResource } from './resource';
 import { WebResponse, WebResponseHeaders } from './response';
-import { unblocked } from './utils';
+import { unblocked } from './private/utils';
 
 function asSet(array: string | string[] | undefined): Set<string> {
     return new Set(typeof array === 'string' ? array.split(/\s*,\s*/) : array ?? []);

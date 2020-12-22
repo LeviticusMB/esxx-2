@@ -4,7 +4,7 @@ import { lookup } from 'mime-types';
 import { basename, join, normalize } from 'path';
 import { Parser } from '../parsers';
 import { DirectoryEntry, encodeFilePath, Metadata, URI, VOID } from '../uri';
-import { copyStream, toReadableStream } from '../utils';
+import { copyStream, toReadableStream } from '../private/utils';
 
 export class FileURI extends URI {
     static create(path: string, base?: URI): URI {

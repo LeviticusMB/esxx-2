@@ -7,7 +7,7 @@ import { Encoder } from '../encoders';
 import { Parser, StringParser } from '../parsers';
 import { CacheURI } from '../protocols/cache';
 import { FIELDS, Finalizable, FINALIZE, URI, WithFields } from '../uri';
-import { copyStream } from '../utils';
+import { copyStream } from '../private/utils';
 
 export interface FormData extends WithFields<FormField> {
     [key: string]: string | undefined;

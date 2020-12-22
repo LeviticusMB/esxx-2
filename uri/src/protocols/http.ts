@@ -9,7 +9,7 @@ import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Encoder } from '../encoders';
 import { Parser } from '../parsers';
 import { DirectoryEntry, HEADERS, IOError, Metadata, ParamsSelector, STATUS, STATUS_TEXT, URI, VOID } from '../uri';
-import { copyStream } from '../utils';
+import { copyStream } from '../private/utils';
 
 export interface HTTPParamsSelector extends ParamsSelector {
     params: {

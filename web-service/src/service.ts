@@ -6,7 +6,7 @@ import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebArguments, WebErrorHandler, WebFilterCtor, WebResource, WebResourceCtor } from './resource';
 import { WebResponse, WebResponses } from './response';
-import { isReadableStream } from './utils';
+import { isReadableStream } from './private/utils';
 
 export interface WebServiceConfig {
     console?:              Console;

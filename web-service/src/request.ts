@@ -7,7 +7,7 @@ import { UAParser } from 'ua-parser-js';
 import { URL } from 'url';
 import { WebError, WebStatus } from './error';
 import { WebServiceConfig } from './service';
-import { SizeLimitedReadableStream, decorateConsole } from './utils';
+import { SizeLimitedReadableStream, decorateConsole } from './private/utils';
 
 export interface UserAgent {
     ua?:     string;

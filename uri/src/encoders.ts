@@ -1,7 +1,7 @@
 import { Transform } from 'stream';
 import { createBrotliCompress, createBrotliDecompress, createDeflate, createGunzip, createGzip, createInflate } from 'zlib';
 import { IOError } from './uri';
-import { isAsyncIterable, toAsyncIterable, toReadableStream } from './utils';
+import { isAsyncIterable, toAsyncIterable, toReadableStream } from './private/utils';
 
 export class EncoderError extends IOError {
 }

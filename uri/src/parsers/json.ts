@@ -1,5 +1,5 @@
 import { Parser, StringParser } from '../parsers';
-import { BasicTypes } from '../utils';
+import { BasicTypes } from '../private/utils';
 
 export class JSONParser extends Parser {
     async parse(stream: AsyncIterable<Buffer>): Promise<BasicTypes> {

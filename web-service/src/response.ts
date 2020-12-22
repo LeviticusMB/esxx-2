@@ -5,7 +5,7 @@ import { URL } from 'url';
 import { WebError, WebStatus } from './error';
 import { WebRequest } from './request';
 import { WebServiceConfig } from './service';
-import { isReadableStream } from './utils';
+import { isReadableStream } from './private/utils';
 
 export interface RawResponse {
     status:  number;

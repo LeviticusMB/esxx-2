@@ -14,5 +14,6 @@ docs test clean distclean::
 	$(MAKE) -C uri $@
 	$(MAKE) -C uri-image-parser $@
 	$(MAKE) -C web-service $@
+	$(MAKE) -C x4e $@
 
 .PHONY:		all prepare build docs test clean distclean

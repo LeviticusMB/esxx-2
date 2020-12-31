@@ -4,8 +4,9 @@
   "description": "A collection of awesome web-related Node modules",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "repository": "https://github.com/LeviticusMB/esxx-2.git",
+  "bugs": "https://github.com/LeviticusMB/esxx-2/issues",
   "private": true,
-  "repository": "martin@blom.org:/opt/git/esxx-2.git",
   "devDependencies": {
     "@types/jest": "^26.0.19",
     "@typescript-eslint/eslint-plugin": "^4.11.0",

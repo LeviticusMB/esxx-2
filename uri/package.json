@@ -4,6 +4,8 @@
   "description": "The Divine URI class for accessing and manipulating local and remote resources",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "repository": "https://github.com/LeviticusMB/esxx-2.git",
+  "bugs": "https://github.com/LeviticusMB/esxx-2/issues",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "files": [
@@ -15,7 +17,7 @@
     "preset": "ts-jest",
     "testEnvironment": "node",
     "testMatch": [
-        "**/*.test.ts"
+      "**/*.test.ts"
     ],
     "collectCoverage": true
   },

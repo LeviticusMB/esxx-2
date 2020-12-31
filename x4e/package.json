@@ -4,6 +4,8 @@
   "description": "E4X-like XML and HTML datatypes",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
+  "repository": "https://github.com/LeviticusMB/esxx-2.git",
+  "bugs": "https://github.com/LeviticusMB/esxx-2/issues",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
   "files": [

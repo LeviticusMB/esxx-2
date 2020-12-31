@@ -1,4 +1,4 @@
-import { escapeHTMLAttribute, parseHTMLFromString } from './html-utils';
+import { escapeHTMLAttribute, parseHTMLFragmentFromString, parseHTMLFromString } from './html-utils';
 import { ToXMLList, X4EList } from './private/x4e-list';
 import { ToXML, X4E } from './private/x4e-node';
 import type { ConvertableTypes } from './private/x4e-utils';
@@ -43,6 +43,10 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): XML<E
     return XML(parseHTMLFromString(strings[0] + values.map((value, i) => escapeHTMLAttribute(String(value)) + strings[i + 1])).documentElement);
 }
 
+export function htmlList<TNode extends Node = Node>(strings: TemplateStringsArray, ...values: unknown[]): XMLList<TNode> {
+    return XML(parseHTMLFragmentFromString(strings[0] + values.map((value, i) => escapeHTMLAttribute(String(value)) + strings[i + 1]))).$children() as XMLList<TNode>;
+}
+
 export const xml       = xmlNS('');
 export const xmlList   = xmlListNS('');
 
@@ -55,4 +59,3 @@ export const xhtmlList = xmlListNS('http://www.w3.org/1999/xhtml');
 // export const xlink       = xmlNS('http://www.w3.org/1999/xlink');
 // export const xmlschema   = xmlNS('http://www.w3.org/2001/XMLSchema');
 // export const xslt        = xmlNS('http://www.w3.org/1999/XSL/Transform');
-

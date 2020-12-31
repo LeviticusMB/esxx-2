@@ -1,5 +1,7 @@
-import { AST, ParserStream, serialize } from 'parse5';
+import type * as AST from 'parse5';
+import { parse, parseFragment, serialize } from 'parse5';
 import { DOMImplementation } from 'xmldom';
+import { isAttribute, isComment, isDocument, isDocumentFragment, isDocumentType, isElement, isText } from './xml-utils';
 
 export {
     escapeXML          as escapeHTML,
@@ -7,21 +9,38 @@ export {
 } from './xml-utils';
 
 export function parseHTMLFromString(document: string): Document {
-    const parser = new ParserStream({ treeAdapter: new XMLTreeAdapter() });
-    parser.write(document);
+    return parse(document, { treeAdapter: new XMLTreeAdapter() }) as Document;
+}
 
-    return parser.document as Document;
+export function parseHTMLFragmentFromString(fragment: string): DocumentFragment {
+    return parseFragment(fragment, { treeAdapter: new XMLTreeAdapter() }) as DocumentFragment;
 }
 
 export function serializeHTMLToString(node: Node): string {
+    if (node.parentNode && isDocument(node.parentNode)) {
+        node = node.parentNode;
+    }
+    else if (!isDocument(node) && !isDocumentFragment(node) && !isAttribute(node)) {
+        // Hackelihack
+        const documentElement = node;
+
+        node = {
+            childNodes: {
+                length: 1,
+                item:   () => documentElement,
+            }
+        } as unknown as Document;
+    }
+
     return serialize(node, { treeAdapter: new XMLTreeAdapter() });
 }
 
 class XMLTreeAdapter implements AST.TreeAdapter {
     private root: Document;
     private created  = false;
-    private template = Symbol('<template> content');
-    private docMode  = Symbol('HTML document mode');
+    private template = Symbol('template');
+    private docMode  = Symbol('docMode');
+    private location = Symbol('location');
 
     constructor() {
         this.root = new DOMImplementation().createDocument(null, null!, null!);
@@ -41,7 +60,7 @@ class XMLTreeAdapter implements AST.TreeAdapter {
         return this.root.createDocumentFragment();
     }
 
-    createElement(tagName: string, namespaceURI: string, attrs: AST.Default.Attribute[]): Element {
+    createElement(tagName: string, namespaceURI: string, attrs: AST.Attribute[]): Element {
         const element = this.root.createElementNS(namespaceURI, tagName);
 
         for (const attr of attrs) {
@@ -88,6 +107,15 @@ class XMLTreeAdapter implements AST.TreeAdapter {
         return (document as any)[this.docMode];
     }
 
+    getNodeSourceCodeLocation(node: Node): AST.Location | AST.StartTagLocation | AST.ElementLocation {
+        return (node as any)[this.location]
+    }
+
+    setNodeSourceCodeLocation(node: Node, location: AST.Location | AST.StartTagLocation | AST.ElementLocation): void {
+        (node as any)[this.location] = location;
+    }
+
+
     detachNode(node: Node): void {
         if (node.parentNode) {
             node.parentNode.removeChild(node);
@@ -102,7 +130,7 @@ class XMLTreeAdapter implements AST.TreeAdapter {
         parentNode.insertBefore(this.root.createTextNode(text), referenceNode); // FIXME: Optimize
     }
 
-    adoptAttributes(recipient: Element, attrs: AST.Default.Attribute[]): void {
+    adoptAttributes(recipient: Element, attrs: AST.Attribute[]): void {
         for (const attr of attrs) {
             if (attr.namespace) {
                 if (!recipient.hasAttributeNS(attr.namespace, attr.name)) {
@@ -135,7 +163,7 @@ class XMLTreeAdapter implements AST.TreeAdapter {
         return node.parentNode!;
     }
 
-    getAttrList(element: Element): AST.Default.Attribute[] {
+    getAttrList(element: Element): AST.Attribute[] {
         const attrs = [];
 
         for (let i = 0; i < element.attributes.length; ++i) {
@@ -180,18 +208,18 @@ class XMLTreeAdapter implements AST.TreeAdapter {
     }
 
     isTextNode(node: Node): boolean {
-        return node.nodeType === 3 /* Node.TEXT_NODE */;
+        return isText(node);
     }
 
     isCommentNode(node: Node): boolean {
-        return node.nodeType === 8 /* Node.COMMENT_NODE */;
+        return isComment(node);
     }
 
     isDocumentTypeNode(node: Node): boolean {
-        return node.nodeType === 10 /* Node.DOCUMENT_TYPE_NODE */;
+        return isDocumentType(node);
     }
 
     isElementNode(node: Node): boolean {
-        return node.nodeType === 1 /* Node.ELEMENT_NODE */;
+        return isElement(node);
     }
 }

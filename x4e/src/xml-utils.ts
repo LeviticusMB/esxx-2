@@ -44,22 +44,34 @@ export function isDOMNode(obj: unknown): obj is Node {
     return !!obj && typeof (obj as Node).nodeType === 'number';
 }
 
-export function isAttribute(node: Node): node is Attr {
-    return node.nodeType === ATTRIBUTE_NODE;
-}
-
 export function isElement(node: Node): node is Element {
     return node.nodeType === ELEMENT_NODE;
 }
 
-export function isComment(node: Node): node is Comment {
-    return node.nodeType === COMMENT_NODE;
+export function isAttribute(node: Node): node is Attr {
+    return node.nodeType === ATTRIBUTE_NODE;
+}
+
+export function isText(node: Node): node is Text {
+    return node.nodeType === TEXT_NODE;
 }
 
 export function isProcessingInstruction(node: Node): node is ProcessingInstruction {
     return node.nodeType === PROCESSING_INSTRUCTION_NODE;
 }
 
-export function isText(node: Node): node is Text {
-    return node.nodeType === TEXT_NODE;
+export function isComment(node: Node): node is Comment {
+    return node.nodeType === COMMENT_NODE;
+}
+
+export function isDocument(node: Node): node is Document {
+    return node.nodeType === DOCUMENT_NODE;
+}
+
+export function isDocumentType(node: Node): node is DocumentType {
+    return node.nodeType === DOCUMENT_TYPE_NODE;
+}
+
+export function isDocumentFragment(node: Node): node is DocumentFragment {
+    return node.nodeType === DOCUMENT_FRAGMENT_NODE;
 }

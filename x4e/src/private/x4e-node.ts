@@ -5,12 +5,10 @@ import { X4EList } from './x4e-list';
 import { asXML, asXMLList, CallMethod, X4EProxyTarget } from './x4e-magic';
 import { Call, ConvertableTypes, domNodeList, ElementLike, filerChildNodes, Get, getChildElementsByTagName, GetOwnProperty, HasProperty, isInteger, nodeTypes, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
 
-export class X4E<TNode extends Node> extends Function implements X4EProxyTarget, Iterable<XML<TNode>> {
+export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNode>> {
     private [Value]: TNode & ElementLike;
 
     constructor(node: TNode) {
-        super('throw TypeError("XML is not a function")');
-
         this[Value] = node;
     }
 

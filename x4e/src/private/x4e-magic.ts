@@ -16,42 +16,51 @@ export interface X4EProxyTarget {
     // § 9.2.1.5 (X4E: attributes optional)
     [HasProperty](name: string | number, allowAttributes: boolean): boolean;
 
-    // 11.2.2.1 Call X4E: Not really)
+    // 11.2.2.1 CallMethod X4E: Not really)
     [Call]?: CallMethod;
 
     // § 12.2 The for-in Statement
     [OwnPropertyKeys](): string[];
     [GetOwnProperty](p: string): PropertyDescriptor | undefined;
-
 }
 
 export function asXML<TNode extends Node>(node: TNode): XML<TNode> {
     return new Proxy(new X4E(node), X4EProxyHandler) as XML<TNode>;
 }
 
-export function asXMLList<TNode extends Node>(list: TNode | ArrayLike<TNode> | null | undefined): XMLList<TNode> {
-    return new Proxy(new X4EList(list), X4EProxyHandler) as XMLList<TNode>;
-}
+export function asXMLList<TNode extends Node>(list: TNode | ArrayLike<TNode> | null | undefined, source?: X4EProxyTarget, prop?: string): XMLList<TNode> {
+    let object = new X4EList(list);
+    const func = source && (source as any)[prop!];
 
-function addCallMethod(dst: X4EProxyTarget, src: any, prop: string): typeof dst {
-    if (typeof src[prop] === 'function') {
-        dst[Call] = src[prop];
+    if (typeof func === 'function') {
+        object[Call] = func;
+
+        const CallMethod = () => void 0;
+        Reflect.setPrototypeOf(CallMethod, object);
+        object = CallMethod as unknown as X4EList<TNode>;
     }
 
-    return dst;
+    return new Proxy(object, X4EProxyHandler) as XMLList<TNode>;
 }
 
 export const X4EProxyHandler: ProxyHandler<X4EProxyTarget> = {
+    // 11.2.2.1 CallMethod (X4E: Not really)
+    getPrototypeOf(target) {
+        target = typeof target === 'function' ? Reflect.getPrototypeOf(target) as typeof target: target;
+
+        return Reflect.getPrototypeOf(target);
+    },
+
     // § 11.2.1 Property Accessors
-    get: (target, p: string | symbol, receiver) => {
+    get(target, p: string | symbol, receiver) {
         if (typeof p === 'string' && p[0] !== '$') {
             const value = target[Get](p, false);
 
             if (value instanceof Array) {
-                return addCallMethod(asXMLList(value), target, p);
+                return asXMLList(value, target, p);
             }
             else if (value) {
-                return addCallMethod(asXML(value), target, p);
+                return asXML(value);
             }
             else {
                 return value;
@@ -62,7 +71,7 @@ export const X4EProxyHandler: ProxyHandler<X4EProxyTarget> = {
     },
 
     // § 9.1.1.6 (X4E: attributes optional)
-    has: (target, p: string | symbol) => {
+    has(target, p: string | symbol) {
         if (typeof p === 'string' && p[0] !== '$') {
             return target[HasProperty](p, false);
         }
@@ -71,20 +80,23 @@ export const X4EProxyHandler: ProxyHandler<X4EProxyTarget> = {
     },
 
     // 11.2.2.1 CallMethod (X4E: Not really)
-    apply: (target, self, args) => {
-        if (target[Call]) {
-            return target[Call]?.apply(self, args);
-        }
-
-        return Reflect.apply(target as any, self, args);
+    apply(target, self, args) {
+        // If we get here, target must have a [Call] property, so just call it
+        return target[Call]!.call(self, ...args);
     },
 
-    ownKeys: (target) => {
-        return [ ...Reflect.ownKeys(target), ...target[OwnPropertyKeys]() ];
+    // § 12.2 The for-in Statement
+    ownKeys(target) {
+        const x4eKeys = typeof target === 'function' ? Reflect.ownKeys(Reflect.getPrototypeOf(target)) : [];
+
+        return [ ...Reflect.ownKeys(target), ...x4eKeys, ...target[OwnPropertyKeys]() ];
     },
 
-    getOwnPropertyDescriptor: (target, p) => {
-        return Reflect.getOwnPropertyDescriptor(target, p) ?? (typeof p === 'string' && p[0] !== '$' ? target[GetOwnProperty](p) : undefined);
+    // § 12.2 The for-in Statement
+    getOwnPropertyDescriptor(target, p) {
+        const x4eProp = typeof target === 'function' ? Reflect.getOwnPropertyDescriptor(Reflect.getPrototypeOf(target), p) : undefined;
+
+        return Reflect.getOwnPropertyDescriptor(target, p) ?? x4eProp ?? (typeof p === 'string' && p[0] !== '$' ? target[GetOwnProperty](p) : undefined);
     },
 
     // Custom NodeJS inspector value: Hide this object from Node REPL

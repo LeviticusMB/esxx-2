@@ -13,6 +13,7 @@ docs test clean distclean::
 	$(MAKE) -C headers $@
 	$(MAKE) -C uri $@
 	$(MAKE) -C uri-image-parser $@
+	$(MAKE) -C uri-x4e-parser $@
 	$(MAKE) -C web-service $@
 	$(MAKE) -C x4e $@
 

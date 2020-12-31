@@ -7,10 +7,8 @@ export * from './parsers';
 export * from './parsers/csv';
 export * from './parsers/event-stream';
 export * from './parsers/forms';
-export * from './parsers/html';
 export * from './parsers/json';
 export * from './parsers/toml';
-export * from './parsers/xml';
 export * from './parsers/yaml';
 export * from './protocols/cache';
 export * from './protocols/file';
@@ -33,4 +31,7 @@ import './parsers';
 import './parsers/csv';
 import './parsers/event-stream';
 import './parsers/forms';
-import './parsers/html';
+
+// Register all optional parsers
+import('@divine/uri-image-parser' as string).catch(() => 0);
+import('@divine/uri-x4e-parser' as string).catch(() => 0);

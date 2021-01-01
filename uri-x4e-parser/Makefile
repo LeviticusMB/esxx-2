@@ -11,7 +11,7 @@ build:		prepare
 	yarn run tsc --build
 
 docs:
-	yarn run typedoc --ignoreCompilerErrors --out docs --mode library --theme minimal --inputFiles src/index.ts
+	yarn run typedoc --out docs src/index.ts
 
 test:		prepare
 	yarn run jest

@@ -1,37 +1,25 @@
-## Welcome to GitHub Pages
+# Modules
 
-You can use the [editor on GitHub](https://github.com/LeviticusMB/esxx-2/edit/master/docs/index.md) to maintain and preview the content for your website in Markdown files.
+## [Headers](headers)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+A HTTP header utility library.
 
-### Markdown
+## [URI](uri)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+A class for accessing and manipulating local and remote resources of all kinds.
 
-```markdown
-Syntax highlighted code block
+## [URI Image Parser](uri-image-parser)
 
-# Header 1
-## Header 2
-### Header 3
+Adds support for images to the URI class.
 
-- Bulleted
-- List
+## [URI X4E Parser](uri-image-parser)
 
-1. Numbered
-2. List
+Adds support for XML and HTML documents to the URI class.
 
-**Bold** and _Italic_ and `Code` text
+## [Web Service](web-service)
 
-[Link](url) and ![Image](src)
-```
+A HTTP/WebService platform.
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+## [X4E](x4e)
 
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/LeviticusMB/esxx-2/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+E4X-like XML and HTML datatypes.

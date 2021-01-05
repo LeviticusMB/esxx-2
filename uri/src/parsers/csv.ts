@@ -15,7 +15,7 @@ export class CSVParser extends Parser {
             const separator = this.contentType.param('x-separator', '');
             const quote     = this.contentType.param('x-quote',     '"');
 
-            Papa.parse(Readable.from(stream), {
+            Papa.parse<string[] | object>(Readable.from(stream), {
                 encoding:  charset, // TODO: Encoding
                 header:    header === 'present',
                 newline:   eol,

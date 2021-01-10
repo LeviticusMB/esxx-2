@@ -43,7 +43,7 @@ class XMLTreeAdapter implements AST.TreeAdapter {
     private location = Symbol('location');
 
     constructor() {
-        this.root = new DOMImplementation().createDocument(null, null!, null!);
+        this.root = new DOMImplementation().createDocument(null, null, null);
     }
 
     createDocument(): Document {

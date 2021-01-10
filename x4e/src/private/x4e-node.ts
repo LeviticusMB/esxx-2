@@ -1,6 +1,6 @@
 import { inspect, InspectOptions } from 'util';
 import type { XML, XMLList } from '../x4e-types';
-import { ATTRIBUTE_NODE, COMMENT_NODE, escapeXML, isAttribute, isComment, isDOMNode, isElement, isProcessingInstruction, isText, PROCESSING_INSTRUCTION_NODE, TEXT_NODE } from '../xml-utils';
+import { escapeXML, isAttribute, isComment, isDOMNode, isElement, isProcessingInstruction, isText } from '../xml-utils';
 import { X4EList } from './x4e-list';
 import { asXML, asXMLList, CallMethod, X4EProxyTarget } from './x4e-magic';
 import { Call, ConvertableTypes, domNodeList, ElementLike, filerChildNodes, Get, getChildElementsByTagName, GetOwnProperty, HasProperty, isInteger, nodeTypes, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
@@ -258,10 +258,10 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
 // § 13.4.4.15/13.4.4.16
 function hasSimpleContent(node: Node): boolean {
-    if (node.nodeType === COMMENT_NODE || node.nodeType === PROCESSING_INSTRUCTION_NODE) {
+    if (isComment(node) || isProcessingInstruction(node)) {
         return false;
     }
-    else if (node.nodeType === TEXT_NODE || node.nodeType === ATTRIBUTE_NODE) {
+    else if (isText(node) || isAttribute(node)) {
         return true;
     }
     else {
@@ -271,14 +271,14 @@ function hasSimpleContent(node: Node): boolean {
 
 // § 10.1.1
 function toString(node: Node): string {
-    if (node.nodeType === ATTRIBUTE_NODE || node.nodeType === TEXT_NODE) {
+    if (isAttribute(node) || isText(node)) {
         return node.nodeValue ?? '';
     }
     else if (hasSimpleContent(node)) {
         let result = '';
 
         for (let child = node.firstChild; child; child = child.nextSibling) {
-            if (child.nodeType !== COMMENT_NODE && child.nodeType !== PROCESSING_INSTRUCTION_NODE) {
+            if (!isComment(child) && !isProcessingInstruction(child)) {
                 result += toString(child);
             }
         }

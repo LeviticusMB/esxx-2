@@ -1,17 +1,26 @@
 import { DOMParser, XMLSerializer } from 'xmldom';
 
-export const ELEMENT_NODE                = 1;
-export const ATTRIBUTE_NODE              = 2;
-export const TEXT_NODE                   = 3;
-export const CDATA_SECTION_NODE          = 4;
-export const ENTITY_REFERENCE_NODE       = 5;
-export const ENTITY_NODE                 = 6;
-export const PROCESSING_INSTRUCTION_NODE = 7;
-export const COMMENT_NODE                = 8;
-export const DOCUMENT_NODE               = 9;
-export const DOCUMENT_TYPE_NODE          = 10;
-export const DOCUMENT_FRAGMENT_NODE      = 11;
-export const NOTATION_NODE               = 12;
+export const NS_DEFAULT   = '';
+export const NS_XHTML     = 'http://www.w3.org/1999/xhtml';
+export const NS_ATOM      = 'http://www.w3.org/2005/Atom';
+export const NS_SOAP      = 'http://www.w3.org/2003/05/soap-envelope';
+export const NS_WDSL      = 'http://www.w3.org/ns/wsdl';
+export const NS_XLINK     = 'http://www.w3.org/1999/xlink';
+export const NS_XMLSCHEMA = 'http://www.w3.org/2001/XMLSchema';
+export const NS_XSLT      = 'http://www.w3.org/1999/XSL/Transform';
+
+const ELEMENT_NODE                = 1;
+const ATTRIBUTE_NODE              = 2;
+const TEXT_NODE                   = 3;
+// const CDATA_SECTION_NODE          = 4;
+// const ENTITY_REFERENCE_NODE       = 5;
+// const ENTITY_NODE                 = 6;
+const PROCESSING_INSTRUCTION_NODE = 7;
+const COMMENT_NODE                = 8;
+const DOCUMENT_NODE               = 9;
+const DOCUMENT_TYPE_NODE          = 10;
+const DOCUMENT_FRAGMENT_NODE      = 11;
+// const NOTATION_NODE               = 12;
 
 const escapeMap: { [c: string]: string | undefined } = {
     '<':  '&lt;',

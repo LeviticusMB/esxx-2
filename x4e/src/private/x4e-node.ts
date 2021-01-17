@@ -1,9 +1,9 @@
 import { inspect, InspectOptions } from 'util';
 import type { XML, XMLList } from '../x4e-types';
-import { escapeXML, isAttribute, isComment, isDOMNode, isElement, isProcessingInstruction, isText } from '../xml-utils';
+import { isComment, isDOMNode, isElement, isProcessingInstruction, isText } from '../xml-utils';
 import { X4EList } from './x4e-list';
 import { asXML, asXMLList, CallMethod, X4EProxyTarget } from './x4e-magic';
-import { Call, ConvertableTypes, domNodeList, ElementLike, filerChildNodes, Get, getChildElementsByTagName, GetOwnProperty, HasProperty, isInteger, nodeTypes, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
+import { Call, ConvertableTypes, domNodeList, ElementLike, filerChildNodes, Get, getChildElementsByTagName, GetOwnProperty, HasProperty, isInteger, nodeHasSimpleContent, nodesAreEqual, nodesAreSame, nodeToString, nodeToXMLString, nodeTypes, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
 
 export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNode>> {
     private [Value]: TNode & ElementLike;
@@ -84,6 +84,29 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
         return asXMLList(predicate(this as unknown as XML<TNode>, 0, this as unknown as XML<TNode>) ? this[Value] : null);
     }
 
+    // § 9.1.1.9 [[Equals]] (X4E: $isEqual() for Abstract Node Equality and $isSame() for Strict Node Equality)
+    // § 11.5.1 The Abstract Equality Comparison Algorithm
+    $isEqual(that: unknown): boolean {
+        const node = this[Value];
+
+        if (that instanceof X4EList) {
+            return that.$isEqual(this);
+        }
+        else if (that instanceof X4E) {
+            return nodesAreEqual(node, that[Value]);
+        }
+        else if (nodeHasSimpleContent(node)) {
+            return nodeToString(node) === String(that);
+        }
+        else {
+            return false;
+        }
+    }
+
+    $isSame(that: XML<Node>): boolean {
+        return that instanceof X4E && nodesAreSame(this[Value], that[Value]);
+    }
+
     // § 13.4.4.1 constructor
 
     // § 13.4.4.2 addNamespace
@@ -125,9 +148,9 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     }
 
     // § 13.4.4.10
-    // $contains(value: X4E<Node>): boolean {
-    //     return this == value;
-    // }
+    $contains(value: unknown): boolean {
+        return this.$isEqual(value);
+    }
 
     // § 13.4.4.11
     $copy(): XML<TNode> {
@@ -149,12 +172,12 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.15
     $hasComplexContent(): boolean {
-        return !hasSimpleContent(this[Value]);
+        return !nodeHasSimpleContent(this[Value]);
     }
 
     // § 13.4.4.16
     $hasSimpleContent(): boolean {
-        return hasSimpleContent(this[Value]);
+        return nodeHasSimpleContent(this[Value]);
     }
 
     // § 13.4.4.17 inScopeNamespaces
@@ -170,7 +193,7 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.21
     $localName(): string | null {
-        return this[Value].localName ?? null;
+        return this[Value].localName ?? this[Value].nodeName ?? null;
     }
 
     // § 13.4.4.22
@@ -229,16 +252,16 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.38
     $toString(): string {
-        return toString(this[Value]);
+        return nodeToString(this[Value]);
     }
 
     toString(): string {
-        return this.$toString();
+        return nodeToString(this[Value]);
     }
 
     // § 13.4.4.39
     $toXMLString(): string {
-        return isAttribute(this[Value]) ? escapeXML(this[Value].nodeValue ?? '') : this[Value].toString();
+        return nodeToXMLString(this[Value]);
     }
 
     // § 13.4.4.40 valueOf (X4E: Reuse super method)
@@ -254,40 +277,6 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     }
 
     // A.1.3 xpath
-}
-
-// § 13.4.4.15/13.4.4.16
-function hasSimpleContent(node: Node): boolean {
-    if (isComment(node) || isProcessingInstruction(node)) {
-        return false;
-    }
-    else if (isText(node) || isAttribute(node)) {
-        return true;
-    }
-    else {
-        return getChildElementsByTagName(node, '*').length === 0;
-    }
-}
-
-// § 10.1.1
-function toString(node: Node): string {
-    if (isAttribute(node) || isText(node)) {
-        return node.nodeValue ?? '';
-    }
-    else if (hasSimpleContent(node)) {
-        let result = '';
-
-        for (let child = node.firstChild; child; child = child.nextSibling) {
-            if (!isComment(child) && !isProcessingInstruction(child)) {
-                result += toString(child);
-            }
-        }
-
-        return result;
-    }
-    else {
-        return node.toString();
-    }
 }
 
 // § 10.3 (X4E: Explicit default namespace & copy)

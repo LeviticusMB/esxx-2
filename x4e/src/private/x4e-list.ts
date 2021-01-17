@@ -1,9 +1,9 @@
 import { inspect, InspectOptions } from 'util';
 import type { XML, XMLList } from '../x4e-types';
-import { isComment, isDOMNode, isElement, isProcessingInstruction } from '../xml-utils';
+import { isDOMNode, isElement } from '../xml-utils';
 import { asXML, asXMLList, CallMethod, X4EProxyTarget } from './x4e-magic';
 import { X4E } from './x4e-node';
-import { Call, ConvertableTypes, domNodeList, Get, GetOwnProperty, HasProperty, isInteger, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
+import { Call, ConvertableTypes, domNodeList, Get, GetOwnProperty, HasProperty, isInteger, listHasSimpleContent, listsAreEqual, listsAreSame, listToString, listToXMLString, nodeHasSimpleContent, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
 
 export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNode>> {
     private [Value]: TNode[];
@@ -80,6 +80,29 @@ export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML
         return asXMLList(this[Value].filter((node, index) => predicate(asXML(node), index, this as unknown as XMLList<TNode>)));
     }
 
+    // § 9.2.1.9 [[Equals]] (X4E: $isEqual() for Abstract Node Equality and $isSame() for Strict Node Equality)
+    // § 11.5.1 The Abstract Equality Comparison Algorithm
+    $isEqual(that: unknown): boolean {
+        const l1 = this[Value];
+
+        if (l1.length === 0 && that == /* [sic!] */ undefined) {
+            return true;
+        }
+        else if (that instanceof X4EList) {
+            return listsAreEqual(l1, that[Value]);
+        }
+        else if (l1.length === 1) {
+            return new X4E(l1[0]).$isEqual(that);
+        }
+        else {
+            return false;
+        }
+    }
+
+    $isSame(that: XMLList<Node>): boolean {
+        return that instanceof X4EList && listsAreSame(this[Value], that[Value]);
+    }
+
     // § 13.5.4.1 constructor
 
     // § 13.5.4.2
@@ -110,9 +133,9 @@ export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML
     // § 13.5.4.7 constructor
 
     // § 13.5.4.8
-    // $contains(value: X4E<Node>): boolean {
-    //     return this[VALUE].some((node) => node == value.$domNode());
-    // }
+    $contains(value: unknown): boolean {
+        return this[Value].some((node) => new X4E(node).$isEqual(value));
+    }
 
     // § 13.5.4.9
     $copy(): XMLList<TNode> {
@@ -137,7 +160,7 @@ export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML
             return false;
         }
         else if (this[Value].length === 1) {
-            return new X4E(this[Value][0]).$hasComplexContent()
+            return !nodeHasSimpleContent(this[Value][0]);
         }
         else {
             return this[Value].some((node) => isElement(node));
@@ -146,15 +169,7 @@ export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML
 
     // 13.5.4.14
     $hasSimpleContent(): boolean {
-        if (this[Value].length === 0) {
-            return true;
-        }
-        else if (this[Value].length === 1) {
-            return new X4E(this[Value][0]).$hasSimpleContent()
-        }
-        else {
-            return this[Value].every((node) => !isElement(node));
-        }
+        return listHasSimpleContent(this[Value]);
     }
 
     // § 13.5.4.15
@@ -194,21 +209,16 @@ export class X4EList<TNode extends Node> implements X4EProxyTarget, Iterable<XML
 
     // § 13.5.4.21
     $toString(): string {
-        if (this.$hasSimpleContent()) {
-            return this[Value].map((node) => isComment(node) || isProcessingInstruction(node) ? '' : new X4E(node).$toString()).join('');
-        }
-        else {
-            return this.$toXMLString();
-        }
+        return listToString(this[Value]);
     }
 
     toString(): string {
-        return this.$toString();
+        return listToString(this[Value]);
     }
 
     // § 13.5.4.22
     $toXMLString(): string {
-        return this[Value].map((node) => new X4E(node).$toXMLString()).join('');
+        return listToXMLString(this[Value]);
     }
 
     // § 13.5.4.23 valueOf (X4E: Reuse super method)

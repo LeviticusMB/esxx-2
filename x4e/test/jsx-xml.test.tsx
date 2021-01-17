@@ -1,7 +1,7 @@
 /** @jsx     jsx4XML.element */
 /** @jsxFrag jsx4XML.fragment */
 
-import { jsx4XML, xml, XMLList } from '../src';
+import { jsx4XML, XMLList } from '../src';
 
 describe('jsx', () => {
     it('works', () => {
@@ -55,27 +55,6 @@ describe('jsx', () => {
         console.log(c, y, l, f);
         console.log(x.person.name);
         console.log(x.person[0]?.name);
-
-        let result = [];
-        let start = Date.now();
-        for (let i = 0; i < 10000; ++i) {
-            result.push({ counter: i, nested: { date: Date.now() }});
-        }
-        console.log(`Object: ${Date.now() - start} ms`);
-
-        result = [];
-        start = Date.now();
-        for (let i = 0; i < 10000; ++i) {
-            result.push(xml`<xml><counter>${i}</counter><nested><date>${Date.now()}</date></nested></xml>`);
-        }
-        console.log(`Literal: ${Date.now() - start} ms`);
-
-        result = [];
-        start = Date.now();
-        for (let i = 0; i < 10000; ++i) {
-            result.push(<xml><counter>{i}</counter><nested><date>{Date.now()}</date></nested></xml>);
-        }
-        console.log(`JSX: ${Date.now() - start} ms`);
 
         expect(true).toBe(true);
     });

@@ -5,14 +5,20 @@ import { X4EList } from './x4e-list';
 import { asXML, asXMLList, CallMethod, X4EProxyTarget } from './x4e-magic';
 import { Call, ConvertableTypes, domNodeList, ElementLike, filerChildNodes, Get, getChildElementsByTagName, GetOwnProperty, HasProperty, isInteger, nodeHasSimpleContent, nodesAreEqual, nodesAreSame, nodeToString, nodeToXMLString, nodeTypes, OwnPropertyKeys, parseXMLFragment, Value } from './x4e-utils';
 
-function value<TNode extends Node>(self: X4E<TNode> | XML<TNode>, func: string): TNode & ElementLike {
-    const value = (self as X4E<TNode>)[Value];
+function singleNode<TNode extends Node>(x4e: X4E<TNode>, func: string): TNode & ElementLike {
+    const values = x4e[Value];
 
-    if (value.length !== 1) {
-        throw new TypeError(`${func}() can only be used on one single node (found ${value.length})`);
+    if (values.length !== 1) {
+        throw new TypeError(`${func}() can only be used on one single node (found ${values.length})`);
     }
 
-    return value[0];
+    return values[0];
+}
+
+function eachNode<TNode extends Node, RNode extends Node>(x4e: X4E<TNode>, fn: (node: TNode & ElementLike) => undefined | RNode | RNode[]): XMLList<RNode> {
+    const values = x4e[Value];
+
+    return asXMLList<RNode>(values.length === 1 ? fn(values[0]) : values.flatMap((node) => fn(node) ?? []));
 }
 
 export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNode>> {
@@ -23,28 +29,8 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     }
 
     // § 9.1.1.1 (X4E: attributes optional)
-    [Get](name: number, allowAttributes: boolean): Node | undefined;
-    [Get](name: '*',    allowAttributes: boolean): Node[];
-    [Get](name: '@*',   allowAttributes: true): Attr[];
-    [Get](name: string | number, allowAttributes: boolean): Node | Node[] | undefined;
     [Get](name: string | number, allowAttributes: boolean): Node | Node[] | undefined {
-        if (isInteger(name)) {
-            return this[Value][name];
-        }
-        else if (allowAttributes && name[0] === '@') {
-            const namespaceURI = null /* FIXME */, localName = name.substr(1);
-
-            return Array.from(value(this, '[@]').attributes ?? []).filter((attr) =>
-                (localName    === '*'  || localName    === attr.localName) &&
-                (namespaceURI === null || namespaceURI === attr.namespaceURI));
-        }
-        else {
-            const namespaceURI = null /* FIXME */, localName = name;
-
-            return filerChildNodes(value(this, '[]'), (node) =>
-                (localName    === '*'  || isElement(node) && localName    === node.localName) &&
-                (namespaceURI === null || isElement(node) && namespaceURI === node.namespaceURI));
-        }
+        return GetProp(this[Value][0], name, allowAttributes);
     }
 
     // § 9.1.1.6 (X4E: attributes optional)
@@ -93,13 +79,13 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     // § 9.1.1.9 [[Equals]] (X4E: $isEqual() for Abstract Node Equality and $isSame() for Strict Node Equality)
     // § 11.5.1 The Abstract Equality Comparison Algorithm
     $isEqual(that: unknown): boolean {
-        const node = value(this, '$isEqual');
+        const node = singleNode(this, '$isEqual');
 
         if (that instanceof X4EList) {
             return that.$isEqual(this);
         }
         else if (that instanceof X4E) {
-            return nodesAreEqual(node, value(that, '$isEqual'));
+            return nodesAreEqual(node, singleNode(that, '$isEqual'));
         }
         else if (nodeHasSimpleContent(node)) {
             return nodeToString(node) === String(that);
@@ -110,7 +96,7 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     }
 
     $isSame(that: XML<Node>): boolean {
-        return Object.getPrototypeOf(that) === X4E.prototype && nodesAreSame(value(this, '$isSame'), value(that, '$isSame'));
+        return Object.getPrototypeOf(that) === X4E.prototype && nodesAreSame(singleNode(this, '$isSame'), singleNode(that as unknown as X4E<Node>, '$isSame'));
     }
 
     // § 13.4.4.1 constructor
@@ -120,22 +106,25 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     // § 13.4.4.3 appendChild
 
     // § 13.4.4.4
+    // § 13.5.4.2
     $attribute(name: string): XMLList<Attr> {
-        return asXMLList(this[Get](`@${name}` as '@*', true));
+        return eachNode(this, (node) => GetProp(node, `@${name}` as '@*', true));
     }
 
     // § 13.4.4.5
+    // § 13.5.4.2
     $attributes(): XMLList<Attr> {
-        return asXMLList(this[Get](`@*`, true));
+        return eachNode(this, (node) => GetProp(node, `@*`, true));
     }
 
     // § 13.4.4.6
+    // § 13.5.4.3
     $child(name: string | number): XMLList<Node> {
         if (isInteger(name)) {
-            return asXMLList((this[Get]('*', false))[name]);
+            return eachNode(this, (node) => GetProp(node, '*', false)[name]);
         }
         else {
-            return asXMLList(this[Get](name, false));
+            return eachNode(this, (node) => GetProp(node, name, false) ?? []);
         }
     }
 
@@ -144,13 +133,15 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     // }
 
     // § 13.4.4.8
+    // § 13.5.4.5
     $children(): XMLList<Node> {
-        return asXMLList(this[Get]('*', false));
+        return eachNode(this, (node) => GetProp(node, '*', false));
     }
 
     // § 13.4.4.9
+    // § 13.5.4.6
     $comments(): XMLList<Comment> {
-        return asXMLList(filerChildNodes<Comment>(value(this, '$isEqual'), (child) => isComment(child)));
+        return eachNode(this, (node) => filerChildNodes<Comment>(node, (child) => isComment(child)));
     }
 
     // § 13.4.4.10
@@ -160,30 +151,32 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.11
     $copy(): this {
-        return asXML(value(this, '$copy').cloneNode(true)) as any;
+        return asXML(singleNode(this, '$copy').cloneNode(true)) as any;
     }
 
     // § 13.4.4.12
+    // § 13.5.4.10
     $descendants(name?: string): XMLList<Element> {
         // FIXME: Not sure we're allowed to just call getElementsByTagName() ...
-        return asXMLList<Element>(value(this, '$descendants').getElementsByTagName?.(name ?? '*'));
+        return eachNode(this, (node) => Array.from(node.getElementsByTagName?.(name ?? '*') ?? []));
     }
 
     // § 13.4.4.13
+    // § 13.5.4.11
     $elements(name?: string): XMLList<Element> {
-        return asXMLList(getChildElementsByTagName(value(this, '$elements'), name ?? '*'));
+        return eachNode(this, (node) => getChildElementsByTagName(node, name ?? '*'));
     }
 
-    // § 13.4.4.14 hasOwnProperty (X4E: Reuse super method)
+    // § 13.4.4.14 hasOwnProperty
 
     // § 13.4.4.15
     $hasComplexContent(): boolean {
-        return !nodeHasSimpleContent(value(this, '$hasComplexContent'));
+        return !nodeHasSimpleContent(singleNode(this, '$hasComplexContent'));
     }
 
     // § 13.4.4.16
     $hasSimpleContent(): boolean {
-        return nodeHasSimpleContent(value(this, '$hasSimpleContent'));
+        return nodeHasSimpleContent(singleNode(this, '$hasSimpleContent'));
     }
 
     // § 13.4.4.17 inScopeNamespaces
@@ -199,14 +192,14 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.21
     $localName(): string | null {
-        const node = value(this, '$localName');
+        const node = singleNode(this, '$localName');
 
         return node.localName ?? node.nodeName ?? null;
     }
 
     // § 13.4.4.22
     $name(): string | null {
-        return value(this, '$name').nodeName;
+        return singleNode(this, '$name').nodeName;
     }
 
     // § 13.4.4.23 namespace
@@ -215,7 +208,7 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
 
     // § 13.4.4.25
     $nodeKind(): string {
-        return nodeTypes[value(this, '$nodeKind').nodeType] ?? 'unknown';
+        return nodeTypes[singleNode(this, '$nodeKind').nodeType] ?? 'unknown';
     }
 
     // § 13.4.4.26 (the X4E way?)
@@ -237,16 +230,16 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     }
 
     // § 13.4.4.28
+    // § 13.5.4.18
     $processingInstructions(name?: string): XMLList<ProcessingInstruction> {
         name = name ?? '*';
 
-        return asXMLList<ProcessingInstruction>(filerChildNodes(value(this, '$processingInstructions'), (node) =>
-            isProcessingInstruction(node) && (name === '*' || name === node.nodeName)));
+        return eachNode(this, (node) => filerChildNodes(node, (child) => isProcessingInstruction(child) && (name === '*' || name === child.nodeName)));
     }
 
     // § 13.4.4.29 prependChild
 
-    // § 13.4.4.30 propertyIsEnumerable (X4E: Reuse super method)
+    // § 13.4.4.30 propertyIsEnumerable
 
     // § 13.4.4.31 removeNamespace
 
@@ -261,25 +254,26 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
     //§ 13.4.4.36 setNamespace
 
     // § 13.4.4.37
+    // § 13.5.4.20
     $text(): XMLList<Text> {
-        return asXMLList<Text>(filerChildNodes(value(this, '$text'), (node) => isText(node)));
+        return eachNode(this, (node) => filerChildNodes(node, (child) => isText(child)));
     }
 
     // § 13.4.4.38
     $toString(): string {
-        return nodeToString(value(this, '$toString'));
+        return nodeToString(singleNode(this, '$toString'));
     }
 
     toString(): string {
-        return nodeToString(value(this, 'toString'));
+        return nodeToString(singleNode(this, 'toString'));
     }
 
     // § 13.4.4.39
     $toXMLString(): string {
-        return nodeToXMLString(value(this, '$toXMLString'));
+        return nodeToXMLString(singleNode(this, '$toXMLString'));
     }
 
-    // § 13.4.4.40 valueOf (X4E: Reuse super method)
+    // § 13.4.4.40 valueOf
 
     // § A.1.1
     $domNode(): TNode | undefined {
@@ -291,12 +285,36 @@ export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNo
         return domNodeList(this[Value]);
     }
 
-    // A.1.3 xpath
+    // A.1.3 xpath (not yet implemented)
 }
 
 // Custom NodeJS inspector value
 (X4E.prototype as any)[inspect.custom] = function(this: X4E<Node>) {
     return this[Value][0].toString();
+}
+
+export function GetProp(node: Node & ElementLike, name: number, allowAttributes: boolean): Node | undefined;
+export function GetProp(node: Node & ElementLike, name: '*',    allowAttributes: boolean): Node[];
+export function GetProp(node: Node & ElementLike, name: '@*',   allowAttributes: true): Attr[];
+export function GetProp(node: Node & ElementLike, name: string | number, allowAttributes: boolean): Node | Node[] | undefined;
+export function GetProp(node: Node & ElementLike, name: string | number, allowAttributes: boolean): Node | Node[] | undefined {
+    if (isInteger(name)) {
+        return [node][name];
+    }
+    else if (allowAttributes && name[0] === '@') {
+        const namespaceURI = null /* FIXME */, localName = name.substr(1);
+
+        return Array.from(node.attributes ?? []).filter((attr) =>
+            (localName    === '*'  || localName    === attr.localName) &&
+            (namespaceURI === null || namespaceURI === attr.namespaceURI));
+    }
+    else {
+        const namespaceURI = null /* FIXME */, localName = name;
+
+        return filerChildNodes(node, (child) =>
+            (localName    === '*'  || isElement(child) && localName    === child.localName) &&
+            (namespaceURI === null || isElement(child) && namespaceURI === child.namespaceURI));
+    }
 }
 
 // § 10.3 (X4E: Explicit default namespace & copy)

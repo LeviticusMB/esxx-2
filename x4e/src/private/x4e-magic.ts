@@ -8,9 +8,6 @@ export type CallMethod = (...args: unknown[]) => unknown;
 
 export interface X4EProxyTarget {
     // § 9.1.1.1 (X4E: attributes optional)
-    [Get](name: number, allowAttributes: boolean): Node | undefined;
-    [Get](name: '*',    allowAttributes: boolean): Node[];
-    [Get](name: '@*',   allowAttributes: true): Attr[];
     [Get](name: string | number, allowAttributes: boolean): Node | Node[] | undefined;
 
     // § 9.2.1.5 (X4E: attributes optional)

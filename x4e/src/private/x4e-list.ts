@@ -2,7 +2,7 @@ import { inspect } from 'util';
 import type { XML, XMLList } from '../x4e-types';
 import { isDOMNode, isElement } from '../xml-utils';
 import { asXML, asXMLList } from './x4e-magic';
-import { X4E } from './x4e-node';
+import { GetProp, X4E } from './x4e-node';
 import { ConvertableTypes, Get, GetOwnProperty, isInteger, listHasSimpleContent, listsAreEqual, listsAreSame, listToString, listToXMLString, nodeHasSimpleContent, parseXMLFragment, Value } from './x4e-utils';
 
 export class X4EList<TNode extends Node> extends X4E<TNode> {
@@ -11,17 +11,12 @@ export class X4EList<TNode extends Node> extends X4E<TNode> {
     }
 
     // § 9.2.1.1 (X4E: attributes optional)
-    [Get](name: number, allowAttributes: boolean): Node | undefined;
-    [Get](name: '*',    allowAttributes: boolean): Node[];
-    [Get](name: '@*',   allowAttributes: true): Attr[];
-    [Get](name: string, allowAttributes: boolean): Node[];
-    [Get](name: string | number, allowAttributes: boolean): Node | Node[] | undefined;
     [Get](name: string | number, allowAttributes: boolean): Node | Node[] | undefined {
         if (isInteger(name)) {
             return this[Value][name];
         }
         else {
-            return this[Value].flatMap((node) => isElement(node) ? new X4E(node)[Get](name, allowAttributes)! : []);
+            return this[Value].flatMap((node) => isElement(node) ? GetProp(node, name, allowAttributes)! : []);
         }
     }
 
@@ -71,30 +66,15 @@ export class X4EList<TNode extends Node> extends X4E<TNode> {
 
     // § 13.5.4.1 constructor
 
-    // § 13.5.4.2
-    $attribute(name: string): XMLList<Attr> {
-        return concatXMLLists(this, (node) => node.$attribute(name));
-    }
+    // § 13.5.4.2 $attribute(name: string): XMLList<Attr>
 
-    // § 13.5.4.3
-    $attributes(): XMLList<Attr> {
-        return concatXMLLists(this, (node) => node.$attributes());
-    }
+    // § 13.5.4.3 $attributes(): XMLList<Attr>
 
-    // § 13.5.4.4
-    $child(name: string | number): XMLList<Node> {
-        return concatXMLLists(this, (node) => node.$child(name));
-    }
+    // § 13.5.4.4 $child(name: string | number): XMLList<Node>
 
-    // § 13.5.4.5
-    $children(): XMLList<Node> {
-        return concatXMLLists(this, (node) => node.$children());
-    }
+    // § 13.5.4.5 $children(): XMLList<Node>
 
-    // § 13.5.4.6
-    $comments(): XMLList<Comment> {
-        return concatXMLLists(this, (node) => node.$comments());
-    }
+    // § 13.5.4.6 $comments(): XMLList<Comment>
 
     // § 13.5.4.7 constructor
 
@@ -108,17 +88,11 @@ export class X4EList<TNode extends Node> extends X4E<TNode> {
         return asXMLList(this[Value].map((node) => node.cloneNode(true))) as any;
     }
 
-    // § 13.5.4.10
-    $descendants(name?: string): XMLList<Element> {
-        return concatXMLLists(this, (node) => node.$descendants(name));
-    }
+    // § 13.5.4.10 $descendants(name?: string): XMLList<Element>
 
-    // § 13.5.4.11
-    $elements(name?: string): XMLList<Element> {
-        return concatXMLLists(this, (node) => node.$elements(name));
-    }
+    // § 13.5.4.11 $elements(name?: string): XMLList<Element>
 
-    // § 13.5.4.12 hasOwnProperty (X4E: Reuse super method)
+    // § 13.5.4.12 hasOwnProperty
 
     // § 13.5.4.13
     $hasComplexContent(): boolean {
@@ -138,32 +112,17 @@ export class X4EList<TNode extends Node> extends X4E<TNode> {
         return listHasSimpleContent(this[Value]);
     }
 
-    // § 13.5.4.15
-    // $length(): number {
-    //     return super.$length();
-    // }
+    // § 13.5.4.15 $length(): number
 
-    // § 13.5.4.16
-    // $normalize(): this {
-    //     return super.$normalize();
-    // }
+    // § 13.5.4.16 $normalize(): this
 
-    // § 13.5.4.17
-    // $parent(): XML<Element | Document | DocumentFragment> | null | undefined {
-    //     return super.$parent();
-    // }
+    // § 13.5.4.17 $parent(): XML<Element | Document | DocumentFragment> | null | undefined
 
-    // § 13.5.4.18
-    $processingInstructions(name?: string): XMLList<ProcessingInstruction> {
-        return concatXMLLists(this, (node) => node.$processingInstructions(name));
-    }
+    // § 13.5.4.18 $processingInstructions(name?: string): XMLList<ProcessingInstruction>
 
-    // § 13.5.4.19 propertyIsEnumerable (X4E: Reuse super method)
+    // § 13.5.4.19 propertyIsEnumerable
 
-    // § 13.5.4.20
-    $text(): XMLList<Text> {
-        return concatXMLLists(this, (node) => node.$text());
-    }
+    // § 13.5.4.20 $text(): XMLList<Text>
 
     // § 13.5.4.21
     $toString(): string {
@@ -179,28 +138,18 @@ export class X4EList<TNode extends Node> extends X4E<TNode> {
         return listToXMLString(this[Value]);
     }
 
-    // § 13.5.4.23 valueOf (X4E: Reuse super method)
+    // § 13.5.4.23 valueOf
 
-    // A.2.1
-    // $domNode(): TNode | undefined {
-    //     return super.$domNode();
-    // }
+    // A.2.1 $domNode(): TNode | undefined
 
-    // A.2.2
-    // $domNodeList(): NodeListOf<TNode> {
-    //     return super.$domNodeList()
-    // }
+    // A.2.2 $domNodeList(): NodeListOf<TNode>
 
-    // A.2.3 xpath
+    // A.2.3 xpath (not yet implemented)
 }
 
 // Custom NodeJS inspector value
 (X4EList.prototype as any)[inspect.custom] = function(this: X4EList<Node>) {
     return this[Value].map((node) => node.toString());
-}
-
-function concatXMLLists<TNode extends Node>(parent: X4EList<Node>, fn: (child: X4E<Node>) => XMLList<TNode>) {
-    return asXMLList(parent[Value].flatMap((node) => (fn(new X4E(node)) as unknown as X4EList<TNode>)[Value]));
 }
 
 // § 10.4 (X4E: Explicit default namespace & copy)

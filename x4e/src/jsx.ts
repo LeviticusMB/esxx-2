@@ -1,5 +1,5 @@
 import { DOMImplementation } from 'xmldom';
-import { isXML, XML, XMLList } from './x4e';
+import { XML, XMLList } from './x4e';
 import { NS_XHTML } from './xml-utils';
 
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -67,7 +67,7 @@ export function createJSXElement<T extends JSX_Attributes>(tagName: JSX_TagName<
         }
 
         for (const child of children) {
-            if (isXML(child)) {
+            if (child instanceof XML) {
                 child.$domNodeList().forEach((child) => element.appendChild(jsxDoc.importNode(child, true)));
             }
             else {
@@ -78,7 +78,7 @@ export function createJSXElement<T extends JSX_Attributes>(tagName: JSX_TagName<
         return XML(element);
     }
 
-    const childList  = XMLList(children.flatMap((c) => isXML(c) ? Array.from(c.$domNodeList()) : jsxDoc.createTextNode(String(c))));
+    const childList  = XMLList(children.flatMap((c) => c instanceof XML ? Array.from(c.$domNodeList()) : jsxDoc.createTextNode(String(c))));
 
     if (typeof tagName === 'function') {
         // const attributes = { ...props!, [JSX_CHILDREN]: children.length === 1 ? children[0] : children };
@@ -86,11 +86,11 @@ export function createJSXElement<T extends JSX_Attributes>(tagName: JSX_TagName<
 
         let node = isElementClassCtor(tagName) ? new tagName(attributes, childList) : tagName(attributes, childList);
 
-        if (!isXML(node) && typeof node?.render === 'function') {
+        if (node instanceof XML === false && typeof node?.render === 'function') {
             node = node.render();
         }
 
-        if (isXML(node)) {
+        if (node instanceof XML) {
             return node;
         }
         else if (!node) {

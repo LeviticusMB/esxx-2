@@ -14,10 +14,9 @@
     "src"
   ],
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "testMatch": [
-      "**/*.test.ts", "**/*.test.tsx"
+      "<rootDir>/build/test/**/*.test.js"
     ],
     "collectCoverage": true
   },

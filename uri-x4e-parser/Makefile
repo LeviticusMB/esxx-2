@@ -11,13 +11,14 @@ build:		prepare
 	yarn run tsc --build
 
 docs:	build
+	rm -rf ../docs/$(BASENAME)
 	yarn run typedoc --out ../docs/$(BASENAME) src/index.ts
 
-test:		prepare
-	yarn run jest
+test:		build
+	yarn run jest --passWithNoTests
 
 clean:
-	rm -rf build ../docs/$(BASENAME) coverage
+	rm -rf build coverage
 
 distclean:	clean
 	rm -rf node_modules

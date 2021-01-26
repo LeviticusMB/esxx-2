@@ -14,20 +14,18 @@
     "src"
   ],
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "testMatch": [
-      "**/*.test.ts"
+      "<rootDir>/build/test/**/*.test.js"
     ],
-    "collectCoverage": true,
-    "passWithNoTests": true
+    "collectCoverage": true
   },
   "peerDependencies": {
     "@divine/uri": "^0.1.1"
   },
   "dependencies": {
     "canvas": "^2.6.1",
-    "tslib": "^2.0.3"
+    "tslib": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "^12"

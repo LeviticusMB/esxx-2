@@ -6,10 +6,18 @@ prepare:
 build::	prepare
 	yarn run tsc --build
 
+docs::	build
+
+test::	build
+	yarn run jest
+
+clean::
+	rm -rf coverage
+
 distclean::
 	rm -rf node_modules
 
-docs test clean distclean::
+docs clean distclean::
 	$(MAKE) -C headers $@
 	$(MAKE) -C uri $@
 	$(MAKE) -C uri-image-parser $@

@@ -14,10 +14,9 @@
     "src"
   ],
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "testMatch": [
-      "**/*.test.ts"
+      "<rootDir>/build/test/**/*.test.js"
     ],
     "collectCoverage": true
   },
@@ -26,7 +25,7 @@
   },
   "dependencies": {
     "@divine/x4e": "0.1.1",
-    "tslib": "^2.0.3"
+    "tslib": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "^12"

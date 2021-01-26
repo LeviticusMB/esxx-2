@@ -14,15 +14,14 @@
     "src"
   ],
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "jsdom",
     "testMatch": [
-      "**/*.test.ts"
+      "<rootDir>/build/test/**/*.test.js"
     ],
     "collectCoverage": true
   },
   "dependencies": {
-    "tslib": "^2.0.3"
+    "tslib": "^2.1.0"
   },
   "devDependencies": {
   }

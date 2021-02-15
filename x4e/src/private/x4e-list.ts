@@ -3,11 +3,11 @@ import type { XML, XMLList } from '../x4e-types';
 import { isDOMNode, isElement } from '../xml-utils';
 import { asXML, asXMLList } from './x4e-magic';
 import { GetProp, X4E } from './x4e-node';
-import { ConvertableTypes, Get, GetOwnProperty, isInteger, listHasSimpleContent, listsAreEqual, listsAreSame, listToString, listToXMLString, nodeHasSimpleContent, parseXMLFragment, Value } from './x4e-utils';
+import { ConvertableTypes, Get, GetOwnProperty, isArrayLike, isInteger, listHasSimpleContent, listsAreEqual, listsAreSame, listToString, listToXMLString, nodeHasSimpleContent, parseXMLFragment, Value } from './x4e-utils';
 
 export class X4EList<TNode extends Node> extends X4E<TNode> {
     constructor(value: TNode | ArrayLike<TNode> | undefined | null) {
-        super(!value ? [] : isDOMNode(value) ? [ value ] : Array.from<TNode>(value));
+        super(value ?? []);
     }
 
     // § 9.2.1.1 (X4E: attributes optional)
@@ -160,7 +160,7 @@ export function ToXMLList(value: ConvertableTypes | ArrayLike<Node>, defaultName
         value = asXMLList(parseXMLFragment(String(value).replace(/^<>|<\/>$/g, '') /* Remove <> and </> */, defaultNamespace).childNodes);
         shallowCopy = false;
     }
-    else if (isDOMNode(value) || Array.isArray(value) && value.every((node) => isDOMNode(node))) {
+    else if (isDOMNode(value) || isArrayLike(value) && Array.from(value).every((node) => isDOMNode(node))) {
         value = asXMLList(value);
         shallowCopy = false;
     }

@@ -24,8 +24,8 @@ function eachNode<TNode extends Node, RNode extends Node>(x4e: X4E<TNode>, fn: (
 export class X4E<TNode extends Node> implements X4EProxyTarget, Iterable<XML<TNode>> {
     private [Value]: Array<TNode & ElementLike>;
 
-    constructor(node: TNode | TNode[]) {
-        this[Value] = Array.isArray(node) ? node : [ node ];
+    constructor(node: TNode | ArrayLike<TNode>) {
+        this[Value] = isDOMNode(node) ? [ node ] : Array.from(node);
     }
 
     // § 9.1.1.1 (X4E: attributes optional)

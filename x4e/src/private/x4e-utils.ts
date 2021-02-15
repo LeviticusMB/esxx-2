@@ -40,6 +40,10 @@ export function isInteger(i: number | string): i is number /* a lie! */ {
     return String(Number(i)) == i;
 }
 
+export function isArrayLike<T>(v: any): v is ArrayLike<T> {
+    return typeof v?.length === 'number';
+}
+
 export function filerChildNodes<TNode extends Node = Node>(parent: Node, filter: (node: Node, index: number, parent: Node) => boolean): TNode[] {
     const elements: TNode[] = [];
 

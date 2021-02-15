@@ -65,7 +65,7 @@ export class WebRequest implements AuthSchemeRequest {
             `Unknown@${this.remoteAddress}`;
     }
 
-    get headers(): Iterable<[string, string]> {
+    get headers(): Array<[string, string]> {
         return Object.entries(this.incomingMessage.headers).map(([name, value]) => [name, Array.isArray(value) ? value.join(', ') : value!]);
     }
 

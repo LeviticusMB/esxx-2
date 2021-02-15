@@ -135,7 +135,7 @@ export function guessContentType(pathname: string, knownContentType?: ContentTyp
 
 export class URI extends URL {
     static readonly VOID        = VOID;
-    static readonly NULL        = VOID;
+    static readonly NULL        = NULL;
     static readonly FIELDS      = FIELDS;
     static readonly FINALIZE    = FINALIZE;
     static readonly HEADERS     = HEADERS;

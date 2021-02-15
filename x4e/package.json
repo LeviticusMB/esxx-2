@@ -1,7 +1,7 @@
 {
   "name": "@divine/x4e",
-  "version": "0.1.1",
-  "description": "E4X-like XML and HTML datatypes",
+  "version": "0.3.0",
+  "description": "The Divine E4X-inspired XML and HTML datatypes",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
   "repository": "https://github.com/LeviticusMB/esxx-2.git",

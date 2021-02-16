@@ -1,9 +1,9 @@
 import { ContentType } from '@divine/headers';
-import { BufferParser, EventStreamEvent, Parser } from '@divine/uri';
+import { EventStreamEvent, Parser } from '@divine/uri';
 import { WebError, WebStatus } from './error';
+import { unblocked } from './private/utils';
 import { WebArguments, WebFilter, WebResource } from './resource';
 import { WebResponse, WebResponseHeaders } from './response';
-import { unblocked } from './private/utils';
 
 function asSet(array: string | string[] | undefined): Set<string> {
     return new Set(typeof array === 'string' ? array.split(/\s*,\s*/) : array ?? []);
@@ -110,9 +110,9 @@ export interface EventAttributes {
 export class EventStreamResponse<T extends object> extends WebResponse {
     private static async *eventStream(source: AsyncIterable<object & EventAttributes | undefined | null>, dataType?: ContentType | string, keepaliveTimeout?: number): AsyncGenerator<EventStreamEvent | undefined> {
         const serialize = async (event: object): Promise<string> => {
-            const [serialized] = Parser.serialize(event, dataType);
+            const [serialized] = await Parser.serializeToBuffer(event, dataType);
 
-            return (serialized instanceof Buffer ? serialized : await new BufferParser(ContentType.bytes).parse(serialized)).toString();
+            return serialized.toString();
         };
 
         try {

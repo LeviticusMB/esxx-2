@@ -39,23 +39,39 @@ export abstract class Parser {
         }
     }
 
-    static serialize(data: unknown, contentType?: ContentType | string): [Buffer | AsyncIterable<Buffer>, ContentType] {
+    static serialize<T = unknown>(data: T, contentType?: ContentType | string): [Buffer | AsyncIterable<Buffer>, ContentType] {
         try {
-            data = toPrimitive(data); // Unpack values wrapped by toObject()
+            data = toPrimitive(data) as unknown as T; // Unpack values wrapped by toObject()
 
             contentType = ContentType.create(contentType,
                 data instanceof Buffer        ? ContentType.bytes :
-                isReadableStream(data)        ? ContentType.bytes :
+                isAsyncIterable(data)         ? ContentType.bytes :
                 isJSON(data) || data === null ? ContentType.json :
                 isDOMNode(data)               ? ContentType.xml :
                 ContentType.text);
 
-            // Pass Buffer and ReadableStream right through, ignoring `contentType`; serialize everything else
-            return [data instanceof Buffer || isReadableStream(data) ? toAsyncIterable(data) : Parser.create(contentType).serialize(data), contentType];
+            // 1. Pass Buffer and ReadableStream right through, ignoring `contentType`; URIs will be load()'ed and passed as-is
+            // 2. Encode strings using 'charset' param from `contentType`
+            // 3. Serialize everything else
+
+            const stream =
+                data instanceof Buffer || isAsyncIterable<Buffer>(data)
+                    ? toAsyncIterable(data)
+                    : typeof data === 'string'
+                        ? new StringParser(contentType).serialize(data)
+                        : Parser.create(contentType).serialize(data);
+
+            return [ stream, contentType];
         }
         catch (err) {
             throw new ParserError(`${contentType} serializer failed`, err);
         }
+    }
+
+    static async serializeToBuffer<T = unknown>(data: T, contentType?: ContentType | string): Promise<[Buffer, ContentType]> {
+        const [ stream, ct ] = Parser.serialize(data, contentType);
+
+        return [ await Parser.parse<Buffer>(stream, 'application/octet-stream'), ct ];
     }
 
     private static parsers = new Map<string, typeof Parser>();
@@ -114,6 +130,7 @@ export class StringParser extends Parser {
         const chunks  = [];
 
         for await (const chunk of stream) {
+            // FIXME: This does not work if chunk ends in the middle of a character
             chunks.push(iconv.decode(chunk, charset, { stripBOM: chunks.length === 0 && bom === 'absent' }));
         }
 

@@ -254,6 +254,10 @@ export class URI extends URL {
         return guessContentType(this.pathname, knownContentType);
     }
 
+    async *[Symbol.asyncIterator](): AsyncIterableIterator<Buffer> {
+        yield* await this.load<AsyncIterable<Buffer>>('application/vnd.esxx.octet-stream');
+    }
+
     protected makeIOError(err: NodeJS.ErrnoException): IOError {
         return err instanceof IOError ? err : new IOError(`URI ${this} operation failed`, err, metadata(err));
     }

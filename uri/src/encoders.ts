@@ -1,7 +1,7 @@
 import { Transform } from 'stream';
 import { createBrotliCompress, createBrotliDecompress, createDeflate, createGunzip, createGzip, createInflate } from 'zlib';
-import { IOError } from './uri';
 import { isAsyncIterable, toAsyncIterable, toReadableStream } from './private/utils';
+import { IOError } from './uri';
 
 export class EncoderError extends IOError {
 }
@@ -12,7 +12,7 @@ export abstract class Encoder {
         return Encoder;
     }
 
-    static encode(stream: Buffer | AsyncIterable<Buffer> | string, types: string | string[]): AsyncIterable<Buffer> {
+    static encode(stream: string | Buffer | AsyncIterable<Buffer>, types: string | string[]): AsyncIterable<Buffer> {
         stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
         types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
 
@@ -28,7 +28,7 @@ export abstract class Encoder {
         }
     }
 
-    static decode(stream: Buffer | AsyncIterable<Buffer> | string, types: string | string[]): AsyncIterable<Buffer> {
+    static decode(stream: string | Buffer | AsyncIterable<Buffer>, types: string | string[]): AsyncIterable<Buffer> {
         stream = isAsyncIterable(stream) ? stream : toAsyncIterable(stream);
         types  = typeof types === 'string' ? types.trim().split(/\s*,\s*/) : types;
 

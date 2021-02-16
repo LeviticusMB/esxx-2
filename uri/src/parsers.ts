@@ -1,7 +1,7 @@
 import { ContentType } from '@divine/headers';
 import iconv from 'iconv-lite';
+import { BasicTypes, isAsyncIterable, isDOMNode, isJSON, toAsyncIterable } from './private/utils';
 import { Finalizable, IOError, NULL, VOID } from './uri';
-import { isAsyncIterable, isDOMNode, isJSON, isReadableStream, toAsyncIterable, BasicTypes } from './private/utils';
 
 export function toObject<T extends object>(result: unknown): T {
     return result === undefined       ? Object(VOID) :
@@ -27,7 +27,7 @@ export abstract class Parser {
         return Parser;
     }
 
-    static async parse<T extends object>(stream: Buffer | AsyncIterable<Buffer> | string, contentType: ContentType | string): Promise<T & Finalizable> {
+    static async parse<T extends object>(stream: string | Buffer | AsyncIterable<Buffer>, contentType: ContentType | string): Promise<T & Finalizable> {
         try {
             const result = await Parser.create(ContentType.create(contentType)).parse(toAsyncIterable(stream));
 
@@ -90,10 +90,20 @@ export class BufferParser extends Parser {
         return Buffer.concat(chunks);
     }
 
-    serialize(data: Buffer | AsyncIterable<Buffer>): Buffer | AsyncIterable<Buffer> {
-        this.assertSerializebleData(data instanceof Buffer || isAsyncIterable(data), data);
+    serialize(data: string | Buffer | AsyncIterable<Buffer>): Buffer | AsyncIterable<Buffer> {
+        this.assertSerializebleData(typeof data === 'string' || data instanceof Buffer || isAsyncIterable(data), data);
 
         return data instanceof Buffer ? data : toAsyncIterable(data);
+    }
+}
+
+export class PassThroughParser extends Parser {
+    async parse(stream: AsyncIterable<Buffer>): Promise<AsyncIterable<Buffer>> {
+        return stream;
+    }
+
+    serialize(data: Buffer | AsyncIterable<Buffer>): Buffer | AsyncIterable<Buffer> {
+        return data;
     }
 }
 
@@ -120,6 +130,7 @@ export class StringParser extends Parser {
 }
 
 Parser
-    .register('application/octet-stream', BufferParser)
-    .register('text/plain',               StringParser)
+    .register('application/octet-stream',          BufferParser)
+    .register('application/vnd.esxx.octet-stream', PassThroughParser)
+    .register('text/plain',                        StringParser)
 ;

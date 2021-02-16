@@ -121,6 +121,7 @@ export class ContentType extends ContentHeader {
     static get formData()   { return new ContentType('multipart/form-data');                 }
     static get html()       { return new ContentType('text/html');                           }
     static get json()       { return new ContentType('application/json');                    }
+    static get stream()     { return new ContentType('application/vnd.esxx.octet-stream');   }
     static get text()       { return new ContentType('text/plain');                          }
     static get urlencoded() { return new ContentType('application/x-www-form-urlencoded');   }
     static get xml()        { return new ContentType('application/xml');                     }

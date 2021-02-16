@@ -73,7 +73,7 @@ export function copyStream(from: NodeJS.ReadableStream, to: NodeJS.WritableStrea
 }
 
 export function isAsyncIterable<T = unknown>(object: any): object is AsyncIterable<T> {
-    return typeof object[Symbol.asyncIterator] === 'function';
+    return typeof object?.[Symbol.asyncIterator] === 'function';
 }
 
 export function isReadableStream(obj: any): obj is NodeJS.ReadableStream;

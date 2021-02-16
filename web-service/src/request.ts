@@ -29,7 +29,7 @@ export class WebRequest implements AuthSchemeRequest {
     public readonly log: Console;
 
     private _body?: Promise<any>;
-    private _finalizers: Array<() => Promise<void>> = [];
+    private _finalizers: Array<() => Promise<unknown>> = [];
     private _maxContentLength: number;
 
     constructor(public incomingMessage: IncomingMessage, config: Required<WebServiceConfig>) {
@@ -116,9 +116,9 @@ export class WebRequest implements AuthSchemeRequest {
         return finalizable;
     }
 
-    close() {
+    async close(): Promise<void> {
         // Run all finalizers, but do propagate first error
-        return Promise.all(this._finalizers.map((finalize) => finalize()));
+        await Promise.all(this._finalizers.map((finalize) => finalize()));
     }
 
     toString(): string {

@@ -18,7 +18,7 @@ export const STATUS      = Symbol('STATUS');
 export const STATUS_TEXT = Symbol('STATUS_TEXT');
 
 export interface Finalizable {
-    [FINALIZE]?: () => Promise<void>;
+    [FINALIZE]?: () => Promise<unknown>;
 }
 
 export interface WithFields<T extends utils.BasicTypes> {

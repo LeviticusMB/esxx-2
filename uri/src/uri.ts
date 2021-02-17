@@ -3,7 +3,7 @@ import { lookup } from 'mime-types';
 import path from 'path';
 import url, { Url, URL } from 'url';
 import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
-import * as utils from './private/utils';
+import { BasicTypes, es6Encoder, esxxEncoder, kvWrapper, Params } from './private/utils';
 
 const urlObject  = (url as any).Url;
 
@@ -21,7 +21,7 @@ export interface Finalizable {
     [FINALIZE]?: () => Promise<unknown>;
 }
 
-export interface WithFields<T extends utils.BasicTypes> {
+export interface WithFields<T extends BasicTypes> {
     [FIELDS]?: T[];
 }
 
@@ -95,11 +95,11 @@ export class IOError extends URIError {
 }
 
 export function uri(strings: TemplateStringsArray, ...values: unknown[]): string {
-    return utils.es6Encoder(strings, values, encodeURI);
+    return es6Encoder(strings, values, encodeURI);
 }
 
 export function uriComponent(strings: TemplateStringsArray, ...values: unknown[]): string {
-    return utils.es6Encoder(strings, values, encodeURIComponent);
+    return es6Encoder(strings, values, encodeURIComponent);
 }
 
 export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): string {
@@ -164,9 +164,9 @@ export class URI extends URL {
     readonly origin!: string;
     readonly protocol!: string;
 
-    constructor(url?: string | URL | Url, params?: utils.Params);
-    constructor(url?: string | URL | Url, base?: string | URL | Url, params?: utils.Params);
-    constructor(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params) {
+    constructor(url?: string | URL | Url, params?: Params);
+    constructor(url?: string | URL | Url, base?: string | URL | Url, params?: Params);
+    constructor(url?: string | URL | Url, base?: string | URL | Url | Params, params?: Params) {
         super(resolveURL(url, base, params).href);
 
         if (arguments.length === 1 && this.constructor !== URI && url instanceof URI && url.constructor === URI) {
@@ -291,28 +291,28 @@ function metadata(err: NodeJS.ErrnoException): Metadata {
     };
 }
 
-function resolveURL(url?: string | URL | Url, base?: string | URL | Url | utils.Params, params?: utils.Params): URL {
+function resolveURL(url?: string | URL | Url, base?: string | URL | Url | Params, params?: Params): URL {
     try {
         // base argument is optional ...
         if (params === undefined && typeof base !== 'string' && !(base instanceof URL) && !(base instanceof urlObject)) {
-            params = base as utils.Params | undefined;
+            params = base as Params | undefined;
             base   = undefined;
         }
 
         // ... and so is params
         if (params !== undefined) {
-            params = utils.kvWrapper(params);
+            params = kvWrapper(params);
         }
 
         if (typeof url === 'string' && params) {
-            url = utils.esxxEncoder(url, params, encodeURIComponent);
+            url = esxxEncoder(url, params, encodeURIComponent);
         }
         else if (url instanceof urlObject) {
             url = (url as Url).href;
         }
 
         if (typeof base === 'string' && params) {
-            base = utils.esxxEncoder(base, params, encodeURIComponent);
+            base = esxxEncoder(base, params, encodeURIComponent);
         }
         else if (base instanceof urlObject) {
             base = (base as Url).href;

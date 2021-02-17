@@ -4,6 +4,7 @@ import { request as requestHTTPS } from 'https';
 import path from 'path';
 import { Readable } from 'stream';
 import { SecureContextOptions } from 'tls';
+import { URL } from 'url';
 import pkg from '../../package.json';
 import { AuthScheme, AuthSchemeRequest } from '../auth-schemes';
 import { Encoder } from '../encoders';

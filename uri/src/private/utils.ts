@@ -81,8 +81,8 @@ export function isReadableStream(obj: NodeJS.ReadableStream): obj is NodeJS.Read
     return obj instanceof EventEmitter && typeof obj.readable === 'boolean' && typeof obj.read === 'function';
 }
 
-export function isDOMNode(obj: unknown): obj is Node {
-    return !!obj && typeof (obj as Node).nodeType === 'number'; /* FIXME */
+export function isDOMNode(obj: unknown): boolean {
+    return !!obj && typeof (obj as any).nodeType === 'number'; /* FIXME */
 }
 
 export function isJSON(obj: unknown): boolean {

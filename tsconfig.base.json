@@ -1,9 +1,8 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2018",
-        "lib": ["es2019" ],
-        "jsx": "react",
+        "module": "CommonJS",
+        "target": "ES2018",
+        "lib": ["ES2019"],
 
         "composite": true,
         "declaration": true,
@@ -14,7 +13,7 @@
         "esModuleInterop": true,
         "experimentalDecorators": true,
         "importHelpers": true,
-        "moduleResolution": "node",
+        "moduleResolution": "Node",
         "resolveJsonModule": true,
 
         "strict": true,

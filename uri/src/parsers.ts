@@ -77,15 +77,21 @@ export abstract class Parser {
     static async serializeToBuffer<T = unknown>(data: T, contentType?: ContentType | string): Promise<[Buffer, ContentType]> {
         const [ stream, ct ] = Parser.serialize(data, contentType);
 
-        return [ await Parser.parse<Buffer>(stream, 'application/octet-stream'), ct ];
+        return [ await Parser.parse<Buffer>(stream, ContentType.bytes), ct ];
     }
 
     private static parsers = new Map<string, typeof Parser>();
 
     private static create(contentType: ContentType): Parser {
-        return new (Parser.parsers.get(contentType.type) ??
-                    Parser.parsers.get(contentType.type.replace(/\/.*/, '/*')) ??
-                    BufferParser as any)(contentType);
+        const parserClass =
+            Parser.parsers.get(contentType.type) ??
+            Parser.parsers.get(contentType.type.replace(/\/.*/, '/*'));
+
+        if (!parserClass) {
+            throw new TypeError(`No parser registered for ${contentType.type}`);
+        }
+
+        return new (parserClass as any)(contentType);
     }
 
     constructor(protected contentType: ContentType) { }

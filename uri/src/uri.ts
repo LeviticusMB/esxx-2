@@ -1,5 +1,5 @@
 import { ContentType, KVPairs, WWWAuthenticate } from '@divine/headers';
-import { lookup } from 'mime-types';
+import { extension, lookup } from 'mime-types';
 import path from 'path';
 import url, { Url, URL } from 'url';
 import { AuthScheme, Credentials, CredentialsProvider } from './auth-schemes';
@@ -127,10 +127,20 @@ export function encodeFilePath(filepath: string, type?: 'posix' | 'windows'): st
     }
 }
 
+export function guessContentType(pathname: string, knownContentType: ContentType | string): ContentType;
+export function guessContentType(pathname: string, knownContentType?: ContentType | string): ContentType | undefined;
 export function guessContentType(pathname: string, knownContentType?: ContentType | string): ContentType | undefined {
     const ct = knownContentType ?? lookup(pathname);
 
     return ct ? new ContentType(ct) : undefined;
+}
+
+export function guessFileExtension(contentType: ContentType | string, invent: true, knownExtension?: string): string;
+export function guessFileExtension(contentType: ContentType | string, invent: false, knownExtension: string): string;
+export function guessFileExtension(contentType: ContentType | string, invent?: boolean, knownExtension?: string): string | undefined {
+    const ct = ContentType.create(contentType);
+
+    return knownExtension ?? (extension(ct.type) || invent && ct.type.replace(/.*?([^/+.]+)$/, '$1') || undefined);
 }
 
 export class URI extends URL {

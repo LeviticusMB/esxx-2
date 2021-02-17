@@ -44,10 +44,6 @@ export class ContentHeader {
         }
     }
 
-    get baseType(): string {
-        return this.type.split('/')[0];
-    }
-
     param(name: string): string | undefined;
     param(name: string, fallback: string): string;
     param(name: string, fallback?: string): string | undefined {
@@ -140,6 +136,14 @@ export class ContentType extends ContentHeader {
         if (charset !== undefined) {
             this.setParam('charset', charset);
         }
+    }
+
+    get baseType(): string {
+        return this.type.split('/')[0];
+    }
+
+    get subType(): string {
+        return this.type.split('/')[1];
     }
 
     get charset(): string | undefined {

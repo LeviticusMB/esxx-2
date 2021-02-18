@@ -8,7 +8,7 @@ export class EncoderError extends IOError {
         super(message, cause, data);
 
         if (cause instanceof EncoderError) {
-            cause.message = `${this.message}: ${cause.message}`;
+            cause.message = this.message;
             return cause;
         }
     }

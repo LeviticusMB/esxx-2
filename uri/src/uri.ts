@@ -86,11 +86,11 @@ export interface DirectoryEntry {
 
 export class IOError extends URIError {
     constructor(message: string, public cause?: Error, public data?: object & Metadata) {
-        super(message);
+        super(cause ? `${message}: ${cause.message}` : message);
     }
 
     toString(): string {
-        return `${this.constructor.name}: ${this.cause ? `${this.message}: ${this.cause.message}` : this.message}`
+        return `${this.constructor.name}: ${this.message}`
     }
 }
 

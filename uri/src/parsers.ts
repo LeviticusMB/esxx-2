@@ -23,7 +23,7 @@ export class ParserError extends IOError {
         super(message, cause, data);
 
         if (cause instanceof ParserError) {
-            cause.message = `${this.message}: ${cause.message}`;
+            cause.message = this.message;
             return cause;
         }
     }

@@ -1,13 +1,13 @@
 import { ContentType } from '@divine/headers';
-import { AuthSchemeRequest, Finalizable, FINALIZE, Parser } from '@divine/uri';
+import { AuthSchemeRequest, Finalizable, FINALIZE, Parser, ParserError } from '@divine/uri';
 import cuid from 'cuid';
 import { IncomingHttpHeaders, IncomingMessage } from 'http';
 import { TLSSocket } from 'tls';
 import { UAParser } from 'ua-parser-js';
 import { URL } from 'url';
 import { WebError, WebStatus } from './error';
+import { decorateConsole, SizeLimitedReadableStream } from './private/utils';
 import { WebServiceConfig } from './service';
-import { SizeLimitedReadableStream, decorateConsole } from './private/utils';
 
 export interface UserAgent {
     ua?:     string;
@@ -89,20 +89,27 @@ export class WebRequest implements AuthSchemeRequest {
     }
 
     async body<T extends object>(contentType?: ContentType | string, maxContentLength = this._maxContentLength): Promise<T> {
-        if (!this._body) {
-            const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
+        try {
+            if (!this._body) {
+                const tooLarge = `Maximum payload size is ${maxContentLength} bytes`;
 
-            if (Number(this.header('content-length', '-1')) > maxContentLength) {
-                throw new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
+                if (Number(this.header('content-length', '-1')) > maxContentLength) {
+                    throw new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge);
+                }
+
+                const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
+                const body = this._body = Parser.parse<T>(this.incomingMessage.pipe(limited), ContentType.create(contentType, this.header('content-type')));
+
+                return this.addFinalizer(await body);
             }
-
-            const limited = new SizeLimitedReadableStream(maxContentLength, () => new WebError(WebStatus.PAYLOAD_TOO_LARGE, tooLarge));
-            const body = this._body = Parser.parse<T>(this.incomingMessage.pipe(limited), ContentType.create(contentType, this.header('content-type')));
-
-            return this.addFinalizer(await body);
+            else {
+                return await this._body;
+            }
         }
-        else {
-            return this._body;
+        catch (err) {
+            throw err instanceof WebError    ? err :
+                  err instanceof ParserError ? new WebError(WebStatus.UNSUPPORTED_MEDIA_TYPE, err.message) :
+                  err;
         }
     }
 

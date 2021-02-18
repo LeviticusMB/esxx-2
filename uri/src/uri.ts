@@ -90,7 +90,7 @@ export class IOError extends URIError {
     }
 
     toString(): string {
-        return `${this.constructor.name}: ${this.cause ? `${this.message}: ${this.cause.toString()}` : this.message}`
+        return `${this.constructor.name}: ${this.cause ? `${this.message}: ${this.cause.message}` : this.message}`
     }
 }
 
@@ -269,7 +269,7 @@ export class URI extends URL {
     }
 
     protected makeIOError(err: NodeJS.ErrnoException): IOError {
-        return err instanceof IOError ? err : new IOError(`URI ${this} operation failed`, err, metadata(err));
+        return new IOError(`URI ${this} operation failed`, err, err instanceof IOError ? undefined : metadata(err));
     }
 
     protected getBestSelector<T extends SelectorBase>(sels: T[] | undefined, challenge?: WWWAuthenticate): T | null {

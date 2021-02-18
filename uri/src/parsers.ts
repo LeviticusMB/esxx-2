@@ -1,7 +1,7 @@
 import { ContentType } from '@divine/headers';
 import iconv from 'iconv-lite';
 import { BasicTypes, isAsyncIterable, isDOMNode, isJSON, toAsyncIterable } from './private/utils';
-import { Finalizable, IOError, NULL, VOID } from './uri';
+import { Finalizable, IOError, Metadata, NULL, VOID } from './uri';
 
 export function toObject<T extends object>(result: unknown): T {
     return result === undefined       ? Object(VOID) :
@@ -19,6 +19,14 @@ export function toPrimitive(value: any): BasicTypes | symbol | undefined {
 }
 
 export class ParserError extends IOError {
+    constructor(message: string, public cause?: Error, public data?: object & Metadata) {
+        super(message, cause, data);
+
+        if (cause instanceof ParserError) {
+            cause.message = `${this.message}: ${cause.message}`;
+            return cause;
+        }
+    }
 }
 
 export abstract class Parser {
@@ -88,7 +96,7 @@ export abstract class Parser {
             Parser.parsers.get(contentType.type.replace(/\/.*/, '/*'));
 
         if (!parserClass) {
-            throw new TypeError(`No parser registered for ${contentType.type}`);
+            throw new ParserError(`No parser availble for this type`);
         }
 
         return new (parserClass as any)(contentType);

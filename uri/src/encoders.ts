@@ -1,9 +1,17 @@
 import { Transform } from 'stream';
 import { createBrotliCompress, createBrotliDecompress, createDeflate, createGunzip, createGzip, createInflate } from 'zlib';
 import { isAsyncIterable, toAsyncIterable, toReadableStream } from './private/utils';
-import { IOError } from './uri';
+import { IOError, Metadata } from './uri';
 
 export class EncoderError extends IOError {
+    constructor(message: string, public cause?: Error, public data?: object & Metadata) {
+        super(message, cause, data);
+
+        if (cause instanceof EncoderError) {
+            cause.message = `${this.message}: ${cause.message}`;
+            return cause;
+        }
+    }
 }
 
 export abstract class Encoder {

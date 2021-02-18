@@ -1,10 +1,11 @@
 import { ContentType } from '@divine/headers';
+import { R_OK } from 'constants';
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import { lookup } from 'mime-types';
 import { basename, join, normalize } from 'path';
 import { Parser } from '../parsers';
-import { DirectoryEntry, encodeFilePath, Metadata, URI, VOID } from '../uri';
 import { copyStream, toReadableStream } from '../private/utils';
+import { DirectoryEntry, encodeFilePath, Metadata, URI, VOID } from '../uri';
 
 export class FileURI extends URI {
     static create(path: string, base?: URI): URI {
@@ -60,6 +61,7 @@ export class FileURI extends URI {
 
     async load<T extends object>(recvCT?: ContentType | string): Promise<T & Metadata> {
         try {
+            await fs.access(this._path, R_OK); // Throws immediately, unlike createReadStream()
             const stream = createReadStream(this._path, { flags: 'r', encoding: undefined });
 
             return await Parser.parse<T>(stream, ContentType.create(recvCT, lookup(this._path) || undefined));

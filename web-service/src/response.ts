@@ -17,7 +17,7 @@ export class WebResponse {
     public body: Buffer | NodeJS.ReadableStream | null;
 
     constructor(public status: WebStatus, body?: null | NodeJS.ReadableStream | Buffer | string | number | bigint | boolean | Date | object, public headers: WebResponseHeaders = {}) {
-        const defaultCT = (ct: ContentType) => this.headers['content-type'] = this.headers['content-type'] ?? ct;
+        const defaultCT = (ct: ContentType) => this.headers['content-type'] ??= ct;
 
         if (body === undefined || body === null) {
             this.body = null;
@@ -34,7 +34,7 @@ export class WebResponse {
             try {
                 const [serializied, ct] = Parser.serialize(body, this.headers['content-type']);
 
-                defaultCT(ct);
+                this.headers['content-type'] = ct; // Force parser-provided content-type (see MultiPartParser.serialize())
                 this.body = serializied instanceof Buffer ? serializied : Readable.from(serializied);
             }
             catch (err) {

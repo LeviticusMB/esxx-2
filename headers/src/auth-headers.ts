@@ -3,10 +3,24 @@ export interface AuthHeaderParams {
 }
 
 // Like RFC 7235, but very forgiving
-const AUTH_SCHEME  = /\s*(?<scheme>[^,\s]+)/;
-const AUTH_PARAM   = /\s*(?<param>[^=\s]+)\s*=\s*(?:"(?<qvalue>(?:\\(?:\\\\)*"|[^"])*)"|(?<value>[^=,\s]+))\s*,?/;
-const AUTH_TOKEN68 = /\s*(?<token68>[-._~+/a-zA-Z0-9]+=*)\s*,?/;
-const AUTH_HEADER  = RegExp(`${AUTH_SCHEME.source}(?:(?<params>(?:${AUTH_PARAM.source})+)|${AUTH_TOKEN68.source})?`);
+// const AUTH_SCHEME  = /\s*(?<scheme>[^,\s]+)/;
+// const AUTH_PARAM   = /\s*(?<param>[^=\s]+)\s*=\s*(?:"(?<qvalue>(?:\\(?:\\\\)*"|[^"])*)"|(?<value>[^=,\s]+))\s*,?/;
+// const AUTH_TOKEN68 = /\s*(?<token68>[-._~+/a-zA-Z0-9]+=*)\s*,?/;
+// const AUTH_HEADER  = RegExp(`${AUTH_SCHEME.source}(?:(?<params>(?:${AUTH_PARAM.source})+)|${AUTH_TOKEN68.source})?`);
+
+// This library must work in old browsers, so named capture groups :(
+const AUTH_SCHEME  = /\s*([^,\s]+)/;
+const AUTH_PARAM   = /\s*([^=\s]+)\s*=\s*(?:"((?:\\(?:\\\\)*"|[^"])*)"|([^=,\s]+))\s*,?/;
+const AUTH_TOKEN68 = /\s*([-._~+/a-zA-Z0-9]+=*)\s*,?/;
+const AUTH_HEADER  = RegExp(`${AUTH_SCHEME.source}(?:((?:${AUTH_PARAM.source})+)|${AUTH_TOKEN68.source})?`);
+
+function authParamGroups(params: RegExpMatchArray) {
+    return { param: params[1], qvalue: params[2], value: params[3] };
+}
+
+function headerGroups(headers: RegExpMatchArray) {
+    return { scheme: headers[1], params: headers[2], param: headers[3], qvalue: headers[4], value: headers[5], token68: headers[6] };
+}
 
 export abstract class AuthHeader {
     static split(unparsed: string): string[] {
@@ -32,7 +46,7 @@ export abstract class AuthHeader {
         }
 
         const parsed = AUTH_HEADER.exec(unparsed);
-        const groups = parsed?.groups;
+        const groups = parsed && headerGroups(parsed);
         const scheme = groups?.scheme?.toLowerCase();
 
         if (!scheme || !groups /* make TS/ESLint happy */) {
@@ -44,7 +58,7 @@ export abstract class AuthHeader {
 
         if (groups.params) {
             for (let pattern = new RegExp(AUTH_PARAM, 'g'), match = pattern.exec(groups.params); match; match = pattern.exec(groups.params)) {
-                const groups = match.groups!;
+                const groups = authParamGroups(match);
                 const quoted = groups.qvalue !== undefined;
 
                 this.params[groups.param] = { value: quoted ? groups.qvalue.replace(/\\(.)/g, '$1') : groups.value, quoted };

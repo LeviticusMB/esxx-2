@@ -65,12 +65,10 @@ export class ContentHeader {
         let params = '';
 
         for (const [name, value] of Object.entries(this.params)) {
-            const safe = value!.replace(/[^\u0020-\u007e\u00a1-\u00ff]/g, '_');
+            const safe = value!.replace(/[^\u0020-\u007e]/g, '_');
 
             if (safe !== value) {
-                const unsafe = `utf-8''${encodeURI(value!)}`;
-
-                params += `;${name}*="${unsafe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+                params += `;${name}*=utf-8''${percentEncode(value!)}`;
             }
 
             params += `;${name}="${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -149,4 +147,10 @@ export class ContentType extends ContentHeader {
     get charset(): string | undefined {
         return this.param('charset');
     }
+}
+
+/** Percent-encode everything except 0-9, A-Z, a-z, `-`, `_`, `.`, `!` and `~`. */
+function percentEncode(str: string) {
+    return encodeURIComponent(str)
+        .replace(/['()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
 }

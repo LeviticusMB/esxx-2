@@ -67,11 +67,11 @@ export class ContentHeader {
         for (const [name, value] of Object.entries(this.params)) {
             const safe = value!.replace(/[^\u0020-\u007e]/g, '_');
 
+            params += `;${name}="${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+
             if (safe !== value) {
                 params += `;${name}*=utf-8''${percentEncode(value!)}`;
             }
-
-            params += `;${name}="${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
         }
 
         return this.type + params;

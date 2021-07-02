@@ -1,6 +1,6 @@
 {
   "name": "@divine/uri",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "The Divine URI class for accessing and manipulating local and remote resources",
   "author": "Martin Blom <martin@blom.org>",
   "license": "Apache-2.0",
@@ -21,7 +21,7 @@
     "collectCoverage": true
   },
   "dependencies": {
-    "@divine/headers": "^1.3.2",
+    "@divine/headers": "^1.3.3",
     "@iarna/toml": "^2.2.5",
     "dicer": "^0.3.0",
     "iconv-lite": "^0.6.2",

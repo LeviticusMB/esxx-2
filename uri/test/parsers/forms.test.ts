@@ -1,4 +1,5 @@
-import { Parser, FormData, FIELDS, MultiPartData, CacheURI } from '../../src';
+import { ContentDisposition, ContentType } from '@divine/headers';
+import { Parser, FormData, FIELDS, MultiPartData, CacheURI, MimeMessage } from '../../src';
 
 describe('the FormParser class', () => {
     const ct = 'application/x-www-form-urlencoded';
@@ -119,3 +120,34 @@ describe('the MultiPartParser class', () => {
         expect(encoded2.toString()).toBe(encoded1.toString());
     });
 });
+
+const javamail = `
+content-type: text/plain;
+	name*=UTF-8''Hall%C3%A5%20d%C3%A4r%20%F0%9F%98%80
+content-disposition: inline;
+	filename*=UTF-8''Hall%C3%A5%20d%C3%A4r%20%F0%9F%98%80
+content-transfer-encoding: binary
+
+Body
+`.replace(/\n/g, '\r\n').trimStart();
+
+describe('the MessageParser class', () => {
+    it('decodes JavaMail messages correctly', async () => {
+        expect.assertions(7);
+
+        const decoded = await Parser.parse<MimeMessage>(javamail, 'message/*');
+        expect(decoded.type.type).toBe('text/plain');
+        expect(decoded.type.param('name')).toBe('Hallå där 😀');
+        expect(decoded.value).toBe('Body\r\n');
+
+        const ct = ContentType.create(decoded.headers['content-type']);
+        const cd = ContentDisposition.create(decoded.headers['content-disposition']);
+
+        expect(ct.type).toBe('text/plain');
+        expect(ct.params['name']).toBe('Hallå där 😀');
+
+        expect(cd.type).toBe('inline');
+        expect(cd.filename).toBe('Hallå där 😀');
+    });
+});
+
